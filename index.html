@@ -5,64 +5,53 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bravo Study Tools</title>
 <meta name="description" content="Bravo Company OCS study tools: Phase Up Recall, ASIP and MBITR radio trainers, M249 / M240B weapons trainers.">
+<meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121311" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
-/* One screen, one tap to any tool. Same palette and type as the trainers. */
+/* Ivory and ink: one numbered list, hairlines instead of boxes, one deep green accent. System fonts only. */
 :root {
-  --bg: #e2e4d9; --surface: #f2f3ec; --ink: #1b2016; --muted: #586050; --line: #c4c8b6;
-  --band: #1e231c; --band-ink: #f4f5ef; --accent: #9a5a0c;
-  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --bg: #F5F3EE; --ink: #141414; --muted: #6B675F; --line: #DEDAD0; --accent: #2F4A3A; --hover: rgba(47, 74, 58, .05);
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #161a13; --surface: #20251c; --ink: #e8eadf; --muted: #a3aa96; --line: #384030; --band: #0e110c; --accent: #e0a24a; }
+  :root { --bg: #121311; --ink: #ECEAE3; --muted: #9C998F; --line: #2B2C28; --accent: #9DB8A2; --hover: rgba(157, 184, 162, .06); }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--ui); -webkit-text-size-adjust: 100%; }
-.wrap { max-width: 640px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-header { background: var(--band); color: var(--band-ink); padding: calc(env(safe-area-inset-top, 0px) + 28px) 0 24px; }
-.eyebrow { margin: 0 0 6px; font: 700 14px/1 var(--stencil); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-h1 { margin: 0; font: 700 36px/1 var(--stencil); letter-spacing: .04em; text-transform: uppercase; }
-header p.sub { margin: 10px 0 0; color: #c9cdbf; font-size: 15px; }
-main { padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 32px); }
-h2 { margin: 24px 0 8px; font: 700 14px/1 var(--stencil); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-a.tool { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 64px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
-a.tool:hover { border-color: var(--muted); }
-a.tool:active { transform: translateY(1px); }
-a.tool:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.tool span { flex: 1; min-width: 0; }
-.tool b { display: block; font-size: 17px; }
-.tool small { display: block; margin-top: 2px; color: var(--muted); font-size: 14px; }
-.tool i { font-style: normal; font-size: 22px; color: var(--accent); }
-footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
-footer p { margin: 0 0 8px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--sans); -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 56px) max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 40px) max(20px, env(safe-area-inset-left, 0px)); }
+.eyebrow { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+h1 { margin: 0; font: 400 44px/1.02 var(--serif); letter-spacing: -.01em; }
+.sub { margin: 14px 0 40px; color: var(--muted); font-size: 16px; max-width: 30em; }
+ol { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
+a.tool { display: flex; align-items: center; gap: 16px; padding: 18px 8px; min-height: 72px; border-top: 1px solid var(--line); color: inherit; text-decoration: none; transition: background-color .15s; }
+a.tool:hover { background: var(--hover); }
+a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.n { width: 24px; flex: none; align-self: flex-start; padding-top: 5px; font: 500 13px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--accent); }
+.tool span.t { flex: 1; min-width: 0; }
+.tool b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -.005em; }
+.tool small { display: block; margin-top: 3px; color: var(--muted); font-size: 14px; }
+.tool i { font-style: normal; font-size: 20px; color: var(--accent); transition: transform .15s; }
+a.tool:hover i { transform: translateX(3px); }
+footer { margin-top: 36px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+footer p { margin: 0 0 10px; }
+@media (max-width: 380px) { h1 { font-size: 38px; } .sub { margin-bottom: 32px; } a.tool { gap: 12px; padding: 16px 4px; } }
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <p class="eyebrow">Bravo Company · OCS</p>
-    <h1>Study Tools</h1>
-    <p class="sub">Practice the hands-on tests and the phase up on your phone. No sign-in.</p>
-  </div>
-</header>
 <main class="wrap">
-  <h2>Phase up</h2>
-  <ul>
-    <li><a class="tool" href="phaseup/"><span><b>Phase Up Recall</b><small>The cadre knowledge sheet, a few pieces at a time.</small></span><i aria-hidden="true">›</i></a></li>
-  </ul>
-  <h2>Radios</h2>
-  <ul>
-    <li><a class="tool" href="asip/"><span><b>ASIP radio</b><small>AN/PRC-119F · load single-channel frequencies.</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="mbitr/"><span><b>MBITR radio</b><small>AN/PRC-148 · load a SINCGARS single-channel frequency.</small></span><i aria-hidden="true">›</i></a></li>
-  </ul>
-  <h2>Weapons · M249 / M240B</h2>
-  <ul>
-    <li><a class="tool" href="weapons/"><span><b>Take apart and put back</b><small>3D maintenance: each group on its mat label.</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="weapons/drills/"><span><b>Clear, check, load</b><small>Clearing, functions check, load · malfunction · unload.</small></span><i aria-hidden="true">›</i></a></li>
-  </ul>
+  <p class="eyebrow">Bravo Company · OCS</p>
+  <h1>Study Tools</h1>
+  <p class="sub">Practice the hands-on tests and the phase up on your phone. No sign-in.</p>
+  <ol>
+    <li><a class="tool" href="phaseup/"><span class="n">01</span><span class="t"><b>Phase Up Recall</b><small>The whole cadre knowledge sheet</small></span><i aria-hidden="true">›</i></a></li>
+    <li><a class="tool" href="asip/"><span class="n">02</span><span class="t"><b>ASIP radio</b><small>AN/PRC-119F · load frequencies</small></span><i aria-hidden="true">›</i></a></li>
+    <li><a class="tool" href="mbitr/"><span class="n">03</span><span class="t"><b>MBITR radio</b><small>AN/PRC-148 · SINCGARS frequency</small></span><i aria-hidden="true">›</i></a></li>
+    <li><a class="tool" href="weapons/"><span class="n">04</span><span class="t"><b>Take apart, put back</b><small>M249 and M240B in 3D</small></span><i aria-hidden="true">›</i></a></li>
+    <li><a class="tool" href="weapons/drills/"><span class="n">05</span><span class="t"><b>Clear, check, load</b><small>Clearing and functions check</small></span><i aria-hidden="true">›</i></a></li>
+  </ol>
   <footer>
     <p>The radio and weapons trainers each have a Guided mode that coaches you and a timed Exam graded like the lane.</p>
     <p>Content follows the Bravo Company class score sheets and the cadre knowledge sheet as of November 2026. If your cadre's sheet says something different, the sheet wins.</p>
