@@ -25,7 +25,13 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(-
 .eyebrow { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
 h1 { margin: 0; font: 400 44px/1.02 var(--serif); letter-spacing: -.01em; }
 .sub { margin: 14px 0 40px; color: var(--muted); font-size: 16px; max-width: 30em; }
-ol { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--line); }
+section + section { margin-top: 48px; }
+.sh { display: flex; align-items: baseline; gap: 12px; }
+h2 { margin: 0; font: 400 28px/1.1 var(--serif); letter-spacing: -.005em; }
+.cnt { margin-left: auto; color: var(--muted); font-size: 13px; }
+.sd { margin: 6px 0 14px; color: var(--muted); font-size: 14px; }
+ol { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+ol li:first-child a.tool { border-top: 0; }
 a.tool { display: flex; align-items: center; gap: 16px; padding: 18px 8px; min-height: 72px; border-top: 1px solid var(--line); color: inherit; text-decoration: none; transition: background-color .15s; }
 a.tool:hover { background: var(--hover); }
 a.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -45,15 +51,24 @@ footer p { margin: 0 0 10px; }
   <p class="eyebrow">Bravo Company · OCS</p>
   <h1>Study Tools</h1>
   <p class="sub">Practice the hands-on tests and the phase up on your phone. No sign-in.</p>
-  <ol>
-    <li><a class="tool" href="phaseup/"><span class="n">01</span><span class="t"><b>Phase Up Recall</b><small>The whole cadre knowledge sheet</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="asip/"><span class="n">02</span><span class="t"><b>ASIP radio</b><small>AN/PRC-119F · load frequencies</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="mbitr/"><span class="n">03</span><span class="t"><b>MBITR radio</b><small>AN/PRC-148 · SINCGARS frequency</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="weapons/"><span class="n">04</span><span class="t"><b>Take apart, put back</b><small>M249 and M240B in 3D</small></span><i aria-hidden="true">›</i></a></li>
-    <li><a class="tool" href="weapons/drills/"><span class="n">05</span><span class="t"><b>Clear, check, load</b><small>Clearing and functions check</small></span><i aria-hidden="true">›</i></a></li>
-  </ol>
+  <section aria-labelledby="s-wtbd">
+    <header class="sh"><h2 id="s-wtbd">WTBD</h2><span class="cnt">4 trainers</span></header>
+    <p class="sd">Warrior Tasks and Battle Drills · Guided, then a timed Exam</p>
+    <ol>
+      <li><a class="tool" href="asip/"><span class="n">01</span><span class="t"><b>ASIP radio</b><small>AN/PRC-119F · load frequencies</small></span><i aria-hidden="true">›</i></a></li>
+      <li><a class="tool" href="mbitr/"><span class="n">02</span><span class="t"><b>MBITR radio</b><small>AN/PRC-148 · SINCGARS frequency</small></span><i aria-hidden="true">›</i></a></li>
+      <li><a class="tool" href="weapons/"><span class="n">03</span><span class="t"><b>M249 / M240B maintenance</b><small>Take apart and put back, in 3D</small></span><i aria-hidden="true">›</i></a></li>
+      <li><a class="tool" href="weapons/drills/"><span class="n">04</span><span class="t"><b>M249 / M240B drills</b><small>Clear, functions check, malfunctions</small></span><i aria-hidden="true">›</i></a></li>
+    </ol>
+  </section>
+  <section aria-labelledby="s-phaseup">
+    <header class="sh"><h2 id="s-phaseup">Phase Up</h2><span class="cnt">1 tool</span></header>
+    <p class="sd">The cadre knowledge sheet for the oral phase up</p>
+    <ol>
+      <li><a class="tool" href="phaseup/"><span class="n">05</span><span class="t"><b>Phase Up Recall</b><small>Learn the whole sheet a few pieces at a time</small></span><i aria-hidden="true">›</i></a></li>
+    </ol>
+  </section>
   <footer>
-    <p>The radio and weapons trainers each have a Guided mode that coaches you and a timed Exam graded like the lane.</p>
     <p>Content follows the Bravo Company class score sheets and the cadre knowledge sheet as of November 2026. If your cadre's sheet says something different, the sheet wins.</p>
     <p>Progress stays in your own browser.</p>
   </footer>
