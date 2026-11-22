@@ -166,6 +166,8 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .hw { font-style: italic; color: #13284f; border-bottom: 1.5px dashed #13284f; white-space: nowrap; }
 .pen { font: 700 13px var(--mono); color: #13284f; }
 .prt { color: #222; }
+.csn { display: inline-flex; flex-direction: column; line-height: 1.25; }
+.csn small { color: #555; font-size: 11px; }
 .wl input { min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: #13284f; font: 700 16px var(--mono); }
 #gGrid { width: 7.4em; } #gAlt { width: 3.4em; } #gDir { width: 3.6em; } #wOt { width: 2.4em; } #wDist { width: 3.6em; }
 .wr input.spi { width: 2.6em; } .wr input.dvi { width: 3.2em; }
@@ -896,6 +898,7 @@ legend { padding: 0 4px; font-weight: 650; }
       w.rounds = [1, 1, 2, 3][Math.floor(r2() * 4)];
       w.tgtNo = 1 + Math.floor(r2() * 29);
       // the choices on the sheet: the right one plus two that sound alike, in a fixed order per card
+      // (cs is no longer shown: line 1 is printed; it is still drawn so every card stays the same)
       const mix = arr => arr.map(v => [r2(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
       const csX = [...FOS, ...FDCS].filter(v => v !== w.fo && v !== w.fdcCs)[Math.floor(r2() * 8)];
       const d4 = w.tn.slice(2), tnX = [];
@@ -1663,12 +1666,12 @@ legend { padding: 0 4px; font-weight: 650; }
   const ROWS = 5, LR = [['L', '(L)'], ['R', '(R)']], LRT = { L: '(L)', R: '(R)' }, ADT = { A: '(Add)', D: '(Drop)' };
   const LNAME = k => k[0] === 'R' ? `row ${+k.slice(1) + 1}` : { L1: 'line 1', L2: 'line 2', L3: 'line 3', LM: 'the MTO', OD: 'DISTANCE', LE: 'End of Mission' }[k];
   function renderSheet() {
-    const o = st.w.opts, cs = o.cs.map(v => [v, v]), tn = o.tn.map(v => [v, v]);
+    const w = st.w, o = w.opts, tn = o.tn.map(v => [v, v]);
     let rows = '';
     for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="cell">${inp('sp' + i, 'spi', 3, 'mils')}${chipRow('ss' + i, LR)}</span><span class="cell">${chipRow('ds' + i, LR)}${inp('dv' + i, 'dvi', 4, 'm')}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
     $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
       <div class="sbox">
-        <div class="wl" id="L1"><span class="n">1.</span>${chipRow('c1a', cs)}<span class="pr">(de) this is</span>${chipRow('c1b', cs)}<span class="pr">AF/FFE</span>${chipRow('c1m', [['AF', 'Adjust Fire'], ['FFE', 'Fire for Effect']])}${snd('x1', 'Over')}</div>
+        <div class="wl" id="L1"><span class="n">1.</span><span class="csn"><small>FDC call sign</small><span class="pen">${w.fdcCs}</span></span><span class="pr">(de) this is</span><span class="csn"><small>Your call sign</small><span class="pen">${w.fo}</span></span><span class="pr">AF/FFE</span><span class="pen">Adjust Fire</span>${snd('x1', 'Over')}</div>
         <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '6 or 8')}<span class="pr">ALT</span>${inp('gAlt', '', 4, 'm')}<span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</div>
         <div class="wl" id="L3"><span class="n">3.</span><s>Target Description</s><span class="pen">${L3TXT}</span>${snd('x3', 'Over')}</div>
         <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s>${chipRow('mC', [['NA', 'N/A'], ['AMMO', 'Ammo'], ['GRID', 'Grid']])}<s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
@@ -1802,15 +1805,11 @@ legend { padding: 0 4px; font-weight: 650; }
     if (p.next) p.next();
     refresh();
   }
-  const ADJ = { AF: 'ADJUST FIRE', FFE: 'FIRE FOR EFFECT' };
   const roundsTxt = n => `${n} ROUND${+n > 1 ? 'S' : ''}`;
   // what a line says on the radio (rb = the FDC's read-back); err = why the FDC cannot copy it (SAY AGAIN)
   function lineMsg(id) {
     const s = st.sheet;
-    if (id === 'L1') {
-      if (!s.c1a || !s.c1b || !s.c1m) return { err: 'Line 1 needs who you call, who you are, and AF/FFE.', el: !s.c1a ? 'c1a' : !s.c1b ? 'c1b' : 'c1m' };
-      return { text: `${s.c1a}, THIS IS ${s.c1b}, ${ADJ[s.c1m]}, OVER`, rb: `${s.c1b}, THIS IS ${s.c1a}, ${ADJ[s.c1m]}, OVER` };
-    }
+    if (id === 'L1') { const w = st.w; return { text: `${w.fdcCs}, THIS IS ${w.fo}, ADJUST FIRE, OVER`, rb: `${w.fo}, THIS IS ${w.fdcCs}, ADJUST FIRE, OVER` }; }
     if (id === 'L2') {
       const gd = digits(s.gGrid), alt = num(s.gAlt), dir = num(s.gDir);
       if (![6, 8].includes(gd.length)) return { err: 'Grid: 6 or 8 digits.', el: 'gGrid' };
@@ -1860,12 +1859,12 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     logLine('fo', m.text);
     let then = null;
-    if (id === 'L1') { R.l1 = { a: s.c1a, b: s.c1b, m: s.c1m, text: m.text }; R.lastN = 8; then = () => { R.l1Ack = true; }; }
+    if (id === 'L1') { R.l1 = { a: w.fdcCs, b: w.fo, m: 'AF', text: m.text }; R.lastN = 8; then = () => { R.l1Ack = true; }; }
     else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: num(s.gAlt), dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.dir = R.l2.dir; R.lastN = 9; then = () => { R.l2Ack = true; }; }
     else if (id === 'L3') {
       R.l3 = true; R.lastN = 10;
       then = () => { R.l3Ack = true; F.waitRx = true; later(2000 * K(), () => { F.waitRx = false; R.mtoRx = true; fdcOver(`MESSAGE TO OBSERVER, ${w.bty}, ${roundsTxt(w.rounds)}, TARGET NUMBER ${w.tn}, OVER`, 'mto', 'mto', 11); }); };
-    } else if (id === 'LM') { R.mto = { u: s.mU, c: s.mC, n: s.mN, tn: s.mT }; F.pend = null; R.lastN = 11; F.waitRx = true; later(2500 * K(), () => { F.waitRx = false; R.l1.m === 'FFE' ? fireFFE() : fireAdj(); }); refresh(); return; }
+    } else if (id === 'LM') { R.mto = { u: s.mU, c: s.mC, n: s.mN, tn: s.mT }; F.pend = null; R.lastN = 11; F.waitRx = true; later(2500 * K(), () => { F.waitRx = false; fireAdj(); }); refresh(); return; }
     else if (id === 'LE') { const tn = s.eT; R.eom = { tn }; F.phase = 'done'; later(1100 * K(), () => { fdcSay(`END OF MISSION, TARGET NUMBER ${tn}, ${EOMTXT}, OUT`); later(1500, finish); }); refresh(); return; }
     else {
       const e = expCorr(), dv = num(s['dv' + k]), ds = s['ds' + k], rk = s['rk' + k], rm = s['rm' + k], dev = ds && dv ? (ds === 'L' ? -dv : dv) : 0, rng = rk ? (rk === 'A' ? 1 : -1) * +rm : 0, ffe = rm === '50';
@@ -1985,7 +1984,6 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'ot') return { wOt: t.otf };
     if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 6) } : null; }
     if (s === 'alt') { const P = plotPoint(); return { gAlt: P ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : t.alt }; }
-    if (s === 'l1') return { c1a: w.fdcCs, c1b: w.fo, c1m: 'AF' };
     if (s === 'mto') return { mU: w.bty, mC: 'NA', mN: String(w.rounds), mT: w.tn };
     if (s === 'eom') return { eT: w.tn };
     if (s === 'spot' || s === 'corr') {
@@ -2023,8 +2021,6 @@ legend { padding: 0 4px; font-weight: 650; }
     if (/^dv/.test(id)) return x % 10 ? 'Round it to the nearest 10 m.' : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m.`;
     if (/^rk/.test(id)) return !e.rng ? 'Level with the target: leave Add/Drop blank.' : e.rng.k === 'A' ? 'The burst is short (in front): Add.' : 'The burst is over (beyond): Drop.';
     if (/^rm/.test(id)) return !e.rng ? 'Level with the target: 50FFE.' : F.bracketed ? `Bracketed: half of ${F.lastMag}.` : 'No bracket yet: 400.';
-    if (id === 'c1a' || id === 'c1b') return 'The FDC\'s call sign first, then yours (Given box).';
-    if (id === 'c1m') return 'A grid mission starts with Adjust Fire.';
     if (id === 'mC') return 'The MTO announced no change: N/A.';
     if (/^m[UNT]$/.test(id)) return 'Copy it from the FDC\'s MTO under the view.';
     if (id === 'eT') return 'Use the TGT # from the MTO.';
@@ -2061,7 +2057,7 @@ legend { padding: 0 4px; font-weight: 650; }
       case 'plot': return { title: 'Plot the target', tip: `Press <strong>Plot ✕</strong>: ✕ = ${fmt4(t.gdir)} mils, ${t.dist} m from ◎`, bullets: ['Plot lays the protractor along your direction and marks ✕ at the distance.'] };
       case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 6)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up. 6 digits = 100 m; 8 digits also work.'] }; }
       case 'alt': { const P = plotPoint(), h = P ? groundAt(w, P.x, P.y) : t.h, lo = Math.floor(h / 10) * 10; return { title: 'Read the altitude', tip: `ALT → <b>${Math.round(h / 5) * 5}</b>: the ground at ✕ is between the ${lo} and ${lo + 10} m contours (about ${Math.round(h)}) → nearest 5`, bullets: ['Zoomed in on ✕, the map prints the value of each contour near it (Guided only: the exam prints none, so there you count the lines). Contours every 10 m; the darker ones every 50 m.'] }; }
-      case 'l1': return { title: 'Line 1: who and what', tip: `<b>${w.fdcCs}</b> (de) this is <b>${w.fo}</b> · AF/FFE <b>Adjust Fire</b> → <strong>Send (Over)</strong>`, bullets: ['The FDC\'s call sign first, then yours (Given box).'] };
+      case 'l1': return { title: 'Line 1: who and what', tip: `Line 1 is printed: <b>${w.fdcCs}</b> (FDC call sign) (de) this is <b>${w.fo}</b> (your call sign) · Adjust Fire → <strong>Send (Over)</strong>`, bullets: ['The FDC\'s call sign first, then yours (Given box). A grid mission starts with Adjust Fire.'] };
       case 'l2': return { title: 'Line 2: where', tip: 'Line 2 is filled from Phase 1 → <strong>Send (Over)</strong>', bullets: [] };
       case 'l3': return { title: 'Line 3: what', tip: 'Line 3 is printed → <strong>Send (Over)</strong>', bullets: [] };
       case 'reply': { const p = F.pend; return { title: 'Answer the FDC', tip: `FDC: ${esc(p.msg)} → tap <b>${esc(p.want)}</b>`, bullets: [REPLYWHY[p.kind]] }; }
@@ -2270,7 +2266,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, t = truth();
     $('mission').innerHTML = `<span>You <b>${w.fo}</b> → FDC <b>${w.fdcCs}</b></span><span>TGT <b>${w.tgtNo}</b></span><button class="linkbtn" id="newCard">New card</button>`;
     $('newCard').addEventListener('click', () => newCard());
-    $('given').innerHTML = `<div class="gt">Given by the evaluator</div><span>Start position</span><b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b><span>You</span><b>${w.fo}</b><span>FDC</span><b>${w.fdcCs}</b><span>Magnetic direction to TGT ${w.tgtNo}</span><b>${fmt4(t.mag)} mils</b><span>G-M angle</span><b>112 mils (6.3°) W → subtract</b>`;
+    $('given').innerHTML = `<div class="gt">Given by the evaluator</div><span>Start position</span><b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b><span>Your call sign</span><b>${w.fo}</b><span>FDC call sign</span><b>${w.fdcCs}</b><span>Magnetic direction to TGT ${w.tgtNo}</span><b>${fmt4(t.mag)} mils</b><span>G-M angle</span><b>112 mils (6.3°) W → subtract</b>`;
     $('wsnote').textContent = 'Each line is one transmission: fill it, then press its Send. Sent lines turn to ink; grey lines come later.';
     $('mapNote').textContent = `Map: grid squares 1,000 m (yellow circle = grid line number) · contours 10 m · big green number = training area, not a grid number · pink/red = impact area · card #${st.seed}`;
   }
