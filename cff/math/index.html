@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CFF Math</title>
+<script>if (window.top !== window) document.documentElement.classList.add('embed');</script>
+<style>
+:root {
+  --bg: #e2e4d9; --surface: #f2f3ec; --ink: #1b2016; --muted: #586050; --line: #c4c8b6;
+  --accent: #9a5a0c; --accent-soft: #f1e2c4; --hint: #ffc53d;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528; --accent: #e6a640; --accent-soft: #33280f; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528; --accent: #e6a640; --accent-soft: #33280f; color-scheme: dark; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--ui); }
+button { font: inherit; color: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.top-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { margin-right: auto; font: 700 19px/1 var(--stencil); letter-spacing: .05em; text-transform: uppercase; }
+.brand small { display: block; margin-top: 3px; font: 500 11px/1.1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.back { display: inline-grid; place-items: center; height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-weight: 650; text-decoration: none; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
+.card { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+video { display: block; width: 100%; aspect-ratio: 1 / 1; max-height: 78vh; margin: 0 auto; border-radius: 10px; background: #111; }
+h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.chaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.chaps button { display: flex; align-items: baseline; gap: 10px; min-height: 44px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); text-align: left; cursor: pointer; }
+.chaps button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chaps b { font: 700 13px var(--mono); color: var(--accent); }
+.f { display: grid; gap: 10px; }
+.f section { padding: 12px 14px; border-radius: 12px; background: var(--bg); }
+.f h3 { margin: 0 0 4px; font-size: 15px; }
+.f .eq { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: var(--surface); font: 700 15px/1.6 var(--mono); overflow-x: auto; }
+.f p { margin: 0; color: var(--muted); font-size: 14px; }
+.note { margin: 0; color: var(--muted); font-size: 13px; }
+.embed .top-bar { display: none; }
+</style>
+</head>
+<body>
+<header class="top-bar">
+  <div class="brand">CFF Math<small>The calculations behind the call for fire</small></div>
+  <a class="back" href="../">Trainer</a>
+</header>
+<main class="wrap">
+  <section class="card">
+    <video id="vid" controls playsinline preload="metadata" poster="poster.jpg">
+      <source src="cff_math.mp4" type="video/mp4">
+    </video>
+  </section>
+
+  <section class="card">
+    <h2>Chapters</h2>
+    <div class="chaps" id="chaps"></div>
+  </section>
+
+  <section class="card">
+    <h2>The formulas (same example as the video)</h2>
+    <div class="f">
+      <section><h3>1 · Read a grid with the coordinate scale</h3>
+        <div class="eq">Right: where the square's left line crosses the bottom scale<br>Up: where the point sits on the side scale<br>26 + 5.4 → 2654 · 42 + 6.8 → 4268 → GA 2654 4268</div>
+        <p>The trainer lays the scale for you: "◎ OP" and "✕ Plot" under the map.</p></section>
+      <section><h3>2 · Range from the mil relation</h3>
+        <div class="eq">W = R × M  →  R = W ÷ M × 1000<br>7.4 m ÷ 5 mils × 1000 = 1,480 m</div>
+        <p><b>W is given to you by the cadre</b> before you start (width and height): you never measure it. You measure M: in the binoculars, put the vehicle's left end on the vertical scale and its bottom on the horizontal scale (Line up in the trainer does the aiming) (small tick 5 mils, number every 10). Read the width on the horizontal scale or the height on the vertical scale, then use the matching W.</p></section>
+      <section><h3>3 · Magnetic → grid direction</h3>
+        <div class="eq">G-M angle EAST: add · WEST: subtract<br>mils: 0300 + 120 = 0420 (to the nearest 10)<br>degrees: 16.9° + 6.8° = 23.6° × 17.78 = 420 mils</div>
+        <p>Read the compass: press Compass in the trainer, tap the vehicles, read the dial under the line (degrees outside, mils inside).</p></section>
+      <section><h3>4 · Target location (polar plot)</h3>
+        <div class="eq">θ° = mils × 0.05625   (6400 mils = 360°)<br>ΔE = R × sin θ = 1480 × 0.40 = 593<br>ΔN = R × cos θ = 1480 × 0.92 = 1356<br>E 26540 + 593 = 27133 · N 42680 + 1356 = 44036 → GA 2713 4403</div>
+        <p>On paper: protractor on the OP, mark the direction, measure the range, read the point. In the trainer: the Plot button.</p></section>
+      <section><h3>5 · Deviation correction</h3>
+        <div class="eq">OT factor = range in thousands, rounded (1,480 → 1)<br>meters = mils × OT factor, to the nearest 10 (32 × 1 → 30)<br>burst RIGHT → send LEFT · under 30 m → leave it out</div></section>
+      <section><h3>6 · Range correction (successive bracketing)</h3>
+        <div class="eq">SHORT → ADD · OVER → DROP<br>400 → 200 → 100 → 50 + FIRE FOR EFFECT</div>
+        <p>First jump 400 (800 if the burst is farther off). Once the target is between two rounds, halve the jump every round.</p></section>
+    </div>
+  </section>
+  <p class="note">The worksheet order is a recommendation. For the radio you need the target grid; the other lines are how you get it.</p>
+</main>
+<script>
+(() => {
+  const CH = [['Introduction', 0], ['Read a grid with the protractor', 17.6], ['Range: W ÷ M', 50.4], ['Direction: magnetic → grid', 102.2], ['Target location: polar plot', 150.8], ['Deviation: the OT factor', 227.8], ['Range: bracketing', 258.5], ['Recap', 284.2]];
+  const v = document.getElementById('vid'), box = document.getElementById('chaps');
+  const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  box.innerHTML = CH.map(([t, s], i) => `<button data-t="${s}"><b>${mmss(s)}</b><span>${i ? i + ' · ' : ''}${t}</span></button>`).join('');
+  const mark = t => { if (t == null) t = v.currentTime; let k = 0; CH.forEach((c, i) => { if (t >= c[1] - 0.05) k = i; }); box.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-current', String(i === k))); };
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; v.currentTime = +b.dataset.t; mark(+b.dataset.t); v.play().catch(() => {}); });
+  v.addEventListener('timeupdate', () => mark()); v.addEventListener('seeked', () => mark()); mark();
+})();
+</script>
+</body>
+</html>

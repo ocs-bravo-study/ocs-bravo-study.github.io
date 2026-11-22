@@ -1,0 +1,2452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>CFF Trainer</title>
+<style>
+/* Layout: the stage (3D view with M22 binoculars, or the map) and the radio strip sit on the left on desktop;
+   the coach and the worksheet (the paper sheet, which is also the radio form), log and score on the right. On phones the stage stays on top. */
+:root {
+  --bg: #e2e4d9;
+  --surface: #f2f3ec;
+  --ink: #1b2016;
+  --muted: #586050;
+  --line: #c4c8b6;
+  --accent: #9a5a0c;
+  --accent-soft: #f1e2c4;
+  --go: #2b6a2e;
+  --go-soft: #d6e8d0;
+  --nogo: #a8291d;
+  --nogo-soft: #f3d7d1;
+  --scrim: rgba(16, 20, 12, .5);
+  --hint: #ffc53d;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+    --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+    --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+  --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+  --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--ui); }
+body.locked { overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+input, select { font-size: 16px; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+#view, #map { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.lbl { display: block; font: 600 10.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { margin-right: auto; color: inherit; text-decoration: none; font: 700 19px/1 var(--stencil); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.brand small { display: block; margin-top: 3px; font: 500 11px/1.1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.seg button { padding: 6px 11px; border: 0; border-radius: 999px; background: none; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.clock { min-width: 2.9em; text-align: right; font: 700 15px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.clock.warn { color: var(--nogo); }
+.ibtn { display: inline-grid; place-items: center; height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; font-weight: 650; cursor: pointer; }
+.ibtn svg { width: 18px; height: 18px; }
+.ibtn:disabled { opacity: .4; cursor: default; }
+@media (max-width: 440px) { .brand .bt, .brand small { display: none; } .seg button { padding: 6px 9px; } .top-bar { gap: 6px; } }
+@media (max-width: 400px) { .brand { display: none; } .seg { margin-right: auto; } }
+@media (max-width: 330px) { .seg button { padding: 6px 7px; font-size: 12px; } .ibtn { min-width: 30px; padding: 0 7px; } }
+
+/* page layout: phones = view on top (sticky), coach, one tool card with tabs; desktop = view left (sticky), coach + tools right */
+.wrap { display: flex; flex-direction: column; gap: 10px; max-width: 1280px; margin: 0 auto; padding-block: 10px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.colL, .colR { display: contents; }
+#viewCard { order: 1; } #coach, #gtip { order: 2; } #tools { order: 3; }
+@media (max-width: 1099px) and (min-height: 640px) { #viewCard { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--tb, 51px)); z-index: 10; box-shadow: 0 8px 18px -12px rgba(0,0,0,.45); } body.kbd #viewCard { position: static; box-shadow: none; } }
+@media (min-width: 1100px) {
+  .wrap { flex-direction: row; align-items: flex-start; gap: 18px; }
+  .colL, .colR { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .colL { flex: 1.45 1 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px); }
+  .colR { flex: 1 1 0; max-width: 500px; }
+}
+.card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.linkbtn { padding: 0; border: 0; background: none; color: var(--accent); font-size: 12.5px; font-weight: 650; cursor: pointer; }
+
+/* observer view */
+.vcard { padding: 8px; }
+.bcap { margin: 6px 0 0; padding: 5px 10px; border-radius: 8px; background: #1b2016; color: #eef0e4; font: 600 12.5px/1.35 var(--ui); text-align: center; }
+.bcap:empty { display: none; }
+.vwrap { position: relative; overflow: hidden; border-radius: 10px; background: #0b0d09; }
+#view { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; }
+.busy { position: absolute; inset: 0; display: grid; place-items: center; color: #e9ebdf; font: 650 14px var(--ui); background: rgba(10,12,8,.7); }
+.vctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.vctl .btn { padding: 7px 12px; }
+.bino[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.azr { min-width: 0; margin-left: auto; font: 700 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+@media (max-width: 400px) { .vctl .ibtn { padding: 0 6px; } .azr { font-size: 12px; } }
+
+/* coach: phase strip, one step, mission line */
+.coach { min-width: 0; padding: 10px 14px 12px; border-radius: 14px; background: var(--accent-soft); }
+.phases { display: flex; gap: 4px; margin: 0 0 8px; padding: 0; list-style: none; counter-reset: ph; }
+.phases li { flex: 1; padding-top: 5px; border-top: 3px solid var(--line); font: 650 10.5px/1.2 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); counter-increment: ph; }
+.phases li::before { content: counter(ph) " "; }
+.phases li.done { border-top-color: var(--go); color: var(--go); }
+.phases li.now { border-top-color: var(--accent); color: var(--accent); }
+.coach .lbl { color: var(--accent); }
+.coach .do { margin-top: 2px; font-size: 16px; font-weight: 700; line-height: 1.3; }
+.coach .goto { margin-top: 8px; border: 2px solid var(--hint); background: #fff4d2; color: #2a2208; font-weight: 700; }
+@media (min-width: 1100px) { .coach .goto { display: none; } }
+.coach .how { margin: 5px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+.coach .how:empty { display: none; }
+.coach .how li { margin: 2px 0; }
+.coach .how b, .coach .how code { color: var(--ink); }
+.coach .why p { margin: 4px 0 0; }
+/* Guided: the exact action, shown right beside the control you use */
+.gtip { display: block; margin-top: 8px; padding: 8px 10px; border: 2px solid var(--hint); border-radius: 10px; background: #fff4d2; color: #2a2208; font: 600 14px/1.9 var(--ui); scroll-margin-top: 72px; scroll-margin-bottom: 16px; }
+.gtip::before { content: "DO"; display: inline-block; margin-right: 8px; padding: 0 6px; border-radius: 6px; background: #2a2208; color: var(--hint); font: 800 10.5px/1.7 var(--ui); letter-spacing: .08em; vertical-align: 1px; }
+.gtip b { font: 800 15px var(--mono); }
+.gtip strong { font-weight: 800; }
+.gtip .tw { display: block; margin-top: 4px; font: 500 12.5px/1.4 var(--ui); color: #6b5a1e; }
+.gtip .tw em { margin-right: 4px; font-style: normal; font-weight: 800; }
+@media (max-width: 1099px) and (min-height: 640px) { .gtip { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .gtip { scroll-margin-top: 70px; } }
+.coach .mission { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.08); font: 650 12px/1.4 var(--mono); color: var(--muted); }
+.coach .mission b { color: var(--ink); }
+.coach .mission .linkbtn { margin-left: auto; font-family: var(--ui); }
+
+/* tool card with tabs */
+.tools { padding: 0; overflow: clip; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--bg); }
+.tabs button { position: relative; flex: 1; padding: 11px 6px; border: 0; border-bottom: 2.5px solid transparent; background: none; font-size: 13.5px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { border-bottom-color: var(--accent); background: var(--surface); color: var(--ink); }
+.tabs .dot { position: absolute; top: 9px; margin-left: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--nogo); }
+.panel { padding: 12px 14px 14px; }
+
+/* map */
+.mapbox { position: relative; }
+#map { display: block; width: 100%; height: min(calc(100vw - 54px), 36vh); touch-action: none; border: 1px solid var(--line); border-radius: 10px; background: #fbfaf5; cursor: grab; }
+@media (min-width: 700px) { #map { height: 32vh; } }
+@media (max-height: 639px) { #map { height: calc(100vh - 124px); } }
+@media (min-width: 1100px) { #map { height: min(640px, calc(100vh - 250px)); } }
+.stageSeg { display: flex; gap: 6px; margin-bottom: 6px; }
+.stageSeg button { flex: 1; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-weight: 700; cursor: pointer; }
+.stageSeg button[aria-selected="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.given { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border: 1.5px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
+.given .gt { grid-column: 1 / -1; margin-bottom: 4px; font: 800 11px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.given span { color: var(--muted); }
+.given b { font-family: var(--mono); }
+.mz { display: flex; gap: 6px; }
+.mnote { margin: 6px 0 0; font-size: 12px; }
+.prow { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+@media (pointer: coarse), (max-width: 640px) { .stageSeg button { padding-block: 8px; } }
+.prow .pro { display: flex; align-items: center; gap: 6px; }
+.prow .lbl { margin-right: 2px; }
+.prow .btn { padding: 7px 10px; font-size: 13.5px; white-space: nowrap; }
+.prow .btn[aria-pressed="true"] { border-color: #1e3c6e; background: #1e3c6e; color: #fff; }
+
+/* worksheet: the paper "Call For Fire Grid Mission" sheet; it is also the radio form (one line = one transmission) */
+.paper { --ink: #1b1b1b; --muted: #5d5d55; --line: #b9b9ae; --bg: #f3f3ee; margin-top: 12px; padding: 12px 12px 10px; border: 1px solid #cfcfc6; border-radius: 6px; background: #fdfdfb; color: var(--ink); font: 13.5px/1.35 Arial, Helvetica, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.sht { padding-bottom: 6px; border-bottom: 1.5px solid #333; text-align: center; font: 600 15px Arial, Helvetica, sans-serif; }
+.sbox { margin: 10px 0; padding: 0 8px; border: 1px solid #333; }
+.wl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 0; border-bottom: 1px dashed #d4d4ca; }
+.sbox .wl:last-of-type, .wl.od { border-bottom: 0; }
+.wl .n { font-weight: 700; }
+.pr { color: #333; font-size: 12.5px; white-space: nowrap; }
+.paper s { color: #444; font-size: 12.5px; white-space: nowrap; }
+.hw { font-style: italic; color: #13284f; border-bottom: 1.5px dashed #13284f; white-space: nowrap; }
+.pen { font: 700 13px var(--mono); color: #13284f; }
+.prt { color: #222; }
+.wl input { min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: #13284f; font: 700 16px var(--mono); }
+#gGrid { width: 7.4em; } #gAlt { width: 3.4em; } #gDir { width: 3.6em; } #wOt { width: 2.4em; } #wDist { width: 3.6em; }
+.wr input.spi { width: 2.6em; } .wr input.dvi { width: 3.2em; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.chip { min-height: 34px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font: 700 12.5px var(--mono); cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: #13284f; background: #13284f; color: #fff; }
+.chip:disabled { cursor: default; }
+.snd { margin-left: auto; padding: 7px 11px; border: 1px solid #1b1b1b; border-radius: 8px; background: #1b1b1b; color: #fff; font: 700 12.5px var(--ui); white-space: nowrap; cursor: pointer; }
+.snd:disabled { padding-inline: 2px; border-color: transparent; background: none; color: #444; font-weight: 600; cursor: default; }
+.wl.sent input { border-color: transparent; background: none; }
+.wl.sent input::placeholder { color: transparent; }
+.wl.sent .chip:not([aria-pressed="true"]) { display: none; }
+.wl.sent .chip[aria-pressed="true"] { border-color: transparent; background: none; color: #13284f; }
+.wl.later { opacity: .42; }
+.ch { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #333; font-weight: 600; font-size: 12.5px; }
+.wr .rn { flex: none; width: 14px; color: #777; font: 700 11px var(--mono); }
+.wr .cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.nt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 6px 0 4px; font-size: 12px; }
+.fn { margin: 12px 0 0; padding: 0; list-style: none; text-align: center; font-size: 11.5px; color: #333; }
+.fn li::before { content: "* "; }
+#plotBtn { padding: 7px 12px; }
+.wl { scroll-margin-top: 72px; }
+@media (max-width: 1099px) and (min-height: 640px) { .wl { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .wl { scroll-margin-top: 70px; } }
+.wsnote { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+
+/* the radio strip under the stage: the last two transmissions and the answer buttons */
+.rx { margin-top: 6px; }
+.rxl { display: grid; gap: 2px; font: 600 11px/1.35 var(--mono); }
+.rxl:empty { display: none; }
+.rxl div { overflow-wrap: anywhere; }
+.rxl b { margin-right: 5px; font: 800 9px var(--ui); letter-spacing: .06em; }
+.rxl .fdc b { color: var(--accent); } .rxl .fo b, .rxl .sys { color: var(--muted); }
+.rxb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.rxb .btn { min-height: 44px; padding: 5px 6px; font: 700 12px/1.2 var(--mono); white-space: normal; }
+.rxq { display: none; }
+/* phones held sideways: the stage cannot pin, so a message that waits for your answer pops up at the bottom with its buttons,
+   and the view comes back up for each round */
+@media (max-width: 1099px) and (max-height: 639px) {
+  .rxb { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); background: var(--surface); box-shadow: 0 -8px 18px -12px rgba(0,0,0,.45); }
+  .rxq { display: block; grid-column: 1 / -1; font: 600 11px/1.35 var(--mono); }
+  .rxq b { margin-right: 5px; font: 800 9px var(--ui); letter-spacing: .06em; color: var(--accent); }
+  #viewCard { scroll-margin-top: calc(var(--tb, 62px) + 4px); }
+}
+
+/* radio log (Log tab) */
+.log { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; padding: 8px; border-radius: 10px; background: var(--bg); font: 600 12px/1.35 var(--mono); }
+.log:empty { height: 44px; }
+.log:empty::before { content: "Radio log: every transmission shows here."; margin: auto; color: var(--muted); font: 500 12.5px var(--ui); }
+.log .ln { max-width: 92%; padding: 4px 8px; border-radius: 8px; }
+.log .fo { align-self: flex-end; background: var(--surface); border: 1px solid var(--line); text-align: right; }
+.log .fdc { align-self: flex-start; background: var(--accent-soft); }
+.log .sys { align-self: center; color: var(--muted); font: italic 500 12px var(--ui); }
+.log .who { display: block; font: 700 9.5px/1.2 var(--ui); letter-spacing: .08em; color: var(--muted); }
+
+@media (pointer: coarse), (max-width: 640px) { .tk { padding: 11px 12px; } .ibtn { height: 40px; min-width: 40px; } .seg button { padding-block: 10px; } .chip, .snd, .wl input, #plotBtn, .vctl .btn, .prow .btn { min-height: 40px; } }
+
+/* score sheet */
+.score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.m { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.num { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--line); border-radius: 50%; font: 700 12px/1 var(--mono); }
+.m.done .num { border-color: var(--go); background: var(--go); color: var(--surface); }
+.mt { padding-top: 3px; font-weight: 650; }
+.subs { display: grid; gap: 3px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.subs li { position: relative; padding-left: 18px; }
+.subs li::before { content: "○"; position: absolute; left: 0; top: 0; font-size: 11px; line-height: 1.75; }
+.subs li.ok { color: var(--ink); }
+.subs li.ok::before { content: "✓"; color: var(--go); font-size: 13px; font-weight: 700; line-height: 1.45; }
+.scnote { margin: 12px 0 0; font-size: 13px; }
+
+/* buttons and modals */
+.txrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); font-weight: 650; cursor: pointer; }
+.btn.primary { margin-left: auto; border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.readybar { display: flex; margin-top: 12px; }
+.readybar .btn { flex: 1; margin: 0; padding: 12px; }
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); background: var(--scrim); }
+.mcard { position: relative; width: 100%; max-width: 760px; margin: auto 0; padding: 18px; border-radius: 16px; background: var(--surface); }
+.mcard h2 { padding-right: 48px; }
+.mcard h3 { margin: 18px 0 6px; font-size: 15px; }
+.mcard .x { position: absolute; right: 12px; top: 12px; }
+.mcard p, .mcard li { font-size: 14px; }
+.mcard ol, .mcard ul { margin: 6px 0; padding-left: 20px; }
+code { padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); font: 600 12.5px var(--mono); }
+.tbl { overflow-x: auto; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.go { color: var(--go); font-weight: 700; }
+td.nogo { color: var(--nogo); font-weight: 700; }
+.fb { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+.modal.vid { z-index: 60; flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; background: var(--bg); }
+.vbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 8px) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
+#vidFrame { flex: 1; width: 100%; border: 0; background: var(--bg); }
+.vidlink { display: flex; align-items: center; min-height: 44px; margin: 4px 0 6px; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--bg); font-weight: 700; text-decoration: none; }
+.coach .mission a { color: var(--accent); font: 650 12.5px var(--ui); text-decoration: none; }
+.fb li { margin: 3px 0; }
+.fb li.bad { color: var(--nogo); }
+.verdict { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 15px var(--mono); }
+.verdict.go { background: var(--go-soft); color: var(--go); }
+.verdict.nogo { background: var(--nogo-soft); color: var(--nogo); }
+fieldset { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+legend { padding: 0 4px; font-weight: 650; }
+.opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+
+/* Guided: next control pulses; a wrong one shakes red and the right one bounces */
+.hint { outline: 3px solid var(--hint) !important; outline-offset: 2px; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { outline-color: transparent; } }
+.want { outline: 4px solid var(--hint) !important; outline-offset: 3px; animation: want .8s ease-in-out 2; }
+@keyframes want { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,197,61,.8); } 40% { transform: scale(1.1); box-shadow: 0 0 0 12px rgba(255,197,61,0); } }
+.nope { outline: 3px solid #e2432f !important; outline-offset: 2px; animation: nope .4s ease-in-out; }
+.coach.shake { animation: nope .4s ease-in-out; }
+@keyframes nope { 20%, 60% { translate: -4px 0; } 40%, 80% { translate: 4px 0; } }
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 60px); z-index: 45; width: max-content; max-width: min(92vw, 540px); padding: 12px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); font-size: 14.5px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0,0,0,.35); transform: translateX(-50%); cursor: pointer; }
+.toast b { color: var(--hint); }
+.toast small { display: block; margin-top: 4px; opacity: .65; font-size: 12px; }
+.toast.pop { animation: pop .25s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* NO-GO: recycled to Charlie Company */
+.modal.charlie { align-items: center; background: rgba(12, 14, 8, .82); }
+.ccard { position: relative; width: 100%; max-width: 460px; margin: auto 0; padding: 20px 18px 18px; overflow: hidden; border-radius: 18px; text-align: center; color: #f1efe0; background: radial-gradient(120% 90% at 50% 0%, #3d4628, #1c2112 70%); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.ccard .eyebrow { font: 700 11px/1 var(--ui); letter-spacing: .16em; text-transform: uppercase; color: #c9c7a4; }
+.guidon { display: block; width: 180px; max-width: 60%; height: auto; margin: 10px auto 0; overflow: visible; }
+.guidon .flag { transform-origin: 14px 56px; animation: wave 2.4s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-4deg) scaleX(.96); } }
+.ccard h2.ct { margin: 6px 0 2px; font: 800 30px/1.05 var(--stencil); letter-spacing: .04em; text-transform: uppercase; color: #fff; text-wrap: balance; }
+.ccard p { margin: 6px 0 0; font-size: 14.5px; color: #dcdac6; }
+.ccard .orders { margin: 12px auto 0; max-width: 34ch; padding: 10px 12px; border: 1px dashed rgba(241,239,224,.35); border-radius: 10px; font: 600 12.5px/1.5 var(--mono); color: #e9e7d4; text-align: left; }
+.stamp { position: absolute; right: 12px; top: 52px; padding: 4px 10px; border: 4px solid #e2432f; border-radius: 8px; color: #e2432f; font: 900 28px/1 var(--stencil); letter-spacing: .08em; transform: rotate(-14deg); opacity: .92; animation: slam .5s cubic-bezier(.2, 1.6, .4, 1) .25s both; }
+@keyframes slam { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: .92; } }
+.ccard .txrow { justify-content: center; margin-top: 16px; }
+.ccard .btn { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #f1efe0; }
+.ccard .btn.primary { margin-left: 0; border-color: #e2432f; background: #e2432f; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .hint, .want, .nope, .coach.shake, .toast.pop, .guidon .flag, .stamp { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="top-bar">
+  <a class="brand" href="../" title="All Bravo study tools">‹ CFF<span class="bt"> Trainer</span><small>Call for Fire · CFFT grid mission</small></a>
+  <div class="seg" role="group" aria-label="Practice mode">
+    <button id="mGuided" aria-pressed="true">Guided</button>
+    <button id="mExam" aria-pressed="false">Exam</button>
+  </div>
+  <div class="clock" id="clock">0:00</div>
+  <button class="ibtn" id="btnRef" aria-label="Cheat sheet">Ref</button>
+  <button class="ibtn" id="btnSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</header>
+
+<main class="wrap">
+  <div class="colL">
+    <section class="card vcard" id="viewCard" aria-label="Observer view and map">
+      <div class="stageSeg" role="tablist" aria-label="Top screen">
+        <button id="stView" role="tab" aria-selected="true">3D view</button>
+        <button id="stMap" role="tab" aria-selected="false">Map</button>
+      </div>
+      <div id="paneView">
+      <div class="vwrap" id="vwrap">
+        <canvas id="view" aria-label="View from the observation post. Drag to look around, tap to aim."></canvas>
+        <div class="busy" id="busy">Building terrain…</div>
+      </div>
+      <p class="bcap" id="bcap" aria-live="polite"></p>
+      <div class="vctl">
+        <button class="ibtn" id="panL" aria-label="Turn left">◀</button>
+        <button class="ibtn" id="panR" aria-label="Turn right">▶</button>
+        <button class="btn bino" id="binoBtn" aria-pressed="false">Binoculars</button>
+      </div>
+      </div>
+      <div id="paneMap" hidden>
+        <div class="mapbox">
+          <canvas id="map" aria-label="Map sheet. Drag to move, pinch or use + and − to zoom."></canvas>
+        </div>
+        <div class="prow">
+          <div class="mz"><button class="ibtn" id="zOut" aria-label="Zoom out">−</button><button class="ibtn" id="zIn" aria-label="Zoom in">+</button><button class="ibtn" id="zFit">Fit</button></div>
+          <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on the plotted point" title="Protractor on the plotted point">✕ Plot</button></div>
+        </div>
+      </div>
+      <div class="rx" id="rx" aria-live="polite"><div class="rxl" id="rxLog"></div><div class="rxb" id="rxBtns" hidden></div></div>
+    </section>
+  </div>
+
+  <div class="colR">
+    <section class="coach" id="coach" aria-live="polite">
+      <ol class="phases" id="phases"><li>Orient</li><li>Call</li><li>MTO</li><li>Adjust</li><li>End</li></ol>
+      <span class="lbl" id="cStep"></span>
+      <div class="do" id="cDo"></div>
+      <button class="btn goto" id="cGo" hidden></button>
+      <ul class="how" id="cHow"></ul>
+      <div class="mission" id="mission"></div>
+    </section>
+    <div class="gtip" id="gtip" hidden></div>
+
+    <section class="card tools" id="tools">
+      <div class="tabs" role="tablist" aria-label="Tools">
+        <button role="tab" data-tab="locate" aria-selected="true">Sheet</button>
+        <button role="tab" data-tab="radio" id="tabRadio" aria-selected="false">Log<i class="dot" id="radioDot" hidden></i></button>
+        <button role="tab" data-tab="score" aria-selected="false">Score</button>
+      </div>
+
+      <div class="panel" data-panel="locate">
+        <div class="given" id="given"></div>
+        <div class="paper" id="sheet" aria-label="Call For Fire Grid Mission worksheet"></div>
+        <p class="wsnote" id="wsnote"></p>
+        <p class="mnote muted" id="mapNote"></p>
+        <div class="readybar" id="endBar" hidden><button class="btn" id="endExam">Submit the worksheet and grade now</button></div>
+      </div>
+
+      <div class="panel rp" data-panel="radio" id="radioPanel" hidden>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+
+      <div class="panel" data-panel="score" hidden>
+        <ol class="score" id="score"></ol>
+        <p class="scnote muted">Built from the real "Call For Fire Grid Mission" sheet and its footnotes. Items marked (assumption) are not printed on the sheet. Your voice is replaced by the sheet: each line has its own Send; the FDC answers in the radio strip under the view.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="modal vid" id="mVid" hidden>
+  <div class="vbar"><b>Math video · older flow, not this exam</b><button class="btn primary" id="vidClose">✕ Back to the trainer</button></div>
+  <iframe id="vidFrame" title="CFF math video"></iframe>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="assertive" hidden></div>
+
+<div class="modal" id="mIntro" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exT">
+    <h2 id="exT">Exam mode</h2>
+    <ul id="exList"></ul>
+    <div class="txrow"><button class="btn" id="exBack">Back to Guided</button><button class="btn primary" id="exStart">Start exam</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRes" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="resT">
+    <h2 id="resT">Exam result</h2>
+    <div id="resBody"></div>
+    <div class="txrow" style="margin-top:14px"><button class="btn" data-close="mRes">Review</button><button class="btn" id="resGuided">Guided mode</button><button class="btn" id="resSame">Retry same card</button><button class="btn primary" id="resNew">New card</button></div>
+  </div>
+</div>
+
+<div class="modal charlie" id="mCharlie" hidden>
+  <div class="ccard" role="dialog" aria-modal="true" aria-labelledby="chT">
+    <div class="eyebrow">NO-GO · Recycle orders</div>
+    <svg class="guidon" viewBox="0 0 200 112" aria-hidden="true">
+      <rect x="8" y="4" width="6" height="106" rx="3" fill="#8a6a3c"/>
+      <circle cx="11" cy="6" r="6" fill="#d4b13c"/>
+      <g class="flag">
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="#b3261e"/>
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="none" stroke="#ffffff" stroke-opacity=".2" stroke-width="2"/>
+        <text x="84" y="74" text-anchor="middle" font-family="DIN Condensed, Arial Narrow, Arial, sans-serif" font-weight="800" font-size="56" fill="#ffffff">C</text>
+      </g>
+    </svg>
+    <div class="stamp" aria-hidden="true">NO-GO</div>
+    <h2 class="ct" id="chT">Welcome to Charlie Company!</h2>
+    <p id="chStats"></p>
+    <div class="orders">REPORT TO: C Co, 3rd Platoon<br>TIME: 0430 tomorrow<br>BRING: map, protractor, WORM formula</div>
+    <div class="txrow"><button class="btn" id="chWhy">See what went wrong</button><button class="btn primary" id="chRetry">Recycle: try again</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mSet" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="setT">
+    <h2 id="setT">Settings</h2>
+    <button class="btn x" data-close="mSet" aria-label="Close">✕</button>
+    <fieldset>
+      <legend>Exam time limit</legend>
+      <div class="opt" id="setTime"><span>Mission time limit: <b>10:00</b> for the whole mission, Start to End of Mission. The exam stops at 10:00 (fixed).</span></div>
+    </fieldset>
+    <fieldset>
+      <legend>First round</legend>
+      <label class="opt"><input type="radio" name="fro" value="1"> Lands off target, as in class (you bracket it in)</label>
+      <label class="opt"><input type="radio" name="fro" value="0"> Lands exactly on the grid you sent</label>
+    </fieldset>
+    <fieldset>
+      <legend>FDC speed</legend>
+      <label class="opt"><input type="radio" name="spd" value="real"> Real: 11 s time of flight, SPLASH 5 s before impact</label>
+      <label class="opt"><input type="radio" name="spd" value="fast"> Fast: 5 s time of flight</label>
+    </fieldset>
+    <p class="muted" id="bestTxt"></p>
+    <div class="txrow"><button class="btn primary" id="setSave">Save · new card</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRef" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="refT">
+    <h2 id="refT">Cheat sheet · Call for fire grid mission</h2>
+    <button class="btn x" data-close="mRef" aria-label="Close">✕</button>
+    <p>The worksheet on screen is the paper "Call For Fire Grid Mission" sheet. Each line is one transmission with its own Send. Struck labels are printed struck on the sheet: write the value, do not say the label.</p>
+    <h3>Phase 1 · Orient</h3>
+    <ol>
+      <li><b>Start position:</b> the evaluator gives a 6-digit grid. Find the square (read right, then up), then the tenths inside it, and mark ◎ on the map. Grid line numbers are the yellow circles; a big green number is a training area, not a grid number.</li>
+      <li><b>Direction:</b> the evaluator gives the magnetic direction to the target in mils. Magnetic − G-M angle 112 mils (6.3° W) = grid direction, to the nearest 10 mils → line 2 Direction. 1° = 17.78 mils, because 360° = 6400 mils.</li>
+      <li><b>Distance:</b> from ◎, the direction line has a tick every 100 m. Match what you see in the 3D view (crossroads, railroad, small hills, cut, big hill) to the map to find where the target sits on the line; nearest 100 m → DISTANCE.</li>
+      <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
+      <li><b>Plot ✕</b> at that distance on the line, then read <b>Grid</b> (protractor) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
+    </ol>
+    <h3>Phase 2 · Call: three lines, each ends OVER</h3>
+    <p><code>HAMMER 3, THIS IS STEEL 2, ADJUST FIRE, OVER</code><br><code>GRID GA 652 214, ALT 345, DIRECTION 5620, OVER</code><br><code>1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH, OVER</code></p>
+    <p>The FDC reads each line back ending OVER: answer <code>THAT IS CORRECT, OUT</code>. Rule: every FDC message that ends OVER needs an answer; OUT needs none.</p>
+    <h3>Phase 3 · Message to observer</h3>
+    <p>Write Unit to Fire, Changes to CFF (N/A if none), # of Rounds and TGT #, then read it back ending OUT. Then <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code> (SPLASH = 5 s to impact, 2 s on Fast: eyes on the target).</p>
+    <h3>Phase 4 · Adjust: one row per round</h3>
+    <ul>
+      <li><b>Spotting:</b> mils from the vertical line to the burst, and (L) or (R).</li>
+      <li><b>Deviation correction:</b> OT factor × spotting, the opposite side, nearest 10 m. Under 30 m: leave it blank (minimum 30 m).</li>
+      <li><b>Range correction:</b> burst short (in front) → Add, over (beyond) → Drop. 800 is struck out: start with 400. Repeat 400 until the round lands on the other side of the target (a bracket), then halve: 200, 100, 50FFE. 50FFE = fire for effect.</li>
+      <li>The FDC reads each row back ending OVER → <code>THAT IS CORRECT, OUT</code>. 5 rows: rows 1–4 can adjust; fire for effect (50FFE) on row 5 at the latest.</li>
+      <li>A burst within 25 m of the target's range (range correct) → leave Add/Drop blank and tap 50FFE.</li>
+    </ul>
+    <h3>Phase 5 · End of mission</h3>
+    <p><code>ROUNDS COMPLETE, OVER</code> → <code>ROUNDS COMPLETE, OUT</code>. Then End of Mission: write the TGT # from the MTO; the rest is printed: <code>END OF MISSION, TGT# …, 1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES</code>.</p>
+    <h3>Standards used in Exam</h3>
+    <ul id="refStd"></ul>
+    <a class="vidlink" id="refVid" href="math/index.html">▶ Math video (older flow: W ÷ M, the compass, an east G-M; not this exam)</a>
+    <p class="muted">Sources: the real "Call For Fire Grid Mission" sheet and its five footnotes, the class steps, FM 6-30 / ATP 3-09.30 call-for-fire format. Where the sheet is silent, the trainer marks its choice as an assumption.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const MIL = Math.PI * 2 / 6400, S = 6000, CELL = 10, NN = 601, TM = 120;
+  const QS = new URLSearchParams(location.search);
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const w64 = m => ((m % 6400) + 6400) % 6400;
+  const dm = (a, b) => { const d = w64(a - b); return d > 3200 ? d - 6400 : d; };
+  const azOf = (dx, dy) => w64(Math.atan2(dx, dy) / MIL);
+  const fmt4 = m => String(Math.round(w64(m)) % 6400).padStart(4, '0');
+  const r10 = v => Math.round(v / 10) * 10;
+  const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+  const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const digits = s => String(s == null ? '' : s).replace(/\D/g, '');
+  const num = s => { const t = String(s == null ? '' : s).trim(); return /^\d+(\.\d+)?$/.test(t) ? +t : null; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const DIR8 = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+
+  // ---------- settings
+  const cfg = { speed: 'real', firstOff: true };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem('cffT.cfg') || '{}')); } catch (e) { /* storage blocked */ }
+  if (QS.get('fast') === '1') cfg.speed = 'fast';
+  const saveCfg = () => { try { localStorage.setItem('cffT.cfg', JSON.stringify(cfg)); } catch (e) { /* storage blocked */ } };
+  const K = () => cfg.speed === 'fast' ? 0.4 : 1;
+  const TOF = () => cfg.speed === 'fast' ? 5000 : 11000;
+  const SPL = () => cfg.speed === 'fast' ? 3000 : 6000;
+
+  // ---------- seeded noise
+  function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function noise2(r) {
+    const p = new Float32Array(65536);
+    for (let i = 0; i < 65536; i++) p[i] = r();
+    return (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+      const x0 = xi & 255, x1 = (xi + 1) & 255, y0 = (yi & 255) << 8, y1 = ((yi + 1) & 255) << 8;
+      const a = p[y0 | x0], b = p[y0 | x1], c = p[y1 | x0], d = p[y1 | x1];
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    };
+  }
+  function fbm(nf, x, y, o) { let s = 0, a = 1, t = 0, f = 1; for (let k = 0; k < o; k++) { s += a * nf(x * f + k * 31.7, y * f - k * 17.3); t += a; a *= 0.5; f *= 2.07; } return s / t; }
+
+  // ---------- the target (always 1 tank, as on the real sheet) and the fixed texts
+  const VEH = { T72: { L: 6.9, H: 2.2, Wd: 3.6, hull: 1.35, tur: 0.85, turW: 2.7, gun: 4.2, armor: true } };
+  const GM = 112; // G-M angle 6.3° W = 112 mils: magnetic − 112 = grid
+  const L3TXT = '1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH';
+  const EOMTXT = '1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES';
+  const OK_RB = 'THAT IS CORRECT, OUT';
+  // neutral call signs and unit names (never the real sheet's)
+  const FOS = ['STEEL 2', 'RAVEN 4', 'GRANITE 6', 'SABER 5', 'FALCON 3'], FDCS = ['HAMMER 3', 'IRON 7', 'ANCHOR 1', 'BISON 8', 'CEDAR 6'];
+  const UNITS = ['ANVIL', 'THUNDER', 'GRIZZLY', 'LANCER', 'MUSTANG'];
+
+  // ---------- terrain
+  function bil(A, x, y) {
+    x = clamp(x, 0, S - 0.01); y = clamp(y, 0, S - 0.01);
+    const gx = x / CELL, gy = y / CELL, i = gx | 0, j = gy | 0, fx = gx - i, fy = gy - j, k = j * NN + i;
+    const a = A[k], b = A[k + 1], c = A[k + NN], d = A[k + NN + 1];
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  }
+  const groundAt = (w, x, y) => bil(w.H, x, y);
+  const surfAt = (w, x, y) => bil(w.SF, x, y);
+  const cellOf = (x, y) => Math.round(clamp(y, 0, S) / CELL) * NN + Math.round(clamp(x, 0, S) / CELL);
+
+  function buildTerrain(seed) {
+    // r: the original generator, same calls in the same order; r2: every new number (features, training areas, then placeTarget)
+    const r = mulberry32(seed), r2 = mulberry32(seed ^ 0x5bd1e995);
+    const nA = noise2(r), nB = noise2(r), nC = noise2(r), nD = noise2(r);
+    // grid numbers stay out of the real sheet's range (eastings 43–59, northings 34–48): still one r() call each
+    const ke = Math.floor(r() * 56), kn = Math.floor(r() * 58);
+    const w = { r, r2, seed, E0: 1000 * (ke < 27 ? 10 + ke : 33 + ke), N0: 1000 * (kn < 18 ? 10 + kn : 31 + kn) };
+    const op = { x: 2400 + r() * 1200, y: 480 + r() * 220 };
+    w.op = op;
+    const ph1 = r() * 6.283, ph2 = r() * 6.283, ph3 = r() * 6.283;
+    const yv = x => 1850 + 170 * Math.sin(x * 6.283 / 5200 + ph1);
+    // roads: main road along the valley, a cross road (same r() calls as before, made before the heights)
+    const yMR = x => yv(x) + 210 + 60 * Math.sin(x / 900 + ph2);
+    const side = r() < 0.5 ? -1 : 1;
+    const xc = clamp(op.x + side * (800 + r() * 600), 500, 5500);
+    const xCR = y => xc + 130 * Math.sin(y / 650 + ph3);
+    let J = null, best = 1e9;
+    for (let y = 1000; y < 3200; y += 2) { const x = xCR(y), d = Math.abs(yMR(x) - y); if (d < best) { best = d; J = { x, y }; } }
+    // what you match from the start, all in front of you: forward = north tilted toward the cross road
+    const fw = side * (100 + r2() * 150), sc = -side;
+    const pol = (az, d) => ({ x: op.x + Math.sin(az * MIL) * d, y: op.y + Math.cos(az * MIL) * d });
+    // the big hill 4.3–5.0 km out, the highest point on the sheet (hazy at that range)
+    const hAz = fw + side * r2() * 200, HL = pol(hAz, Math.min(4300 + r2() * 700, (5550 - op.y) / Math.cos(hAz * MIL)));
+    HL.h = 125 + r2() * 35; HL.s = 480 + r2() * 160;
+    // an east-west ridge 2.2–2.9 km out, clear of the main road; the railroad cuts through it on a line of sight, so the cut is a notch on the skyline
+    const cutAz = fw + sc * (220 + r2() * 200), rgH = 30 + r2() * 10, cutDep = 15 + r2() * 10;
+    let cutD = 2200 + r2() * 700, CUT = pol(cutAz, cutD);
+    const yRg = x => CUT.y + 90 * Math.sin((x - CUT.x) / 1100);
+    for (;;) {
+      let gap = 1e9;
+      for (let x = Math.max(0, CUT.x - 2400); x <= Math.min(S, CUT.x + 2400); x += 100) gap = Math.min(gap, yRg(x) - yMR(x));
+      if (gap >= 420 || cutD >= 2900) break;
+      cutD += 50; CUT = pol(cutAz, cutD);
+    }
+    // 1–2 small hills between you and the ridge, 25–40 m high, each with a clump of trees on top so it shows in the view
+    const small = [Object.assign(pol(fw + side * (150 + r2() * 350), 1250 + r2() * 650), { h: 25 + r2() * 15, s: 180 + r2() * 80 })];
+    if (r2() < 0.6) small.push(Object.assign(pol(fw + sc * r2() * 150, 1600 + r2() * (cutD - 2000)), { h: 25 + r2() * 15, s: 180 + r2() * 80 }));
+    const H = new Float32Array(NN * NN);
+    for (let j = 0; j < NN; j++) {
+      const y = j * CELL;
+      for (let i = 0; i < NN; i++) {
+        const x = i * CELL, dx = x - op.x, dy = y - op.y;
+        // the OP sits on the brow of high ground; the slope in front is hollow (steep first, then flatter), so from 3 m up you see all of it
+        // down to the valley; the far side climbs to the ridge and falls away behind it
+        let h = 180;
+        h += dy > 0 ? 66 * Math.exp(-dy / 330) : 66 - 15 * smooth(-dy / 1200);
+        h -= 30 * Math.exp(-Math.pow((y - yv(x)) / (y < yv(x) ? 700 : 420), 2));
+        h += 66 * smooth((y - yv(x) - 80) / Math.max(200, CUT.y - yv(x) - 280)) - 28 * smooth((y - CUT.y - 300) / 1500);
+        h += (0.35 + 0.65 * smooth((y - op.y - 500) / 800)) * (1 - 0.5 * smooth((y - CUT.y - 200) / 600)) * 60 * (fbm(nA, x / 1700, y / 1700, 4) - 0.5);
+        h += 12 * (fbm(nB, x / 420, y / 420, 3) - 0.5);
+        h += 30 * Math.exp(-(dx * dx + dy * dy) / (320 * 320));
+        const rx = Math.abs(x - CUT.x);
+        if (rx < 2400) h += rgH * smooth((2400 - rx) / 1100) * Math.exp(-Math.pow((y - yRg(x)) / 170, 2));
+        const hx = x - HL.x, hy = y - HL.y;
+        h += HL.h * Math.exp(-(hx * hx + hy * hy) / (HL.s * HL.s));
+        for (const s of small) { const sx = x - s.x, sy = y - s.y; h += s.h * Math.exp(-(sx * sx + sy * sy) / (s.s * s.s)); }
+        H[j * NN + i] = h;
+      }
+    }
+    const LC = new Uint8Array(NN * NN), BH = new Float32Array(NN * NN);
+    const inMap = (x, y) => x >= 0 && y >= 0 && x <= S && y <= S;
+    // stream along the valley floor
+    const yS = x => yv(x) + 70 * (nC(x / 380, 3.3) - 0.5), stream = [];
+    for (let x = 0; x <= S; x += 5) stream.push([x, yS(x)]);
+    for (const [x, y] of stream) if (inMap(x, y)) { const k = cellOf(x, y); LC[k] = 3; H[k] -= 2; }
+    // roads: main road along the valley, the cross road, a dirt road up the far slope
+    const MR = []; for (let x = 0; x <= S; x += 5) MR.push([x, yMR(x)]);
+    const CR = []; for (let y = 0; y <= S; y += 5) CR.push([xCR(y), y]);
+    let B = null; best = 1e9;
+    for (let y = 1000; y < 3000; y += 2) { const x = xCR(y), d = Math.abs(yv(x) - y); if (d < best) { best = d; B = { x, y }; } }
+    const xd = clamp(xc - side * (900 + r() * 600), 400, 5600);
+    const p0 = [xd, yMR(xd)];
+    const p2 = [clamp(xd + (r() < 0.5 ? -1 : 1) * (300 + r() * 500), 300, 5700), p0[1] + 900 + r() * 500];
+    const p1 = [(p0[0] + p2[0]) / 2 + (r() - 0.5) * 500, (p0[1] + p2[1]) / 2];
+    const DR = [];
+    for (let t = 0; t <= 1.0001; t += 0.004) { const a = (1 - t) * (1 - t), b = 2 * t * (1 - t), c = t * t; DR.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]); }
+    for (const [x, y] of MR) if (inMap(x, y)) LC[cellOf(x, y)] = 2;
+    for (const [x, y] of CR) if (inMap(x, y)) LC[cellOf(x, y)] = 2;
+    for (const [x, y] of DR) if (inMap(x, y)) { const k = cellOf(x, y); if (LC[k] !== 2) LC[k] = 5; }
+    // railroad: in from the cross-road side, across your front, a bend, then straight away from you through the cut to the far edge
+    const D0 = 550 + r2() * 350, rph = r2() * 6.283, ux = Math.sin(cutAz * MIL), uy = Math.cos(cutAz * MIL), tD = D0 / uy, xT = op.x + ux * tD;
+    const yE = x => op.y + D0 + 45 * (Math.sin((x - xT) / 650 + rph) - Math.sin(rph));
+    let P = [];
+    for (let x = side > 0 ? S + 60 : -60; side * (x - xT) > 0; x -= side * 20) P.push([x, yE(x)]);
+    for (let d = tD; ; d += 20) { const x = op.x + ux * d, y = op.y + uy * d; P.push([x, y]); if (y > S + 60 || x < -60 || x > S + 60) break; }
+    // round the bend (moving average over ±300 m); the straight run through the cut stays on the line of sight
+    for (let n = 0; n < 3; n++) P = P.map((p, i) => { if (i < 15 || i >= P.length - 15) return p; let sx = 0, sy = 0; for (let q = -15; q <= 15; q++) { sx += P[i + q][0]; sy += P[i + q][1]; } return [sx / 31, sy / 31]; });
+    const RL = [P[0]];
+    for (let i = 1, acc = 0; i < P.length; i++) {
+      const [ax, ay] = P[i - 1], [bx, by] = P[i], sl = Math.hypot(bx - ax, by - ay);
+      for (let s = 10 - acc; s <= sl; s += 10) RL.push([ax + (bx - ax) * s / sl, ay + (by - ay) * s / sl]);
+      acc = (acc + sl) % 10;
+    }
+    // the grade: the ground along the line smoothed over ±250 m (fills over the stream = embankment), 15–25 m below the ridge crest (the cut)
+    const H0 = RL.map(([x, y]) => bil(H, x, y)), nR = RL.length;
+    const box = a => a.map((_, i) => { let s = 0, c = 0; for (let q = Math.max(0, i - 25); q <= Math.min(nR - 1, i + 25); q++) { s += a[q]; c++; } return s / c; });
+    let RZ = box(box(H0)), ic = 0;
+    RL.forEach(([x, y], i) => { if (Math.hypot(x - CUT.x, y - CUT.y) < Math.hypot(RL[ic][0] - CUT.x, RL[ic][1] - CUT.y)) ic = i; });
+    const lift = H0[ic] - cutDep - RZ[ic];
+    RZ = RZ.map((z, i) => z + lift * Math.exp(-Math.pow((i - ic) / 22, 2)));
+    // carve: bed 18 m wide on the grade, side slopes 0.75; cut walls and embankment sides are bare soil (LC 7)
+    const RD = new Float32Array(NN * NN).fill(1e9), RG = new Float32Array(NN * NN);
+    RL.forEach(([x, y], q) => {
+      for (let j = Math.max(0, Math.floor((y - 70) / CELL)); j <= Math.min(NN - 1, Math.ceil((y + 70) / CELL)); j++)
+        for (let i = Math.max(0, Math.floor((x - 70) / CELL)); i <= Math.min(NN - 1, Math.ceil((x + 70) / CELL)); i++) {
+          const k = j * NN + i, d = Math.hypot(i * CELL - x, j * CELL - y);
+          if (d < RD[k]) { RD[k] = d; RG[k] = RZ[q]; }
+        }
+    });
+    for (let k = 0; k < NN * NN; k++) {
+      const d = RD[k]; if (d > 70) continue;
+      const z = RG[k], h = H[k];
+      if (d <= 9) { H[k] = z; LC[k] = 6; continue; }
+      H[k] = h > z ? Math.min(h, z + (d - 9) * 0.75) : Math.max(h, z - (d - 9) * 0.75);
+      if (Math.abs(h - H[k]) > 1.5 && !LC[k]) LC[k] = 7;
+    }
+    // where the railroad crosses the main road, the cross road and the stream
+    const cross = f => { for (let i = 1; i < nR; i++) { const a = f(RL[i - 1]), b = f(RL[i]); if ((a > 0) !== (b > 0)) { const t = a / (a - b); return { x: RL[i - 1][0] + (RL[i][0] - RL[i - 1][0]) * t, y: RL[i - 1][1] + (RL[i][1] - RL[i - 1][1]) * t }; } } return null; };
+    const LXm = cross(([x, y]) => y - yMR(x)), LXc = cross(([x, y]) => x - xCR(y)), LXs = cross(([x, y]) => y - yS(x));
+    // buildings: a village at the crossroads, a church, two farms
+    const bl = [];
+    const addB = (x, y, wc, dc, h) => {
+      if (!inMap(x, y) || !inMap(x + wc * CELL, y + dc * CELL)) return;
+      for (let a = 0; a < wc; a++) for (let b = 0; b < dc; b++) { const k = cellOf(x + a * CELL, y + b * CELL); if (LC[k] === 2 || LC[k] === 3 || LC[k] >= 5) return; }
+      for (let a = 0; a < wc; a++) for (let b = 0; b < dc; b++) { const k = cellOf(x + a * CELL, y + b * CELL); LC[k] = 4; BH[k] = h; }
+      bl.push({ x: Math.round(x / CELL) * CELL, y: Math.round(y / CELL) * CELL, wc, dc, h });
+    };
+    const nV = 9 + Math.floor(r() * 5);
+    for (let n = 0; n < nV; n++) {
+      const t = (r() - 0.5) * 420, off = (r() < 0.5 ? -1 : 1) * (22 + r() * 14);
+      if (r() < 0.6) { const x = J.x + t; addB(x, yMR(x) + off, 1 + (r() < 0.4 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0), 6 + r() * 2); }
+      else { const y = J.y + t; addB(xCR(y) + off, y, 1 + (r() < 0.4 ? 1 : 0), 1 + (r() < 0.3 ? 1 : 0), 6 + r() * 2); }
+    }
+    const church = { x: J.x + 50 * side, y: J.y + 45 };
+    addB(church.x, church.y, 2, 2, 13);
+    const F1 = { x: p2[0], y: p2[1] };
+    for (let n = 0; n < 3; n++) addB(F1.x + (r() - 0.5) * 70, F1.y + (r() - 0.5) * 70, n ? 1 : 2, 1, 6 + r() * 2);
+    let x2 = J.x + (r() < 0.5 ? -1 : 1) * (1400 + r() * 800);
+    if (x2 < 300 || x2 > 5700) x2 = 2 * J.x - x2;
+    x2 = clamp(x2, 300, 5700);
+    const F2 = { x: x2, y: yMR(x2) + 45 };
+    for (let n = 0; n < 3; n++) addB(F2.x + (r() - 0.5) * 70, F2.y + r() * 50, n ? 1 : 2, 1, 6 + r() * 2);
+    // woods, kept off roads, the railroad, buildings, water and the OP's own slope; no tree may hide the crossroads, the cut, the hills
+    const keep = new Uint8Array(NN * NN);
+    for (let j = 0; j < NN; j++) for (let i = 0; i < NN; i++) {
+      const t = LC[j * NN + i];
+      if (t >= 2) for (let b = -3; b <= 3; b++) for (let a = -3; a <= 3; a++) { const jj = j + b, ii = i + a; if (jj >= 0 && ii >= 0 && jj < NN && ii < NN) keep[jj * NN + ii] = 1; }
+    }
+    const eye = bil(H, op.x, op.y) + 3;
+    const sights = [[J.x, J.y, bil(H, J.x, J.y) + 6], [CUT.x, CUT.y, RZ[ic] + 1], [HL.x, HL.y, bil(H, HL.x, HL.y)], ...small.map(s => [s.x, s.y, bil(H, s.x, s.y) + 16])].map(([x, y, z]) => ({ x: x - op.x, y: y - op.y, z, L2: (x - op.x) * (x - op.x) + (y - op.y) * (y - op.y) }));
+    const hides = (dx, dy, top) => sights.some(s => {
+      const t = (dx * s.x + dy * s.y) / s.L2; if (t <= 0 || t >= 1) return false;
+      return Math.abs(dx * s.y - dy * s.x) / Math.sqrt(s.L2) < 40 && top > eye + (s.z - eye) * t - 1;
+    });
+    for (let j = 0; j < NN; j++) for (let i = 0; i < NN; i++) {
+      const k = j * NN + i; if (LC[k] || keep[k]) continue;
+      const x = i * CELL, y = j * CELL, dx = x - op.x, dy = y - op.y;
+      // woods start 420 m out, so the bottom of the view is forest like the exam screen (this re-rolls each seed's world, spec §9)
+      if (dx * dx + dy * dy < 420 * 420 || small.some(q => Math.hypot(x - q.x, y - q.y) < q.s * 1.4)) continue;
+      if (fbm(nD, x / 900, y / 900, 3) + 0.08 * (fbm(nB, x / 150 + 9, y / 150, 2) - 0.5) > 0.59 && !hides(dx, dy, H[k] + 14)) LC[k] = 1;
+    }
+    for (const s of small) for (let y = s.y - 70; y <= s.y + 70; y += CELL) for (let x = s.x - 70; x <= s.x + 70; x += CELL) {
+      const k = cellOf(x, y); if (inMap(x, y) && !LC[k] && !keep[k] && Math.hypot(x - s.x, y - s.y) < 60 + 18 * nB(x / 40, y / 40)) LC[k] = 1;
+    }
+    const SF = new Float32Array(NN * NN);
+    for (let k = 0; k < NN * NN; k++) SF[k] = H[k] + (LC[k] === 1 ? 14 : LC[k] === 4 ? BH[k] : 0);
+    // for the renderer, per 50 m tile with a 40 m margin (the longest step): the highest surface (skip test) and whether woods are near
+    // (single trees need short steps)
+    const tmax = new Float32Array(TM * TM), twood = new Uint8Array(TM * TM);
+    for (let tj = 0; tj < TM; tj++) for (let ti = 0; ti < TM; ti++) {
+      let m = -1e9, wd = 0;
+      for (let j = Math.max(0, tj * 5 - 4); j <= Math.min(NN - 1, tj * 5 + 9); j++) for (let i = Math.max(0, ti * 5 - 4); i <= Math.min(NN - 1, ti * 5 + 9); i++) { const v = SF[j * NN + i]; if (v > m) m = v; if (LC[j * NN + i] === 1) wd = 1; }
+      tmax[tj * TM + ti] = m; twood[tj * TM + ti] = wd;
+    }
+    // view colors, shaded by slope, in the exam screen's palette: pale cool-grey fields, near-white roads, grey buildings, the far canopy
+    // (single trees inside 2.2 km are drawn by the renderer). The grass branch keeps its one r() call, so the palette alone changes no world.
+    const col = new Uint32Array(NN * NN);
+    const Lx = 0.3, Ly = -0.55, Lz = 0.78, Ln = Math.hypot(Lx, Ly, Lz);
+    for (let j = 0; j < NN; j++) for (let i = 0; i < NN; i++) {
+      const k = j * NN + i, x = i * CELL, y = j * CELL;
+      const hx = (H[j * NN + Math.min(NN - 1, i + 1)] - H[j * NN + Math.max(0, i - 1)]) / (2 * CELL);
+      const hy = (H[Math.min(NN - 1, j + 1) * NN + i] - H[Math.max(0, j - 1) * NN + i]) / (2 * CELL);
+      const dot = (-hx * Lx - hy * Ly + Lz) / (Math.hypot(hx, hy, 1) * Ln);
+      const sh = 0.4 + 0.76 * Math.max(0, dot);
+      const t = LC[k];
+      let c;
+      if (t === 1) { const v = (nB(x / 23, y / 23) - 0.5) * 30; c = [100 + v, 146 + v, 58 + v * 0.5]; }
+      else if (t === 2) c = [226, 232, 230];
+      else if (t === 5) c = [204, 210, 206];
+      else if (t === 3) c = [82, 112, 136];
+      else if (t === 4) c = (i * 7 + j * 13) % 3 ? [196, 198, 196] : [138, 142, 146];
+      else if (t === 6 || t === 7) { const q = clamp((Math.hypot(hx, hy) - 0.15) / 0.45, 0, 1); c = [160 + 10 * q, 168 - 22 * q, 174 - 62 * q]; } // bare soil by steepness (the renderer darkens the bed)
+      else { const v = fbm(nC, x / 260, y / 260, 2), q = (nB(x / 37, y / 37) - 0.5) * 14 + (r() - 0.5) * 9; c = v > 0.5 ? [166 + q, 174 + q, 180 + q] : [148 + q, 158 + q, 166 + q]; }
+      const R = clamp(c[0] * sh, 0, 255) | 0, G = clamp(c[1] * sh, 0, 255) | 0, Bc = clamp(c[2] * sh, 0, 255) | 0;
+      col[k] = R | (G << 8) | (Bc << 16);
+    }
+    // distance to the railroad line per cell (0.25 m units, up to 63 m): the renderer draws the dark bed from it, with straight edges
+    const rq = new Uint8Array(NN * NN);
+    for (let k = 0; k < NN * NN; k++) rq[k] = Math.min(255, Math.round(RD[k] * 4));
+    const names = ['HOLT', 'MILLER', 'CARVER', 'DALTON', 'PRESTON', 'REDDING', 'ASHBY', 'GARNER'];
+    // the hill's top as built (it names the hill)
+    let top = { x: HL.x, y: HL.y, h: -1e9 };
+    for (let y = HL.y - 600; y <= HL.y + 600; y += CELL) for (let x = HL.x - 600; x <= HL.x + 600; x += CELL) { if (!inMap(x, y)) continue; const v = H[cellOf(x, y)]; if (v > top.h) top = { x: Math.round(x / CELL) * CELL, y: Math.round(y / CELL) * CELL, h: v }; }
+    top.name = `HILL ${Math.round(top.h)}`;
+    // training areas on your side of the railroad: mint, big green numbers that may match a grid number (the trap)
+    const xS = clamp(op.x + sc * (700 + r2() * 500), 300, S - 300), yTA = x => yE(x) - 70;
+    const gridN = () => String((r2() < 0.5 ? w.E0 : w.N0) / 1000 + 1 + Math.floor(r2() * 5));
+    const taN = () => r2() < 0.5 ? gridN() : String(10 + Math.floor(r2() * 90));
+    const nA1 = taN(); let nB1 = taN(); if (nB1 === nA1) nB1 = String(10 + (+nA1 + 7) % 90);
+    const xa = clamp(op.x + side * 1000, 400, S - 400), xb = clamp(xS + sc * 700, 400, S - 400);
+    const ta = { y: yTA, xs: xS, nums: [{ x: xa, y: op.y + 0.45 * (yTA(xa) - op.y), n: nA1 }, { x: xb, y: 0.55 * yTA(xb), n: nB1 }] };
+    Object.assign(w, { H, SF, LC, col, tmax, twood, rq, stream, MR, CR, DR, bl, J, B, church, F1, F2, yv, yMR, yRg, ta, village: names[Math.floor(r() * names.length)] });
+    Object.assign(w, { fw, hill: top, small, cut: { x: CUT.x, y: CUT.y, az: cutAz, d: cutD }, rail: { pts: RL, dep: H0.map((h, i) => h - RZ[i]) } });
+    w.eyeZ = groundAt(w, op.x, op.y) + 3;
+    // the lines a line of sight can cross, to place the target along your direction line
+    w.feat = [['the railroad', RL], ['the main road', MR], ['the cross road', CR], ['the stream', stream], ['the dirt road', DR]];
+    w.lms = [
+      { x: J.x, y: J.y, name: `the crossroads in ${w.village}` },
+      { x: church.x + 10, y: church.y + 10, name: 'the church' },
+      { x: F1.x, y: F1.y, name: 'the farm at the end of the dirt road' },
+      { x: F2.x, y: F2.y + 20, name: 'the farm on the main road' },
+      { x: B.x, y: B.y, name: 'the bridge' },
+      { x: p0[0], y: p0[1], name: 'where the dirt road leaves the main road' },
+      { x: top.x, y: top.y, name: top.name },
+      { x: CUT.x, y: CUT.y, name: 'the railroad cut' },
+      ...small.map(s => ({ x: s.x, y: s.y, name: small.length < 2 ? 'the small hill' : `the ${Math.hypot(s.x - op.x, s.y - op.y) > Math.min(...small.map(q => Math.hypot(q.x - op.x, q.y - op.y))) ? 'far' : 'near'} small hill` })),
+      ...[[LXm, 'the railroad crossing'], [LXc, 'the railroad crossing on the cross road'], [LXs, 'the railroad embankment over the stream']].filter(q => q[0]).map(([p, name]) => ({ x: p.x, y: p.y, name }))
+    ];
+    let hmin = 1e9, hmax = -1e9;
+    for (let k = 0; k < NN * NN; k++) { if (H[k] < hmin) hmin = H[k]; if (H[k] > hmax) hmax = H[k]; }
+    w.hmin = hmin; w.hmax = hmax;
+    return w;
+  }
+
+  function los(w, ax, ay, az, bx, by, bz) {
+    const dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy), n = Math.ceil(d / 10);
+    for (let s = 1; s < n - 2; s++) { const t = s / n; if (surfAt(w, ax + dx * t, ay + dy * t) > az + (bz - az) * t + 0.3) return false; }
+    return true;
+  }
+  function openAround(w, x, y, rad) {
+    for (let dy = -rad; dy <= rad; dy += 10) for (let dx = -rad; dx <= rad; dx += 10) {
+      if (dx * dx + dy * dy > rad * rad) continue;
+      const xx = x + dx, yy = y + dy;
+      if (xx < 0 || yy < 0 || xx > S || yy > S || w.LC[cellOf(xx, yy)] !== 0) return false;
+    }
+    return true;
+  }
+  function nearestLm(w, x, y) {
+    let b = null, bd = 1e9;
+    for (const l of w.lms) { const d = Math.hypot(x - l.x, y - l.y); if (d < bd) { bd = d; b = l; } }
+    return { lm: b, d: bd, dir: DIR8[Math.round(azOf(x - b.x, y - b.y) / 800) % 8] };
+  }
+  function visibleSet(w, c) {
+    const op = w.op, eye = w.eyeZ, a = c.az * MIL, u = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
+    const chk = (rng, lat, hh) => {
+      const x = c.x + u[0] * rng + rt[0] * lat, y = c.y + u[1] * rng + rt[1] * lat;
+      if (x < 60 || y < 60 || x > S - 60 || y > S - 60) return false;
+      return los(w, op.x, op.y, eye, x, y, groundAt(w, x, y) + hh);
+    };
+    if (!chk(0, 0, 1.4) || !chk(0, -45, 1.4) || !chk(0, 45, 1.4)) return false;
+    for (const rng of [-450, -250, -120, 120, 250, 450]) if (!chk(rng, 0, 5)) return false;
+    for (const lat of [-170, 170]) if (!chk(0, lat, 5)) return false;
+    for (const p of [[-250, -120], [250, 120], [-120, 100], [120, -100]]) if (!chk(p[0], p[1], 5)) return false;
+    return true;
+  }
+  // where a line from the start crosses the railroad, the roads and the stream: distances along the line, nearest first
+  function lineMarks(w, az) {
+    const op = w.op, out = [];
+    if (!w.featP) w.featP = w.feat.map(([name, pts]) => [name, pts.map(([x, y]) => [azOf(x - op.x, y - op.y), Math.hypot(x - op.x, y - op.y)])]);
+    for (const [name, P] of w.featP) for (let i = 1; i < P.length; i++) {
+      const a0 = dm(P[i - 1][0], az), a1 = dm(P[i][0], az);
+      if ((a0 > 0) === (a1 > 0) || Math.abs(a0 - a1) > 200) continue;
+      const d = P[i - 1][1] + (P[i][1] - P[i - 1][1]) * a0 / (a0 - a1);
+      if (!out.some(m => m.name === name && Math.abs(m.d - d) < 80)) out.push({ name, d });
+    }
+    return out.sort((a, b) => a.d - b.d);
+  }
+  // the five things the observer matches are all in front and in sight: the big hill (highest point), the small hills (the trees on top),
+  // the crossroads, and the cut as a notch on the skyline (the ridge beside it is the skyline, what shows through it is lower)
+  function featuresSeen(w) {
+    const op = w.op, eye = w.eyeZ, H = w.hill;
+    const see = (x, y, z) => Math.abs(dm(azOf(x - op.x, y - op.y), w.fw)) <= 750 && los(w, op.x, op.y, eye, x, y, z);
+    if (w.hmax > H.h + 0.5 || !see(H.x, H.y, H.h + 2)) return false;
+    if (!w.small.every(s => see(s.x, s.y, groundAt(w, s.x, s.y) + 16)) || !see(w.J.x, w.J.y, groundAt(w, w.J.x, w.J.y) + 6)) return false;
+    const sky = a => {
+      const sx = Math.sin(a * MIL), sy = Math.cos(a * MIL); let m = -1e9, at = 0;
+      for (let d = 150; d < 8500; d += 15) { const x = op.x + sx * d, y = op.y + sy * d; if (x < 0 || y < 0 || x > S || y > S) break; const v = (surfAt(w, x, y) - eye) / d; if (v > m) { m = v; at = d; } }
+      return { m, at };
+    };
+    const c0 = sky(w.cut.az);
+    return [-30, 30].every(o => { const q = sky(w.cut.az + o); return Math.abs(q.at - w.cut.d) < 350 && q.m - c0.m > 3 * MIL; });
+  }
+  function placeTarget(w) {
+    const r = w.r, op = w.op, cand = [];
+    // labels must not overlap on the screen: r = half a label in mils, sized for the narrowest phone (375 px: 1 mil = 0.81 px):
+    // a number 10.5, a KNP 21, the target's circle 17 (its circle sits low, so a number just under it needs the room)
+    const scr = (x, y, r) => ({ x, y, r, az: azOf(x - op.x, y - op.y), el: (groundAt(w, x, y) - w.eyeZ) / Math.hypot(x - op.x, y - op.y) / MIL });
+    const apart = (p, q) => Math.hypot(q.x - p.x, q.y - p.y) >= 150 && (Math.abs(dm(p.az, q.az)) >= p.r + q.r || Math.abs(p.el - q.el) >= 0.85 * (p.r + q.r));
+    for (let y = 1300; y <= 3000; y += 40) for (let x = 200; x <= 5800; x += 40) {
+      const dx = x - op.x, dy = y - op.y, d = Math.hypot(dx, dy);
+      if (d < 850 || d > 1450) continue;
+      const az = azOf(dx, dy);
+      if (Math.abs(dm(az, w.fw)) > 600) continue;
+      if (!openAround(w, x, y, 70)) continue;
+      const gx = (groundAt(w, x + 15, y) - groundAt(w, x - 15, y)) / 30, gy = (groundAt(w, x, y + 15) - groundAt(w, x, y - 15)) / 30;
+      if (Math.hypot(gx, gy) > 0.13) continue;
+      const nl = nearestLm(w, x, y);
+      if (nl.d > 600 || nl.d < 90) continue;
+      // open ground you can find on your direction line: the line crosses the railroad (in sight), and the nearest crossing is within 450 m
+      const mk = lineMarks(w, az), rc = mk.find(m => m.name === 'the railroad' && m.d > 250 && m.d < d + 500);
+      if (!rc || !mk.some(m => Math.abs(m.d - d) <= 450)) continue;
+      const rx = op.x + Math.sin(az * MIL) * rc.d, ry = op.y + Math.cos(az * MIL) * rc.d;
+      if (!los(w, op.x, op.y, w.eyeZ, rx, ry, groundAt(w, rx, ry) + 1)) continue;
+      cand.push({ x, y, d, az, s: r() });
+    }
+    cand.sort((a, b) => a.s - b.s);
+    const jS = scr(w.J.x, w.J.y, 21);
+    for (const c of cand.slice(0, 500)) {
+      if (!visibleSet(w, c)) continue;
+      // KNP2 (the crossroads) clear of the target's circle: beside it, above it (its label ends low) or below it
+      const cS = scr(c.x, c.y, 17), dEl = jS.el - cS.el;
+      if (Math.abs(dm(cS.az, jS.az)) < 36 && dEl < 19 && dEl > -25) continue;
+      // always 1 tank (the real exam). The r() calls of the old random type, count and group stay, so each seed keeps its world.
+      r(); const n = 2 + Math.floor(r() * 3);
+      const a = c.az * MIL, u = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
+      const veh = [], sp = 32 + r() * 8;
+      for (let q = 0; q < n; q++) {
+        const lat = (q - (n - 1) / 2) * sp + (r() - 0.5) * 6, rng = (q % 2 ? 9 : -9) + (r() - 0.5) * 10;
+        const x = c.x + rt[0] * lat + u[0] * rng, y = c.y + rt[1] * lat + u[1] * rng;
+        const head = a + (r() < 0.5 ? 1 : -1) * Math.PI / 2 + (r() - 0.5) * 0.2;
+        veh.push({ x, y, z: groundAt(w, x, y), head, dead: false });
+      }
+      const cx = veh.reduce((s, v) => s + v.x, 0) / n, cy = veh.reduce((s, v) => s + v.y, 0) / n;
+      w.tgt = { x: cx, y: cy, ty: 'T72', n: 1, veh: [{ x: cx, y: cy, z: groundAt(w, cx, cy), head: veh[0].head, dead: false }] };
+      const r2 = w.r2;
+      w.fo = FOS[Math.floor(r() * 5)];
+      w.fdcCs = FDCS[Math.floor(r() * 5)];
+      r(); // was the radio frequency: the radio is already on the fire net
+      r(); r(); // were a random G-M angle and side: G-M is fixed at 112 mils (6.3°) W
+      w.gmAbs = GM; w.gmEast = false;
+      w.tn = 'A' + 'BCDEFGH'[Math.floor(r() * 7)] + (1000 + Math.floor(r() * 9000));
+      r(); w.bty = UNITS[Math.floor(r2() * UNITS.length)];
+      r(); // was the casualty count: the sheet prints 3
+      w.rounds = [1, 1, 2, 3][Math.floor(r2() * 4)];
+      w.tgtNo = 1 + Math.floor(r2() * 29);
+      // the choices on the sheet: the right one plus two that sound alike, in a fixed order per card
+      const mix = arr => arr.map(v => [r2(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+      const csX = [...FOS, ...FDCS].filter(v => v !== w.fo && v !== w.fdcCs)[Math.floor(r2() * 8)];
+      const d4 = w.tn.slice(2), tnX = [];
+      for (const [i, j] of [[2, 3], [1, 2], [0, 1], [1, 3], [0, 3], [0, 2]]) { const q = d4.split(''); [q[i], q[j]] = [q[j], q[i]]; const v = w.tn.slice(0, 2) + q.join(''); if (v !== w.tn && !tnX.includes(v) && tnX.length < 2) tnX.push(v); }
+      while (tnX.length < 2) tnX.push(w.tn.slice(0, 2) + (1000 + (+d4 + 1234 * (tnX.length + 1)) % 9000));
+      w.opts = { cs: mix([w.fo, w.fdcCs, csX]), unit: mix([w.bty, ...mix(UNITS.filter(v => v !== w.bty)).slice(0, 2)]), tn: mix([w.tn, ...tnX]) };
+      // the screen's red points: KNP2 on the crossroads, KNP1 on the farthest landmark near the target's line, then up to 28 numbered
+      // points (the target holds w.tgtNo), all in sight (a KNP 6 m up, like the crossroads check), off woods and buildings, at least 150 m apart
+      // (assumption: 0.9–2.8 km, ±200 mils)
+      const seen = (x, y, h = 2) => los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + h), far = l => Math.hypot(l.x - op.x, l.y - op.y);
+      const tS = scr(w.tgt.x, w.tgt.y, 17);
+      const k1 = w.lms.filter(l => Math.hypot(l.x - w.J.x, l.y - w.J.y) > 600 && Math.abs(dm(azOf(l.x - op.x, l.y - op.y), c.az)) < 400 && seen(l.x, l.y, 6) && apart(scr(l.x, l.y, 21), tS) && apart(scr(l.x, l.y, 21), jS)).sort((p, q) => far(q) - far(p))[0] || w.hill;
+      w.knp = [{ x: k1.x, y: k1.y, n: 'KNP1' }, { x: w.J.x, y: w.J.y, n: 'KNP2' }].filter(p => seen(p.x, p.y, 6));
+      const pc = [];
+      for (let y = 50; y < S; y += 50) for (let x = 50; x < S; x += 50) {
+        const px = x + (r2() - 0.5) * 30, py = y + (r2() - 0.5) * 30, d = Math.hypot(px - op.x, py - op.y), t = w.LC[cellOf(px, py)];
+        if (d >= 900 && d <= 2800 && t !== 1 && t !== 4 && Math.abs(dm(azOf(px - op.x, py - op.y), c.az)) <= 200) pc.push({ x: px, y: py, s: r2() });
+      }
+      const used = [tS, ...w.knp.map(p => scr(p.x, p.y, 21))], nums = mix(Array.from({ length: 29 }, (_, i) => i + 1).filter(v => v !== w.tgtNo));
+      w.pts = [];
+      for (const c2 of pc.sort((a, b) => a.s - b.s)) {
+        if (w.pts.length >= nums.length) break;
+        const p = scr(c2.x, c2.y, 10.5);
+        if (!used.every(q => apart(p, q)) || !seen(p.x, p.y)) continue;
+        used.push(p); w.pts.push({ x: p.x, y: p.y, n: String(nums[w.pts.length]) });
+      }
+      return true;
+    }
+    return false;
+  }
+  function genWorld(seed) {
+    for (let t = 0; t < 24; t++) { const w = buildTerrain(seed + t * 7919); if (featuresSeen(w) && placeTarget(w)) { w.seed = seed; w.tries = t + 1; return w; } }
+    return null;
+  }
+
+  // ---------- state
+  const st = { mode: 'guided', w: null, seed: 0, az: 0, pitch: 0, bino: false, sheet: {}, gOk: {}, bursts: [], plot: null, opMark: null, logs: [], t0: 0, running: false, examOn: false, ended: false };
+  let F = {}, R = {};
+  const timers = new Set();
+  const later = (ms, fn) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); };
+  const clearTimers = () => { for (const id of timers) clearTimeout(id); timers.clear(); };
+  const W = () => st.w;
+  // the answers for this card: magnetic direction given by the evaluator (mils), grid direction = magnetic − 112, nearest 10;
+  // distance to the nearest 100 m; OT factor = distance in thousands, nearest whole number; ALT = ground at the target, nearest 5 m
+  const truth = () => {
+    const w = st.w, T = w.tgt, op = w.op, az = azOf(T.x - op.x, T.y - op.y), d = Math.hypot(T.x - op.x, T.y - op.y);
+    const mag = Math.round(w64(az + w.gmAbs)) % 6400, raw = w64(mag - w.gmAbs), dist = Math.round(d / 100) * 100;
+    return { az, mag, raw, gdir: r10(raw) % 6400, d, dist, otf: Math.max(1, Math.round(dist / 1000)), h: groundAt(w, T.x, T.y), alt: Math.round(groundAt(w, T.x, T.y) / 5) * 5 };
+  };
+  function gridToWorld(s) {
+    const d = digits(s); if (![6, 8, 10].includes(d.length)) return null;
+    const h = d.length / 2, mul = Math.pow(10, 5 - h);
+    return { x: +d.slice(0, h) * mul - st.w.E0, y: +d.slice(h) * mul - st.w.N0 };
+  }
+  // a 6- or 8-digit grid names a 100 m or 10 m square: the FDC and the grading use its centre (assumption)
+  function gridCenter(s) { const p = gridToWorld(s); if (!p) return null; const half = Math.pow(10, 5 - digits(s).length / 2) / 2; return { x: p.x + half, y: p.y + half }; }
+  function worldToGrid(x, y, nd) {
+    const h = nd / 2, div = Math.pow(10, 5 - h);
+    const e = Math.floor((st.w.E0 + x) / div), n = Math.floor((st.w.N0 + y) / div);
+    return String(e).padStart(h, '0') + ' ' + String(n).padStart(h, '0');
+  }
+  const gridTxt = v => { const d = digits(v), h = d.length / 2; return d.slice(0, h) + ' ' + d.slice(h); };
+  function axisErr(p) {
+    const T = st.w.tgt, th = truth().az * MIL, dx = p.x - T.x, dy = p.y - T.y;
+    const rng = dx * Math.sin(th) + dy * Math.cos(th), dev = dx * Math.cos(th) - dy * Math.sin(th);
+    return { rng, dev, max: Math.max(Math.abs(rng), Math.abs(dev)), d: Math.hypot(dx, dy) };
+  }
+
+  // ---------- observer view (voxel ray caster), drawn like the exam screen: blue sky and haze, pale ground, single bright conifers
+  const V = { cv: $('view'), ctx: $('view').getContext('2d'), W: 0, H: 0, img: null, d32: null, zb: null, b32: null, bz: null, dirty: true, fast: false, raf: 0, last: 0 };
+  const HZN = 450, HZ = new Float32Array(HZN);
+  for (let i = 0; i < HZN; i++) HZ[i] = 0.85 * (1 - Math.exp(-(i * 20) / 3200));
+  const FOV0 = 400; // naked-eye field of view in mils, as on the exam screen (the map's Guided fan shows it too)
+  const fov = () => st.bino ? 130 : FOV0;
+  const camF = () => V.W / (fov() * MIL);
+  // the naked eye holds the aim point (the target at the start) at 2/3 height under a band of sky; the binoculars center it
+  const aimY = () => st.bino ? V.H / 2 : V.H * 0.66;
+  const horizonY = () => aimY() + st.pitch * camF();
+  function sizeView() {
+    const css = $('vwrap').clientWidth; if (!css) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // phones: ~26% of the long screen side in portrait, ~62% of the short side in landscape; tablets ~32%
+    const sw = (window.screen && screen.width) || 800, sh = (window.screen && screen.height) || 800, longS = Math.max(sw, sh), shortS = Math.min(sw, sh);
+    const hCss = innerWidth > innerHeight && innerHeight < 520 ? Math.min(css * 0.5, shortS * 0.62)
+      : css < 600 ? Math.min(css * 0.6, Math.max(140, longS * (longS < 720 ? 0.22 : 0.26)))
+      : innerWidth < 1100 ? Math.min(css * 0.6, longS * 0.32) : css * 0.6;
+    const w = clamp(Math.round(css * dpr), 300, 980), h = Math.round(w * hCss / css);
+    if (w === V.W && h === V.H) return;
+    V.W = w; V.H = h; V.cv.width = w; V.cv.height = h;
+    V.img = V.ctx.createImageData(w, h); V.d32 = new Uint32Array(V.img.data.buffer);
+    V.zb = new Float32Array(w * h); V.b32 = new Uint32Array(w * h); V.bz = new Float32Array(w * h);
+    V.dirty = true; kick();
+  }
+  function renderTerrain() {
+    const w = st.w, Wd = V.W, Hd = V.H, f = camF(), hy = horizonY(), d = V.b32, zb = V.bz, SF = w.SF, H = w.H, LC = w.LC, col = w.col, tmax = w.tmax, twood = w.twood, RQ = w.rq;
+    const eye = w.eyeZ, ox = w.op.x, oy = w.op.y, az0 = st.az * MIL;
+    // steps in meters along the ray. Single trees out to 2.2 km: each tree is taken at the ray's closest point to its trunk, so a step may be
+    // longer than a crown (at most 3.5 m near woods, 6 m over open ground). Past that, smooth ground and a flat canopy; dragging skips the trees.
+    const tZ = V.fast ? 0 : 2200, k1 = 1 / 350, k2 = V.fast ? 1 / 160 : 1 / 260, m2 = V.fast ? 3 : 2;
+    // sky: deep blue at the top of the sky you see (about 0.065 rad), pale at the horizon; haze below it, past the map edge
+    const sky = new Uint32Array(Hd);
+    for (let y = 0; y < Hd; y++) { const t = 1 - Math.pow(1 - clamp((hy - y) / f / 0.065, 0, 1), 2); sky[y] = y > hy ? pack(166, 198, 226) : pack(158 - 98 * t, 200 - 78 * t, 240 - 10 * t); }
+    for (let i = 0; i < Wd; i++) {
+      const a = az0 + (i + 0.5 - Wd / 2) / f, sx = Math.sin(a), sy = Math.cos(a);
+      let ybuf = Hd, z = 8, step = 1;
+      while (z < 8500) {
+        const px = ox + sx * z, py = oy + sy * z;
+        if (px < 0 || py < 0 || px >= S - 1 || py >= S - 1) break;
+        const tk = ((py / 50) | 0) * TM + ((px / 50) | 0);
+        if (hy + (eye - tmax[tk]) / z * f >= ybuf) { step = Math.min(40, Math.max(6, z * k2 * 2)); z += step; continue; }
+        const gx = px / CELL, gy = py / CELL, ix = gx | 0, iy = gy | 0, fx = gx - ix, fy = gy - iy, k = iy * NN + ix, kn = (fy < 0.5 ? k : k + NN) + (fx < 0.5 ? 0 : 1);
+        let hs, cc = -1;
+        if (z < tZ) {
+          // near: bare ground, buildings as boxes, and in the woods a conifer in 7 of 10 6-m squares (every other row shifted half a
+          // square): 8–14 m, pointed top, flared skirt down to the ground, yellow-green toward the sun (south-east, behind you); dark ground between
+          const a0 = H[k], a1 = H[k + 1], a2 = H[k + NN], a3 = H[k + NN + 1];
+          hs = a0 + (a1 - a0) * fx + (a2 - a0) * fy + (a0 - a1 - a2 + a3) * fx * fy;
+          const t = LC[kn];
+          if (t === 4) { hs += SF[kn] - H[kn]; cc = col[kn]; }
+          else if (t === 1) {
+            const cj = (py / 6) | 0, sh = (cj & 1) * 0.5, ci = (px / 6 - sh) | 0;
+            let q = Math.imul(ci, 0x27d4eb2d) ^ Math.imul(cj, 0x165667b1);
+            q = Math.imul(q ^ (q >>> 15), 0x2c1b3c6d); q = Math.imul(q ^ (q >>> 12), 0x297a2d39); q ^= q >>> 15;
+            cc = 0x5e6254;
+            if ((q & 255) > 76) {
+              const ht = 8 + ((q >>> 8) & 255) * 0.0235, rt = Math.min(2.85, 0.4 + 0.22 * ht);
+              const ex = (ci + 0.5 + sh) * 6 + (((q >>> 16) & 15) - 7.5) * 0.02 - px, ey = (cj + 0.5) * 6 + (((q >>> 20) & 15) - 7.5) * 0.02 - py;
+              const al = ex * sx + ey * sy, near = al <= 0 && al > -step;
+              const vx = near ? al * sx - ex : -ex, vy = near ? al * sy - ey : -ey, d2 = vx * vx + vy * vy;
+              if (d2 < rt * rt) {
+                const dd = Math.sqrt(d2) + 1e-6, u = dd / rt, lam = (vx * 0.3 - vy * 0.55) / dd;
+                hs += ht * Math.sqrt(1 - u) * (1 - 0.5 * u);
+                // the crown's outline stays lit (sun side brighter), its front face darkens toward the ground; a needle-clump dither
+                const m = clamp(0.54 + 0.5 * lam + (near ? 0.12 : 0.2 * (1 - u) - 0.8 * u * u * u * u) - (((px * 1.7 | 0) ^ (hs * 1.4 | 0)) & 3) * 0.07, 0, 1), tn = 0.86 + ((q >>> 24) & 255) * 0.0011;
+                cc = ((50 + 120 * m) * tn | 0) | (((84 + 120 * m) * tn | 0) << 8) | (((40 + 36 * m) * tn | 0) << 16);
+              }
+            }
+          }
+        } else {
+          // far: the smooth surface; the canopy top drops 0–4 m per 10-m cell, darker where lower, so a far tree line has a ragged top
+          const a0 = SF[k], a1 = SF[k + 1], a2 = SF[k + NN], a3 = SF[k + NN + 1];
+          hs = a0 + (a1 - a0) * fx + (a2 - a0) * fy + (a0 - a1 - a2 + a3) * fx * fy;
+          if (LC[kn] === 1) { const v = Math.imul(kn, 0x9e3779b1) >>> 28, c = col[kn], m = 1.2 - v * 0.027; hs -= v * 0.27; cc = ((c & 255) * m | 0) | ((((c >> 8) & 255) * m | 0) << 8) | (((c >> 16) * m | 0) << 16); }
+        }
+        const yy = hy + (eye - hs) / z * f;
+        if (yy < ybuf) {
+          const yi = yy < 0 ? 0 : Math.ceil(yy);
+          if (yi < ybuf) {
+            let cr, cg, cb;
+            if (cc >= 0) { cr = cc & 255; cg = (cc >> 8) & 255; cb = cc >> 16; }
+            else {
+              // ground color, bilinear between the four cells (no blocks)
+              const c0 = col[k], c1 = col[k + 1], c2 = col[k + NN], c3 = col[k + NN + 1], w1 = fx * (1 - fy), w2 = (1 - fx) * fy, w3 = fx * fy, w0 = 1 - w1 - w2 - w3;
+              cr = (c0 & 255) * w0 + (c1 & 255) * w1 + (c2 & 255) * w2 + (c3 & 255) * w3;
+              cg = ((c0 >> 8) & 255) * w0 + ((c1 >> 8) & 255) * w1 + ((c2 >> 8) & 255) * w2 + ((c3 >> 8) & 255) * w3;
+              cb = (c0 >> 16) * w0 + (c1 >> 16) * w1 + (c2 >> 16) * w2 + (c3 >> 16) * w3;
+              // the rail bed, 18 m wide: dark where the interpolated distance to the line is small (straight edges, no cell steps)
+              if (RQ[k] < 104 && LC[kn] !== 2) { const rd = (RQ[k] * w0 + RQ[k + 1] * w1 + RQ[k + NN] * w2 + RQ[k + NN + 1] * w3) * 0.25; if (rd < 11) { const b = Math.min(1, (11 - rd) / 3); cr += (84 - cr) * b; cg += (82 - cg) * b; cb += (84 - cb) * b; } }
+            }
+            // blue haze with distance
+            const hz = HZ[Math.min(HZN - 1, (z / 20) | 0)], ih = 1 - hz, pc = pack(cr * ih + 166 * hz, cg * ih + 198 * hz, cb * ih + 226 * hz);
+            for (let y = yi; y < ybuf; y++) { const o = y * Wd + i; d[o] = pc; zb[o] = z; }
+            ybuf = yi;
+            if (ybuf <= 0) break;
+          }
+        }
+        step = z < tZ ? (twood[tk] ? clamp(z * k1, 1.5, 3.5) : clamp(z * 0.005, 1.5, 6)) : Math.max(m2, z * k2);
+        z += step;
+      }
+      for (let y = 0; y < ybuf; y++) { const o = y * Wd + i; d[o] = sky[y]; zb[o] = 1e9; }
+    }
+  }
+  function proj(x, y, z) {
+    const w = st.w, dx = x - w.op.x, dy = y - w.op.y, dist = Math.hypot(dx, dy), f = camF();
+    let da = Math.atan2(dx, dy) - st.az * MIL; da = Math.atan2(Math.sin(da), Math.cos(da));
+    return { sx: V.W / 2 + da * f, sy: horizonY() + (w.eyeZ - z) / dist * f, dist, s: f / dist, a: Math.atan2(dx, dy) };
+  }
+  const pack = (r, g, b) => (0xff000000 | (b << 16) | (g << 8) | r) >>> 0;
+  function blend(o, c, a) {
+    const p = V.d32[o], ia = 1 - a;
+    V.d32[o] = pack(((p & 255) * ia + c[0] * a) | 0, (((p >> 8) & 255) * ia + c[1] * a) | 0, (((p >> 16) & 255) * ia + c[2] * a) | 0);
+  }
+  // a soft disc in the view; ky < 1 flattens it (a flash on the ground)
+  function disc(x, y, z, rad, c, a, ky = 1) {
+    const p = proj(x, y, z); if (p.dist < 20) return;
+    const rp = Math.max(0.7, rad * p.s), rq = rp * ky, Wd = V.W, Hd = V.H;
+    if (p.sx + rp < 0 || p.sx - rp > Wd || p.sy + rq < 0 || p.sy - rq > Hd) return;
+    const x0 = Math.max(0, Math.floor(p.sx - rp)), x1 = Math.min(Wd - 1, Math.ceil(p.sx + rp)), y0 = Math.max(0, Math.floor(p.sy - rq)), y1 = Math.min(Hd - 1, Math.ceil(p.sy + rq));
+    const lim = p.dist - rad - 2;
+    for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
+      const ddx = (xx + 0.5 - p.sx) / rp, ddy = (yy + 0.5 - p.sy) / Math.max(0.7, rq), q = ddx * ddx + ddy * ddy;
+      if (q >= 1) continue;
+      const o = yy * Wd + xx; if (V.zb[o] < lim) continue;
+      blend(o, c, a * (1 - q * q));
+    }
+  }
+  function drawVehicles() {
+    const T = st.w.tgt, sp = VEH[T.ty], Wd = V.W, Hd = V.H;
+    for (const v of T.veh) {
+      const p = proj(v.x, v.y, v.z); if (p.sx < -60 || p.sx > Wd + 60) continue;
+      const rel = v.head - p.a, sr = Math.sin(rel), cr = Math.cos(rel), front = sr >= 0 ? 1 : -1;
+      const Lx = Math.abs(sp.L * sr) + Math.abs(sp.Wd * cr), s = p.s;
+      const hullC = v.dead ? [38, 35, 31] : [54, 58, 38], topC = v.dead ? [52, 46, 40] : [92, 98, 66], darkC = [24, 24, 20];
+      if (Lx * s < 3) {
+        const x = Math.round(p.sx), y = Math.round(p.sy) - 1;
+        for (let k = -1; k <= 0; k++) { const xx = x + k; if (xx < 0 || xx >= Wd || y < 0 || y >= Hd) continue; const o = y * Wd + xx; if (V.zb[o] > p.dist - 10) { V.d32[o] = pack(hullC[0], hullC[1], hullC[2]); V.zb[o] = p.dist - 1; } }
+        continue;
+      }
+      const tL = Math.abs(sp.turW * sr) * 0.75 + Math.abs(sp.turW * cr) * 0.75, gunL = sp.gun * Math.abs(sr);
+      const half = (Lx / 2 + gunL) * s + 2, top = (sp.hull + sp.tur + 0.4) * s + 2;
+      const x0 = Math.max(0, Math.floor(p.sx - half)), x1 = Math.min(Wd - 1, Math.ceil(p.sx + half)), y0 = Math.max(0, Math.floor(p.sy - top)), y1 = Math.min(Hd - 1, Math.ceil(p.sy));
+      for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
+        const u = (xx + 0.5 - p.sx) / s, h = (p.sy - (yy + 0.5)) / s;
+        let c = null;
+        if (sp.armor) {
+          if (h >= 0 && h <= sp.hull && Math.abs(u) <= Lx / 2 - (h / sp.hull) * 0.35) c = h < 0.45 ? darkC : hullC;
+          else if (h > sp.hull && h <= sp.hull + sp.tur && Math.abs(u + front * 0.4) <= tL / 2) c = topC;
+          else if (Math.abs(h - (sp.hull + sp.tur * 0.5)) <= 0.13 && u * front > 0 && u * front <= tL / 2 + gunL) c = topC;
+        } else {
+          const cab = Lx * 0.28, fx = u * front;
+          if (h >= 0 && h <= 0.6 && Math.abs(u) <= Lx / 2 - 0.3) c = darkC;
+          else if (h > 0.6 && h <= 2.9 && fx <= Lx / 2 - cab - 0.2 && fx >= -Lx / 2) c = v.dead ? hullC : [92, 94, 70];
+          else if (h > 0.6 && h <= 2.5 && fx > Lx / 2 - cab && fx <= Lx / 2) c = hullC;
+        }
+        if (!c) continue;
+        const o = yy * Wd + xx;
+        if (V.zb[o] > p.dist - 10) { V.d32[o] = pack(c[0], c[1], c[2]); V.zb[o] = p.dist - 1; }
+      }
+    }
+  }
+  function addBurst(x, y, kind) {
+    const b = { x, y, z: groundAt(st.w, x, y), t0: performance.now(), kind, puffs: [] }, r = Math.random;
+    if (kind === 'icm') for (let n = 0; n < 16; n++) b.puffs.push({ ox: (r() - 0.5) * 70, oy: (r() - 0.5) * 50, h0: 1, rise: 3 + r() * 3, r0: 1.5, r1: 4 + r() * 2.5, a: 0.85, dl: r() * 0.7 });
+    else if (kind === 'vt') for (let n = 0; n < 6; n++) b.puffs.push({ ox: (r() - 0.5) * 8, oy: (r() - 0.5) * 8, h0: 9 + r() * 3, rise: 3 + r() * 3, r0: 2, r1: 8 + r() * 4, a: 0.85, dl: 0, dark: 1 });
+    else {
+      // HE: a dark column standing on the impact point plus a low dust skirt, so its base shows over/short
+      for (let n = 0; n < 6; n++) b.puffs.push({ ox: (r() - 0.5) * 4, oy: (r() - 0.5) * 4, h0: 1.5, rise: 2 + n * 3.4, r0: 2, r1: 4 + n * 0.7 + r() * 1.5, a: 0.95, dl: n * 0.05, dark: n < 3 ? 2 : 0 });
+      for (let n = 0; n < 5; n++) b.puffs.push({ ox: (n - 2) * 4 + (r() - 0.5) * 2, oy: (r() - 0.5) * 6, h0: 1, rise: 1 + r(), r0: 1.5, r1: 4 + r() * 2, a: 0.85, dl: 0.1, dark: 2 });
+    }
+    st.bursts.push(b); kick(); return b;
+  }
+  function drawBursts(now) {
+    let alive = false;
+    for (const b of st.bursts) {
+      const age = (now - b.t0) / 1000; if (age > 70) continue; alive = true; if (age < 0) continue;
+      for (const p of b.puffs) {
+        const t = age - p.dl; if (t < 0) continue;
+        const g = 1 - Math.exp(-t / 0.55), a = p.a * (t < 1.5 ? 1 : Math.exp(-(t - 1.5) / 14));
+        if (a < 0.03) continue;
+        disc(b.x + p.ox + 1.2 * t, b.y + p.oy, b.z + p.h0 + p.rise * g + 0.3 * t, p.r0 + (p.r1 - p.r0) * g + 0.2 * t, p.dark === 2 ? [88, 78, 64] : p.dark ? [72, 70, 66] : [132, 120, 100], a);
+      }
+      // the flash, as on the exam screen: bright yellow with a dark olive rim, then the smoke above
+      if (age < 1.1) { const k = 1 - 0.35 * age / 1.1; disc(b.x, b.y, b.z + 4.6 * k, 7.5 * k, [52, 70, 24], 1, 0.62); disc(b.x, b.y, b.z + 4.6 * k, 5.6 * k, [255, 226, 48], 1, 0.62); }
+    }
+    for (const v of st.w.tgt.veh) {
+      if (!v.dead) continue; alive = true;
+      const t = now / 1000 + v.x;
+      disc(v.x, v.y, v.z + 2.2, 1.3 + 0.4 * Math.sin(t * 11), [255, 140, 40], 0.9);
+      for (let q = 0; q < 5; q++) { const ph = ((t + q * 0.8) % 4) / 4; disc(v.x + ph * 6, v.y, v.z + 3 + ph * 26, 2 + ph * 7, [34, 33, 31], 0.75 * (1 - ph)); }
+    }
+    return alive ? (st.bursts.some(b => now - b.t0 < 70000) ? 2 : 1) : 0;
+  }
+  function kick() { if (!V.raf) V.raf = requestAnimationFrame(frame); }
+  function frame(now) {
+    V.raf = 0;
+    if (!st.w || !V.W || $('paneView').hidden) return;
+    V.n = (V.n || 0) + 1;
+    if (V.dirty) { renderTerrain(); V.dirty = false; }
+    V.d32.set(V.b32); V.zb.set(V.bz);
+    drawVehicles();
+    const alive = drawBursts(now);
+    V.ctx.putImageData(V.img, 0, 0);
+    drawHud();
+    // bursts animate at ~30 fps, burning vehicles alone at ~10 fps
+    const next = () => { V.raf = requestAnimationFrame(t => { V.raf = 0; if (t - V.last < (alive === 2 ? 33 : 100)) { next(); return; } V.last = t; frame(t); }); };
+    if (alive) next();
+  }
+  function drawHud() {
+    const g = V.ctx, Wd = V.W, Hd = V.H, f = camF(), sc = Wd / (V.cv.clientWidth || Wd), pm = f * MIL, w = st.w, T = w.tgt;
+    g.save();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    // the simulator's red points stand on the ground: a short dark stake, the number on top (12 css px, 20 in the binoculars).
+    // They are part of the screen, so the binoculars see them too; only points in sight from the start were placed.
+    const fs = (st.bino ? 20 : 12) * sc, stk = (st.bino ? 6 : 3) * sc;
+    g.font = `700 ${Math.round(fs)}px Arial, sans-serif`; g.lineJoin = 'round';
+    const mark = (x, y, txt) => {
+      const p = proj(x, y, groundAt(w, x, y) + 0.3);
+      if (p.sx < -fs * 2 || p.sx > Wd + fs * 2 || p.sy < 0 || p.sy > Hd + fs) return p;
+      g.strokeStyle = '#1a0606'; g.lineWidth = Math.max(1, 1.3 * sc); g.beginPath(); g.moveTo(p.sx, p.sy); g.lineTo(p.sx, p.sy - stk); g.stroke();
+      g.lineWidth = 2.4 * sc; g.strokeText(txt, p.sx, p.sy - stk - fs * 0.45);
+      g.fillStyle = '#d42a2a'; g.fillText(txt, p.sx, p.sy - stk - fs * 0.45);
+      return p;
+    };
+    for (const q of w.knp.concat(w.pts)) mark(q.x, q.y, q.n);
+    // the target is point TGT n: its number inside a thin yellow circle around the tank. An over burst rises right behind
+    // that number, so it fades while a round's smoke is up
+    g.globalAlpha = st.bursts.some(b => performance.now() - b.t0 < 30000) ? 0.35 : 1;
+    const p = mark(T.x, T.y, String(w.tgtNo)), lab = stk + fs * 0.9;
+    if (p.sx > -40 && p.sx < Wd + 40) { g.strokeStyle = '#f2ea4c'; g.lineWidth = Math.max(1, 1.4 * sc); g.beginPath(); g.arc(p.sx, p.sy - lab * 0.45, Math.max(7 * sc, 6.6 * p.s, lab * 0.62 + 2 * sc), 0, Math.PI * 2); g.stroke(); }
+    g.globalAlpha = 1;
+    if (!st.bino) {
+      // top-left overlay: only the target number
+      g.fillStyle = '#0f1d45'; g.textAlign = 'left'; g.font = `700 ${Math.round(12 * sc)}px Arial, sans-serif`;
+      g.fillText(`TGT ${w.tgtNo}`, 8 * sc, 13 * sc);
+    } else {
+      const cx = Wd / 2, cy = Hd / 2;
+      if (!V.mask || V.mask.width !== Wd || V.mask.height !== Hd) {
+        // the binocular field: black everywhere except two overlapping circles
+        const m = document.createElement('canvas'); m.width = Wd; m.height = Hd;
+        // a wide, short view (small phone, phone on its side): the circles grow past the top and bottom, so the field
+        // still spans ±62 mils and the whole ±50 reticle
+        const mg = m.getContext('2d'), rr = Math.max(Hd * 0.48, Wd * 0.475 / 1.75), dx = Math.min(Wd * 0.475 - rr, rr * 0.75);
+        mg.fillStyle = '#050605'; mg.fillRect(0, 0, Wd, Hd);
+        mg.globalCompositeOperation = 'destination-out';
+        mg.beginPath(); mg.arc(cx - dx, cy, rr, 0, Math.PI * 2); mg.fill();
+        mg.beginPath(); mg.arc(cx + dx, cy, rr, 0, Math.PI * 2); mg.fill();
+        V.mask = m; V.fieldM = (dx + rr) / pm;
+      }
+      g.drawImage(V.mask, 0, 0);
+      // M22-style reticle: horizontal mil scale +-50 (5-mil ticks, numbers every 10), vertical scale +-20
+      g.strokeStyle = 'rgba(8,10,8,.92)'; g.fillStyle = 'rgba(8,10,8,.92)'; g.lineWidth = Math.max(1, 1.1 * sc);
+      g.font = `700 ${Math.round(12 * sc)}px ui-monospace, Menlo, monospace`;
+      g.beginPath(); g.moveTo(cx - 50 * pm, cy); g.lineTo(cx - 1.2 * pm, cy); g.moveTo(cx + 1.2 * pm, cy); g.lineTo(cx + 50 * pm, cy); g.stroke();
+      for (let m = -50; m <= 50; m += 5) {
+        if (!m) continue;
+        const x = cx + m * pm, big = m % 10 === 0;
+        g.beginPath(); g.moveTo(x, cy - (big ? 7 : 4) * sc); g.lineTo(x, cy + (big ? 7 : 4) * sc); g.stroke();
+        if (big) g.fillText(String(Math.abs(m)), x, cy - 15 * sc);
+      }
+      g.beginPath(); g.moveTo(cx, cy - 20 * pm); g.lineTo(cx, cy - 1.2 * pm); g.moveTo(cx, cy + 1.2 * pm); g.lineTo(cx, cy + 20 * pm); g.stroke();
+      for (let m = -20; m <= 20; m += 5) { if (!m) continue; const y = cy - m * pm, big = m % 10 === 0; g.beginPath(); g.moveTo(cx - (big ? 6 : 3.5) * sc, y); g.lineTo(cx + (big ? 6 : 3.5) * sc, y); g.stroke(); if (big) { g.textAlign = 'left'; g.fillText(String(Math.abs(m)), cx + 9 * sc, y); g.textAlign = 'center'; } }
+    }
+    g.restore();
+  }
+  // the strip under the view says, in words, what to do with it (nothing is drawn in the binoculars but the reticle)
+  function binoCaption() {
+    const s = guidedOn() ? gStep() : '';
+    if (s === 'spot') return spotOut() ? 'The burst is past the edge of the binoculars: press Binoculars to see it with the naked eye.' : 'Vertical line = your line to the target. Count to the burst: each number = 10 mils, ticks = 5.';
+    if (s === 'corr') return 'Burst beyond the target = OVER → Drop · in front = SHORT → Add.';
+    if (s === 'wait' || s === 'reply' || s === 'ffe') return 'Keep the vertical line on the target.';
+    return `TGT ${st.w.tgtNo} is in the yellow circle · tap to center on it.`;
+  }
+  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
+  function setView(az, pitch, fast) {
+    st.az = w64(az); st.pitch = clamp(pitch, -0.3, 0.15);
+    V.dirty = true; V.fast = !!fast; kick();
+    if (fast) { clearTimeout(V.fT); V.fT = setTimeout(() => { V.fast = false; V.dirty = true; kick(); }, 150); }
+    renderCap();
+  }
+  // spotting wants the vertical line on the target
+  const tgtAim = () => { const t = truth(); return { az: t.az, pitch: (groundAt(st.w, st.w.tgt.x, st.w.tgt.y) + 1 - st.w.eyeZ) / t.d }; };
+  function setBino(on) { if (!on) st.lastAim = { az: st.az, pitch: st.pitch }; st.bino = on; $('binoBtn').setAttribute('aria-pressed', String(on)); V.dirty = true; kick(); refresh(); }
+  (function viewInput() {
+    const cv = V.cv; let drag = null;
+    cv.addEventListener('pointerdown', e => { if (!st.w) return; cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, az: st.az, p: st.pitch, moved: false }; });
+    cv.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const k = V.W / cv.getBoundingClientRect().width, dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 10 * k) return;
+      drag.moved = true; const f = camF();
+      setView(drag.az - dx / (f * MIL), drag.p + dy / f, true);
+    });
+    const up = e => {
+      if (!drag) return;
+      if (!drag.moved) {
+        const rc = cv.getBoundingClientRect(), k = V.W / rc.width, x = (e.clientX - rc.left) * k, y = (e.clientY - rc.top) * k, f = camF();
+        let az = st.az + (x - V.W / 2) / (f * MIL), pitch = st.pitch + (aimY() - y) / f;
+        const t = truth(), el = (groundAt(st.w, st.w.tgt.x, st.w.tgt.y) + 1 - st.w.eyeZ) / t.d, snap = st.bino ? 12 : 30;
+        if (Math.abs(dm(az, t.az)) < snap && Math.abs(pitch - el) / MIL < snap) { az = t.az; pitch = el; }
+        setView(az, pitch, false);
+        if (!st.bino) setBino(true); else refresh();
+      }
+      drag = null;
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; });
+    const rep = (id, fn) => {
+      const b = $(id); let t1 = 0, t2 = 0;
+      const stop = () => { clearTimeout(t1); clearInterval(t2); };
+      b.addEventListener('pointerdown', e => { e.preventDefault(); fn(); t1 = setTimeout(() => { t2 = setInterval(fn, 60); }, 350); });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+      b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+    };
+    rep('panL', () => setView(st.az - (st.bino ? 1 : 12), st.pitch, !st.bino));
+    rep('panR', () => setView(st.az + (st.bino ? 1 : 12), st.pitch, !st.bino));
+    $('binoBtn').addEventListener('click', () => setBino(!st.bino));
+    document.addEventListener('keydown', e => {
+      if (!st.w || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || document.querySelector('.modal:not([hidden])')) return;
+      const big = e.shiftKey ? 5 : 1;
+      if (e.key === 'ArrowLeft') setView(st.az - (st.bino ? 1 : 10) * big, st.pitch);
+      else if (e.key === 'ArrowRight') setView(st.az + (st.bino ? 1 : 10) * big, st.pitch);
+      else if (e.key === 'ArrowUp') setView(st.az, st.pitch + (st.bino ? 1 : 4) * big * MIL);
+      else if (e.key === 'ArrowDown') setView(st.az, st.pitch - (st.bino ? 1 : 4) * big * MIL);
+      else if (e.key === 'b' || e.key === 'B') setBino(!st.bino);
+      else return;
+      e.preventDefault();
+    });
+  })();
+
+  // ---------- map
+  const MV = { cv: $('map'), ctx: $('map').getContext('2d'), W: 0, H: 0, scale: 1, cx: S / 2, cy: S / 2, img: null, ptr: new Map(), pinch: null };
+  const MAPR = 2400, MK = MAPR / S;
+  const MS = { 1: [[3, 0]], 2: [[0, 1]], 3: [[3, 1]], 4: [[1, 2]], 5: [[0, 1], [2, 3]], 6: [[0, 2]], 7: [[3, 2]], 8: [[2, 3]], 9: [[0, 2]], 10: [[3, 0], [1, 2]], 11: [[1, 2]], 12: [[1, 3]], 13: [[0, 1]], 14: [[0, 3]] };
+  function buildMapImage(w) {
+    const c = MV.off || (MV.off = document.createElement('canvas')); c.width = c.height = MAPR;
+    const g = c.getContext('2d');
+    const lc = MV.lc || (MV.lc = document.createElement('canvas')); lc.width = lc.height = NN;
+    const lg = lc.getContext('2d'), im = lg.createImageData(NN, NN), d = im.data;
+    for (let j = 0; j < NN; j++) for (let i = 0; i < NN; i++) {
+      const t = w.LC[j * NN + i], o = ((NN - 1 - j) * NN + i) * 4;
+      const cc = t === 1 ? [196, 226, 168] : t === 3 ? [150, 200, 235] : [251, 250, 244];
+      d[o] = cc[0]; d[o + 1] = cc[1]; d[o + 2] = cc[2]; d[o + 3] = 255;
+    }
+    lg.putImageData(im, 0, 0);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(lc, 0, 0, NN, NN, -MK * CELL / 2, -MK * CELL / 2, MAPR + MK * CELL, MAPR + MK * CELL);
+    // training areas on your side (mint), the impact area beyond the main road (pink buffer) and the ridge (red core)
+    const edge = (fy, from, to) => { g.beginPath(); for (let x = from; x <= to + 1; x += 50) g.lineTo(Math.min(x, to) * MK, (S - fy(Math.min(x, to))) * MK); };
+    const zone = (fy, north, fill) => { edge(fy, 0, S); g.lineTo(MAPR, north ? 0 : MAPR); g.lineTo(0, north ? 0 : MAPR); g.closePath(); g.fillStyle = fill; g.fill(); };
+    const yIA = x => w.yMR(x) + 160, yRC = x => w.yRg(x) + 260;
+    zone(w.ta.y, false, 'rgba(170,222,196,.35)'); zone(yIA, true, 'rgba(236,160,152,.35)'); zone(yRC, true, 'rgba(196,64,60,.40)');
+    g.lineJoin = 'round';
+    edge(w.ta.y, 0, S); g.moveTo(w.ta.xs * MK, MAPR); g.lineTo(w.ta.xs * MK, (S - w.ta.y(w.ta.xs)) * MK); g.lineWidth = 5; g.strokeStyle = '#24562f'; g.stroke();
+    edge(yIA, 0, S); g.lineWidth = 3; g.strokeStyle = '#a3302b'; g.stroke();
+    edge(yRC, 0, S); g.stroke();
+    // contours every 10 m, index every 50 m (marching squares on a 20 m lattice)
+    const st2 = 2, M = (NN - 1) / st2, hAt = (a, b) => w.H[(b * st2) * NN + a * st2], Dd = st2 * CELL;
+    for (let lev = Math.ceil(w.hmin / 10) * 10; lev <= w.hmax; lev += 10) {
+      g.beginPath();
+      for (let b = 0; b < M; b++) for (let a = 0; a < M; a++) {
+        const v0 = hAt(a, b), v1 = hAt(a + 1, b), v2 = hAt(a + 1, b + 1), v3 = hAt(a, b + 1);
+        const code = (v0 > lev ? 1 : 0) | (v1 > lev ? 2 : 0) | (v2 > lev ? 4 : 0) | (v3 > lev ? 8 : 0);
+        if (!code || code === 15) continue;
+        const X = a * Dd, Y = b * Dd, ip = (p, q) => (lev - p) / (q - p);
+        const E = e => e === 0 ? [X + ip(v0, v1) * Dd, Y] : e === 1 ? [X + Dd, Y + ip(v1, v2) * Dd] : e === 2 ? [X + ip(v3, v2) * Dd, Y + Dd] : [X, Y + ip(v0, v3) * Dd];
+        for (const [ea, eb] of MS[code]) { const pa = E(ea), pb = E(eb); g.moveTo(pa[0] * MK, (S - pa[1]) * MK); g.lineTo(pb[0] * MK, (S - pb[1]) * MK); }
+      }
+      const idx = lev % 50 === 0;
+      g.strokeStyle = idx ? 'rgba(140,88,44,.95)' : 'rgba(176,122,74,.7)'; g.lineWidth = idx ? 2.2 : 1.1; g.stroke();
+    }
+    // training area numbers: big green, ~250 m tall; they can match a grid number (the trap)
+    g.fillStyle = '#2e7d44'; g.font = '800 120px Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (const a of w.ta.nums) g.fillText(a.n, a.x * MK, (S - a.y) * MK);
+    const poly = (pts, lw, color, dash) => { g.beginPath(); pts.forEach((p, n) => n ? g.lineTo(p[0] * MK, (S - p[1]) * MK) : g.moveTo(p[0] * MK, (S - p[1]) * MK)); g.lineWidth = lw; g.strokeStyle = color; g.setLineDash(dash || []); g.lineJoin = 'round'; g.stroke(); g.setLineDash([]); };
+    poly(w.stream, 3, '#3a8fd2');
+    poly(w.DR, 3, '#2a2a2a', [12, 7]);
+    poly(w.MR, 9, '#262626'); poly(w.CR, 9, '#262626');
+    poly(w.MR, 5, '#e05a3a'); poly(w.CR, 5, '#e05a3a');
+    // railroad: black line with a cross tick every 100 m; the cut: its two top edges with hachures pointing down into it
+    const rl = w.rail.pts, nrm = i => { const a = rl[Math.max(0, i - 1)], b = rl[Math.min(rl.length - 1, i + 1)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [-(b[1] - a[1]) / L, (b[0] - a[0]) / L]; };
+    poly(rl, 4.5, '#111');
+    g.beginPath();
+    for (let i = 5; i < rl.length; i += 10) { const [nx, ny] = nrm(i), [x, y] = rl[i]; g.moveTo((x - nx * 16) * MK, (S - y + ny * 16) * MK); g.lineTo((x + nx * 16) * MK, (S - y - ny * 16) * MK); }
+    g.lineWidth = 2.2; g.strokeStyle = '#111'; g.stroke();
+    for (const sd of [-1, 1]) {
+      g.beginPath(); let on = false;
+      for (let i = 0; i < rl.length; i++) {
+        const dep = w.rail.dep[i]; if (dep < 4) { on = false; continue; }
+        const [nx, ny] = nrm(i), off = 9 + dep / 0.75, ex = rl[i][0] + sd * nx * off, ey = rl[i][1] + sd * ny * off, hl = Math.min(off - 8, 16);
+        if (on) g.lineTo(ex * MK, (S - ey) * MK); else g.moveTo(ex * MK, (S - ey) * MK);
+        on = true;
+        if (i % 3 === 0) { g.lineTo((ex - sd * nx * hl) * MK, (S - ey + sd * ny * hl) * MK); g.moveTo(ex * MK, (S - ey) * MK); }
+      }
+      g.lineWidth = 1.8; g.strokeStyle = '#4a3218'; g.stroke();
+    }
+    g.fillStyle = '#151515';
+    for (const b of w.bl) g.fillRect((b.x - 5) * MK, (S - (b.y - 5 + b.dc * CELL)) * MK, b.wc * CELL * MK, b.dc * CELL * MK);
+    const chx = (w.church.x + 5) * MK, chy = (S - w.church.y - 25) * MK;
+    g.fillRect(chx - 1.5, chy - 12, 3, 9); g.fillRect(chx - 5, chy - 9, 10, 3);
+    // spot elevations on local high points
+    g.font = 'italic 600 15px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+    const tops = [];
+    for (let by = 0; by < S; by += 500) for (let bx = 0; bx < S; bx += 500) {
+      let mx = 0, my = 0, mh = -1e9;
+      for (let y = by; y < by + 500; y += 20) for (let x = bx; x < bx + 500; x += 20) { const h = groundAt(w, x, y); if (h > mh) { mh = h; mx = x; my = y; } }
+      let top = true;
+      for (let a = 0; a < 16 && top; a++) { const ang = a / 16 * Math.PI * 2; if (groundAt(w, mx + Math.cos(ang) * 260, my + Math.sin(ang) * 260) > mh - 3) top = false; }
+      if (!top || mx < 60 || my < 60 || mx > S - 60 || my > S - 60 || tops.some(q => Math.hypot(q[0] - mx, q[1] - my) < 400) || Math.hypot(mx - w.hill.x, my - w.hill.y) < 500) continue;
+      tops.push([mx, my]);
+      g.fillStyle = '#5a3a1c'; g.beginPath(); g.arc(mx * MK, (S - my) * MK, 3.2, 0, 7); g.fill();
+      g.fillText(String(Math.round(mh)), mx * MK + 6, (S - my) * MK - 1);
+    }
+    g.fillStyle = '#1a1a1a'; g.font = 'italic 700 22px Georgia, serif'; g.textAlign = 'center';
+    g.fillText(w.village, (w.J.x + 160) * MK, (S - w.J.y - 160) * MK);
+    // impact area label in the red core, away from the big hill
+    const tx = clamp(w.hill.x < S / 2 ? w.hill.x + 1900 : w.hill.x - 1900, 1000, S - 1000), ty = Math.min(S - 300, yRC(tx) + 600);
+    g.fillStyle = '#7c1d18'; g.font = '800 64px Arial, Helvetica, sans-serif';
+    g.fillText('IMPACT AREA', tx * MK, (S - ty) * MK - 38); g.fillText('(OFF LIMITS)', tx * MK, (S - ty) * MK + 38);
+    return c;
+  }
+  function sizeMap() {
+    const css = MV.cv.clientWidth; if (!css) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = Math.round(css * dpr), h = Math.round(MV.cv.clientHeight * dpr);
+    if (w === MV.W && h === MV.H) return;
+    const fit = MV.W ? MV.scale / (MV.W / S) : 0;
+    MV.W = w; MV.H = h; MV.cv.width = w; MV.cv.height = h;
+    MV.scale = fit ? fit * w / S : w / S;
+    drawMap();
+  }
+  // Fit = the whole sheet inside the margin bands (26 px left, 20 px top and bottom), so the start and the far hill both show
+  const fitScale = () => { const u = MV.W / (MV.cv.clientWidth || MV.W); return Math.min(MV.W - 26 * u, MV.H - 40 * u) / S; };
+  const minScale = fitScale, maxScale = () => MV.W / S * 12, zoomed = () => MV.scale > fitScale() * 1.05;
+  function fitMap() { MV.scale = fitScale(); MV.cx = S / 2 - 13 * (MV.W / (MV.cv.clientWidth || MV.W)) / MV.scale; MV.cy = S / 2; drawMap(); }
+  function drawMap() {
+    const g = MV.ctx, w = st.w; if (!w || !MV.W) return;
+    if (!MV.img) MV.img = buildMapImage(w);
+    const Wd = MV.W, Hd = MV.H, sc = MV.scale;
+    MV.cx = clamp(MV.cx, 0, S); MV.cy = clamp(MV.cy, 0, S);
+    const X = x => (x - MV.cx) * sc + Wd / 2, Y = y => Hd / 2 - (y - MV.cy) * sc;
+    g.fillStyle = '#d9d8cf'; g.fillRect(0, 0, Wd, Hd);
+    const wx0 = Math.max(0, MV.cx - Wd / 2 / sc), wx1 = Math.min(S, MV.cx + Wd / 2 / sc), wy0 = Math.max(0, MV.cy - Hd / 2 / sc), wy1 = Math.min(S, MV.cy + Hd / 2 / sc);
+    if (wx1 > wx0 && wy1 > wy0) {
+      g.imageSmoothingEnabled = true;
+      g.drawImage(MV.img, wx0 * MK, (S - wy1) * MK, (wx1 - wx0) * MK, (wy1 - wy0) * MK, X(wx0), Y(wy1), (wx1 - wx0) * sc, (wy1 - wy0) * sc);
+    }
+    const u = Wd / (MV.cv.clientWidth || Wd); // canvas px per CSS px
+    g.strokeStyle = 'rgba(20,20,20,.75)'; g.lineWidth = Math.max(1, u * 0.9);
+    g.beginPath();
+    for (let x = 0; x <= S; x += 1000) { g.moveTo(X(x), Y(0)); g.lineTo(X(x), Y(S)); }
+    for (let y = 0; y <= S; y += 1000) { g.moveTo(X(0), Y(y)); g.lineTo(X(S), Y(y)); }
+    g.stroke();
+    gridBubbles(g, X, Y, u, Wd, Hd);
+    const gs = guidedOn() ? gStep() : '';
+    // Guided step 1: a dashed ring where the evaluator's start grid is
+    if (gs === 'op') { g.strokeStyle = '#e09a00'; g.lineWidth = 2.5 * u; g.setLineDash([7 * u, 5 * u]); g.beginPath(); g.arc(X(w.op.x), Y(w.op.y), Math.max(12 * u, 60 * sc), 0, 7); g.stroke(); g.setLineDash([]); }
+    // Guided, Phase 1: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area, as you would draw them
+    if (['dist', 'ot', 'plot'].includes(gs)) {
+      const o = st.opMark || w.op, a0 = (st.az - FOV0 / 2) * MIL, a1 = (st.az + FOV0 / 2) * MIL, bx = Math.round(w.tgt.x / 1000) * 1000 - 1000, by = Math.round(w.tgt.y / 1000) * 1000 + 1000;
+      g.save(); g.fillStyle = 'rgba(20,50,100,.07)'; g.strokeStyle = 'rgba(20,50,100,.45)'; g.lineWidth = 1.2 * u; g.setLineDash([6 * u, 4 * u]);
+      g.beginPath(); g.moveTo(X(o.x), Y(o.y));
+      for (let k = 0; k <= 16; k++) { const a = a0 + (a1 - a0) * k / 16; g.lineTo(X(o.x + Math.sin(a) * 5000), Y(o.y + Math.cos(a) * 5000)); }
+      g.closePath(); g.fill(); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = '#111'; g.lineWidth = 1.4 * u; g.strokeRect(X(bx), Y(by), 2000 * sc, 2000 * sc);
+      g.font = `italic 600 ${Math.round(12 * u)}px system-ui, sans-serif`; g.fillStyle = '#111';
+      // the label goes in the inside corner of the box farthest from your direction line (whose numbers must stay clear), on screen
+      const la = lineAz(), dx = Math.sin((la == null ? st.az : la) * MIL), dy = Math.cos((la == null ? st.az : la) * MIL), tw = g.measureText('likely area').width, k = 4 * u;
+      let best = null;
+      for (const [cx, cy, al, bl] of [[X(bx) + k, Y(by) + k, 'left', 'top'], [X(bx + 2000) - k, Y(by) + k, 'right', 'top'], [X(bx) + k, Y(by - 2000) - k, 'left', 'bottom'], [X(bx + 2000) - k, Y(by - 2000) - k, 'right', 'bottom']]) {
+        // clearance from the line: its numbers sit 17 px off it on one side (the + side), its ticks 8 px either side
+        const mx = al === 'left' ? cx + tw / 2 : cx - tw / 2, my = bl === 'top' ? cy + 7 * u : cy - 7 * u, sd = dx * (my - Y(o.y)) + dy * (mx - X(o.x)), d = Math.abs(sd) - Math.abs(dy) * tw / 2 - Math.abs(dx) * 7 * u - (sd > 0 ? 32 : 9) * u;
+        const on = mx - tw / 2 > 26 * u && mx + tw / 2 < Wd && my > 27 * u && my < Hd - 27 * u;
+        if (!best || (on && !best.on) || (on === best.on && d > best.d)) best = { cx, cy, al, bl, d, on };
+      }
+      g.textAlign = best.al; g.textBaseline = best.bl; if (best.on && best.d >= 0) g.fillText('likely area', best.cx, best.cy); g.restore();
+    }
+    // your start ◎ (black pen), the direction line from it with a tick every 100 m, and the plotted ✕
+    const om = st.opMark, mark = (px, py, kind) => {
+      g.save(); g.strokeStyle = '#111'; g.fillStyle = '#111'; g.lineWidth = 2.2 * u;
+      if (kind === 'op') { g.beginPath(); g.arc(px, py, 9 * u, 0, 7); g.stroke(); g.beginPath(); g.arc(px, py, 2.2 * u, 0, 7); g.fill(); }
+      else { const k = 7 * u; g.beginPath(); g.moveTo(px - k, py - k); g.lineTo(px + k, py + k); g.moveTo(px + k, py - k); g.lineTo(px - k, py + k); g.stroke(); }
+      g.restore();
+    };
+    if (om) {
+      const ox = X(om.x), oy = Y(om.y), laz = lineAz();
+      if (laz != null) {
+        // your direction line in pen, out to the sheet's edge: a tick every 100 m (longer every 500 m), numbered every 500 m (every 100 m zoomed in)
+        const a = laz * MIL, sx = Math.sin(a), sy = Math.cos(a), pm = sc / u;
+        let len = 100;
+        while (len < 8500) { const x = om.x + sx * (len + 100), y = om.y + sy * (len + 100); if (x < 0 || y < 0 || x > S || y > S) break; len += 100; }
+        g.strokeStyle = '#111'; g.lineWidth = 1.5 * u; g.beginPath(); g.moveTo(ox, oy); g.lineTo(X(om.x + sx * len), Y(om.y + sy * len));
+        // (100 m ticks closer than 5 px would only blur into a bar over the yellow circles: then every 500 m only)
+        for (let m = 100; m <= len; m += 100) { if (m % 500 && pm * 100 < 5) continue; const px = X(om.x + sx * m), py = Y(om.y + sy * m), tl = (m % 500 ? 4 : 8) * u; g.moveTo(px - sy * tl, py - sx * tl); g.lineTo(px + sy * tl, py + sx * tl); }
+        g.stroke();
+        const step = pm * 100 >= 40 ? 100 : pm * 500 >= 34 ? 500 : 1000;
+        if (st.pro !== 'x' && pm * step >= 30) {
+          g.font = `700 ${Math.round(12 * u)}px ui-monospace, Menlo, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.9)'; g.fillStyle = '#111';
+          // a number that would cover a yellow grid circle or the big hill's name is left out (count the ticks from the one before)
+          const hx = X(w.hill.x), hy = Y(w.hill.y), hw = (23 + 7 * w.hill.name.length) * u;
+          for (let m = step; m <= len; m += step) { const px = X(om.x + sx * m) + sy * 17 * u, py = Y(om.y + sy * m) + sx * 17 * u; if (MV.yelP.some(q => Math.abs(q[0] - px) < 27 * u && Math.abs(q[1] - py) < 17 * u) || (Math.abs(py - hy) < 15 * u && Math.abs(px - hx) < hw)) continue; g.strokeText(String(m), px, py); g.fillText(String(m), px, py); }
+        }
+      }
+      mark(ox, oy, 'op');
+      g.font = `800 ${Math.round(13 * u)}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(ox + 11 * u, oy - 9 * u, 28 * u, 18 * u); g.fillStyle = '#111'; g.fillText('OP', ox + 13 * u, oy);
+      const P = plotPoint(); if (P) mark(X(P.x), Y(P.y), 'x');
+    }
+    // the big hill: a triangle and its name (= its elevation), over your direction line's numbers so the name stays readable
+    const hx = X(w.hill.x), hy = Y(w.hill.y);
+    if (hx > -80 * u && hx < Wd && hy > -20 * u && hy < Hd + 20 * u) {
+      g.save(); g.fillStyle = '#111'; g.beginPath(); g.moveTo(hx, hy - 6 * u); g.lineTo(hx + 5.5 * u, hy + 4 * u); g.lineTo(hx - 5.5 * u, hy + 4 * u); g.closePath(); g.fill();
+      g.font = `700 ${Math.round(12 * u)}px Arial, sans-serif`; g.textBaseline = 'middle'; g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.85)';
+      const left = hx + 8 * u + g.measureText(w.hill.name).width > Wd - 4 * u, lx = left ? hx - 8 * u : hx + 8 * u;
+      g.textAlign = left ? 'right' : 'left'; g.strokeText(w.hill.name, lx, hy); g.fillText(w.hill.name, lx, hy); g.restore();
+    }
+    const pp = proPoint();
+    if (pp) { drawProtractor(g, X, Y, u, sc, pp); if (st.pro === 'x' || om) mark(X(pp.x), Y(pp.y), st.pro); }
+    // the contour values near ✕: Guided only (in the exam you count the lines)
+    const px = plotPoint(); if (px && !st.examOn && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
+    mapRulers(g, X, Y, u, Wd, Hd);
+    const ta = zoomed() ? 'none' : 'pan-y';
+    if (MV.cv.style.touchAction !== ta) MV.cv.style.touchAction = ta;
+  }
+  // the protractor's coordinate scale, already slid into place: the bottom scale lies on the square's bottom grid line
+  // with its 0 at the corner under the point, the side scale runs up through the point (read right, then up)
+  function plotPoint() { if (!st.plot || !st.plot.r || !st.opMark) return null; const t = st.plot.az * MIL; return { x: st.opMark.x + Math.sin(t) * st.plot.r, y: st.opMark.y + Math.cos(t) * st.plot.r }; }
+  function proPoint() { return st.pro === 'op' ? (st.opMark || (guidedOn() && gStep() === 'op' ? st.w.op : null)) : st.pro === 'x' ? plotPoint() : null; }
+  function proRead(P) {
+    const x0 = Math.floor(P.x / 1000) * 1000, y0 = Math.floor(P.y / 1000) * 1000, w = st.w;
+    return { sqE: String(((w.E0 + x0) / 1000) % 100).padStart(2, '0'), sqN: String(((w.N0 + y0) / 1000) % 100).padStart(2, '0'), e: String(Math.floor((P.x - x0) / 10)).padStart(2, '0'), n: String(Math.floor((P.y - y0) / 10)).padStart(2, '0'), x0, y0 };
+  }
+  function drawProtractor(g, X, Y, u, m, P) {
+    const rd = proRead(P), cx = X(P.x), cy = Y(rd.y0), L = 1000 * m, bw = Math.max(30 * u, 80 * m), ink = '#14243f';
+    MV.pro = rd; MV.proBox = { l: cx - L, r: cx + bw, t: cy - L, b: cy + bw, cx, cy, bw, x0px: X(rd.x0) };
+    g.save();
+    g.fillStyle = 'rgba(244,248,255,.62)'; g.strokeStyle = 'rgba(30,60,110,.75)'; g.lineWidth = 1.2 * u;
+    g.beginPath(); g.moveTo(cx - L, cy); g.lineTo(cx + bw, cy); g.lineTo(cx + bw, cy - L); g.lineTo(cx, cy - L); g.lineTo(cx, cy); g.closePath(); g.fill();
+    g.fillRect(cx - L, cy, L + bw, bw); g.strokeRect(cx - L, cy, L + bw, bw); g.strokeRect(cx, cy - L, bw, L);
+    // the square's grid lines show through the clear plastic
+    g.strokeStyle = 'rgba(20,20,20,.9)'; g.lineWidth = 1.4 * u; g.beginPath();
+    for (let x = rd.x0; x >= P.x - 1000; x -= 1000) { g.moveTo(X(x), cy); g.lineTo(X(x), cy + bw); }
+    g.stroke();
+    g.strokeStyle = ink; g.fillStyle = ink; g.lineWidth = Math.max(1, 0.9 * u);
+    g.font = `700 ${Math.round(12 * u)}px ui-monospace, Menlo, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const fine = 10 * m >= 2.2 * u;
+    g.beginPath();
+    for (let d = 0; d <= 1000; d += 10) {
+      const big = d % 100 === 0, mid = d % 50 === 0;
+      if (!big && !mid && !fine) continue;
+      const l = (big ? 12 : mid ? 8 : 5) * u;
+      g.moveTo(cx - d * m, cy); g.lineTo(cx - d * m, cy + l);
+      g.moveTo(cx, cy - d * m); g.lineTo(cx + l, cy - d * m);
+    }
+    g.stroke();
+    for (let d = 0; d <= 1000; d += 100) { g.fillText(String(d / 100), cx - d * m, cy + 21 * u); g.fillText(String(d / 100), cx + 21 * u, cy - d * m); }
+    g.restore();
+  }
+  function proOn(which, zoom) {
+    st.pro = which; $('proOp').setAttribute('aria-pressed', String(which === 'op')); $('proX').setAttribute('aria-pressed', String(which === 'x'));
+    const P = proPoint();
+    if (P && zoom) {
+      // fit the whole scale (1 km plus its body) inside the map, clear of the margin bands
+      const u = MV.W / (MV.cv.clientWidth || MV.W), side = 26 * u, band = 20 * u, pad = 10 * u;
+      MV.scale = clamp(Math.min(MV.W - side - 2 * pad, MV.H - 2 * band - 2 * pad) / 1110, minScale(), maxScale());
+      const bwM = Math.max(30 * u / MV.scale, 80);
+      MV.cx = P.x - 500 + bwM / 2 - side / 2 / MV.scale; MV.cy = Math.floor(P.y / 1000) * 1000 + 500 - bwM / 2;
+    }
+    drawMap();
+  }
+  // the contour values near ✕, to read ALT: for each 10 m contour round the ground at ✕, its nearest point within 450 m
+  function contourLabels(g, X, Y, u, P) {
+    // heights as the contours are drawn (the 20 m lattice), so each value sits on its own line
+    const w = st.w, H = w.H, lat = (x, y) => { x = clamp(x, 0, S - 20.01); y = clamp(y, 0, S - 20.01); const a = Math.floor(x / 20), c = Math.floor(y / 20), fx = x / 20 - a, fy = y / 20 - c, k = c * 2 * NN + a * 2; return H[k] + (H[k + 2] - H[k]) * fx + (H[k + 2 * NN] - H[k]) * fy + (H[k] - H[k + 2] - H[k + 2 * NN] + H[k + 2 * NN + 2]) * fx * fy; };
+    const h0 = lat(P.x, P.y), lo = Math.floor(h0 / 10) * 10, b = st.pro && MV.proBox, lw = 13 * u, lh = 8 * u;
+    const inPro = (x, y) => b && ((x > b.l - lw && x < b.r + lw && y > b.cy - lh && y < b.b + lh) || (x > b.cx - lw && x < b.r + lw && y > b.t - lh && y < b.cy));
+    // a label must be readable: off the ✕, off the protractor, on the map face (not under the margin bands)
+    const seen = (x, y) => Math.hypot(x - X(P.x), y - Y(P.y)) >= 14 * u && !inPro(x, y) && x > 26 * u + lw && x < MV.W - lw && y > 20 * u + lh && y < MV.H - 20 * u - lh;
+    g.save(); g.font = `700 ${Math.round(12 * u)}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.92)'; g.fillStyle = '#7a4416';
+    // each contour gets its value at its nearest readable point, so both contours round ✕ carry a value
+    const out = MV.cLab = []; MV.cLabXY = []; const rMin = 15 * u / MV.scale;
+    for (let lev = lo - 10; lev <= lo + 20; lev += 10) {
+      let bp = null, bd = 1e9;
+      for (let k = 0; k < 32; k++) {
+        const sx = Math.sin(k * Math.PI / 16), sy = Math.cos(k * Math.PI / 16);
+        for (let d = 5, prev = h0; d <= 450 && d < bd; d += 5) {
+          const h = lat(P.x + sx * d, P.y + sy * d);
+          if ((prev - lev) * (h - lev) <= 0 && prev !== h) { const dd = d - 5 + 5 * (prev - lev) / (prev - h), q = { x: P.x + sx * dd, y: P.y + sy * dd }; if (dd < bd && dd >= rMin && seen(X(q.x), Y(q.y))) { bd = dd; bp = q; break; } }
+          prev = h;
+        }
+      }
+      // a contour that runs right through ✕ gets its value just outside the ✕
+      for (let k = 0, r1 = rMin * 1.4, prev = lat(P.x, P.y + r1); k < 64 && !bp; k++) {
+        const a = (k + 1) * Math.PI / 32, q = { x: P.x + Math.sin(a) * r1, y: P.y + Math.cos(a) * r1 }, h = lat(q.x, q.y);
+        if ((prev - lev) * (h - lev) <= 0 && prev !== h && seen(X(q.x), Y(q.y))) bp = q;
+        prev = h;
+      }
+      if (!bp) continue;
+      const lx = X(bp.x), ly = Y(bp.y);
+      g.strokeText(String(lev), lx, ly); g.fillText(String(lev), lx, ly); out.push(lev); MV.cLabXY.push([lev, bp.x, bp.y, lx, ly]);
+    }
+    g.restore();
+  }
+  // grid line numbers in yellow circles, as printed on the map face: eastings in a row 3,500 m up, northings in a column 500 m in.
+  // When that row or column is off screen, the circles sit in the top or left margin band instead.
+  const eNo = x => String(((st.w.E0 + x) / 1000) % 100).padStart(2, '0'), nNo = y => String(((st.w.N0 + y) / 1000) % 100).padStart(2, '0');
+  function bubble(g, x, y, rad, txt, u) {
+    g.beginPath(); g.arc(x, y, rad, 0, 7); g.fillStyle = '#f7cf1b'; g.fill(); g.lineWidth = 1.2 * u; g.strokeStyle = '#3b3000'; g.stroke();
+    g.fillStyle = '#111'; g.fillText(txt, x, y + 0.5 * u);
+  }
+  function gridBubbles(g, X, Y, u, Wd, Hd) {
+    const band = 20 * u, side = 26 * u, rad = 10 * u, ry = Y(3500), cx = X(500);
+    MV.dock = { e: ry < band + rad || ry > Hd - band - rad, n: cx < side + rad || cx > Wd - rad };
+    const lab = MV.yel = { e: [], n: [] }, at = MV.yelP = [];
+    g.save(); g.font = `800 ${Math.round(12 * u)}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (!MV.dock.e) for (let x = 0; x <= S; x += 1000) { const sx = X(x); if (sx > side + rad && sx < Wd - rad) { bubble(g, sx, ry, rad, eNo(x), u); lab.e.push(eNo(x)); at.push([sx, ry]); } }
+    if (!MV.dock.n) for (let y = 0; y <= S; y += 1000) { const sy = Y(y); if (sy > band + rad && sy < Hd - band - rad) { bubble(g, cx, sy, rad, nNo(y), u); lab.n.push(nNo(y)); at.push([cx, sy]); } }
+    g.restore();
+  }
+  // map margins: no printed grid numbers (the exam's map extract has none, only the yellow circles on its face);
+  // the circles dock here when their row or column is off screen; 100 m ticks when zoomed in
+  function mapRulers(g, X, Y, u, Wd, Hd) {
+    const w = st.w, sc = MV.scale, band = 20 * u, side = 26 * u, en = eNo, nn = nNo;
+    const lab = MV.lab = { e: [], n: [], pe: '', pn: '' };
+    g.save();
+    g.fillStyle = 'rgba(255,255,255,.93)'; g.fillRect(0, 0, Wd, band); g.fillRect(0, Hd - band, Wd, band); g.fillRect(0, 0, side, Hd);
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = u;
+    g.beginPath(); g.moveTo(side, band); g.lineTo(Wd, band); g.moveTo(side, Hd - band); g.lineTo(Wd, Hd - band); g.moveTo(side, band); g.lineTo(side, Hd - band); g.stroke();
+    if (1000 * sc >= 150 * u) {
+      g.strokeStyle = '#333'; g.beginPath();
+      for (let x = Math.max(0, Math.floor((MV.cx - Wd / 2 / sc) / 100) * 100); x <= Math.min(S, MV.cx + Wd / 2 / sc); x += 100) {
+        const sx = X(x); if (sx <= side) continue; const l = (x % 1000 ? x % 500 ? 4 : 7 : 10) * u;
+        g.moveTo(sx, band); g.lineTo(sx, band - l); g.moveTo(sx, Hd - band); g.lineTo(sx, Hd - band + l);
+      }
+      for (let y = Math.max(0, Math.floor((MV.cy - Hd / 2 / sc) / 100) * 100); y <= Math.min(S, MV.cy + Hd / 2 / sc); y += 100) {
+        const sy = Y(y); if (sy <= band || sy >= Hd - band) continue; const l = (y % 1000 ? y % 500 ? 4 : 7 : 10) * u;
+        g.moveTo(side, sy); g.lineTo(side - l, sy);
+      }
+      g.stroke();
+    }
+    g.font = `700 ${Math.round(13 * u)}px ui-monospace, Menlo, monospace`; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillStyle = '#111';
+    for (let x = 0; x <= S; x += 1000) {
+      const sx = X(x); if (!(sx > side + 10 * u && sx < Wd - 10 * u)) continue;
+      if (MV.dock.e) bubble(g, sx, band / 2, 9.5 * u, en(x), u);
+      lab.e.push(en(x));
+    }
+    for (let y = 0; y <= S; y += 1000) {
+      const sy = Y(y); if (!(sy > band + 9 * u && sy < Hd - band - 9 * u)) continue;
+      if (MV.dock.n) bubble(g, side / 2, sy, 9.5 * u, nn(y), u);
+      lab.n.push(nn(y));
+    }
+    // inside a square with no grid line on screen: grey numbers say which square you are in
+    g.fillStyle = '#8b8b80';
+    const e0 = Math.floor((MV.cx + (side - Wd / 2) / sc) / 1000) * 1000;
+    if (zoomed() && e0 >= 0 && X(e0) <= side + 10 * u && X(e0 + 1000) - side > 40 * u) { g.textAlign = 'left'; g.fillText(en(e0), side + 4 * u, band / 2 + u); lab.pe = en(e0); }
+    const n0 = Math.floor((MV.cy - (Hd / 2 - band) / sc) / 1000) * 1000;
+    if (zoomed() && n0 >= 0 && Y(n0) >= Hd - band - 9 * u && Hd - band - Y(n0 + 1000) > 30 * u) { g.textAlign = 'center'; g.fillText(nn(n0), side / 2, Hd - band - 10 * u); lab.pn = nn(n0); }
+    g.fillStyle = '#fff'; g.fillRect(0, 0, side, band); g.fillRect(0, Hd - band, side, band);
+    g.fillStyle = '#111'; g.font = `800 ${Math.round(12 * u)}px system-ui, sans-serif`; g.textAlign = 'center';
+    g.fillText('GA', side / 2, band / 2 + u); g.fillText('GA', side / 2, Hd - band / 2 + u);
+    g.restore();
+  }
+  (function mapInput() {
+    const cv = MV.cv;
+    const zoomAt = (f, px, py) => {
+      const ns = clamp(MV.scale * f, minScale(), maxScale()), wx = MV.cx + (px - MV.W / 2) / MV.scale, wy = MV.cy - (py - MV.H / 2) / MV.scale;
+      MV.cx = wx - (px - MV.W / 2) / ns; MV.cy = wy + (py - MV.H / 2) / ns; MV.scale = ns; drawMap();
+    };
+    const loc = e => { const rc = cv.getBoundingClientRect(), k = MV.W / (cv.clientWidth || rc.width); return [(e.clientX - rc.left - cv.clientLeft) * k, (e.clientY - rc.top - cv.clientTop) * k]; }; // inside the 1 px border
+    // a tap (no drag) marks your start ◎
+    cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); MV.ptr.set(e.pointerId, loc(e)); MV.tap = MV.ptr.size === 1 ? loc(e) : null; if (MV.ptr.size === 2) { const [a, b] = [...MV.ptr.values()]; MV.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: MV.scale }; } });
+    cv.addEventListener('pointermove', e => {
+      if (!MV.ptr.has(e.pointerId)) return;
+      const p = loc(e), q = MV.ptr.get(e.pointerId); MV.ptr.set(e.pointerId, p);
+      if (MV.tap && Math.hypot(p[0] - MV.tap[0], p[1] - MV.tap[1]) > 8 * MV.W / (cv.clientWidth || MV.W)) MV.tap = null;
+      if (MV.ptr.size === 2 && MV.pinch) {
+        const [a, b] = [...MV.ptr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        zoomAt(MV.pinch.s * d / MV.pinch.d / MV.scale, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+      } else if (MV.ptr.size === 1 && zoomed()) { MV.cx -= (p[0] - q[0]) / MV.scale; MV.cy += (p[1] - q[1]) / MV.scale; drawMap(); }
+    });
+    const end = e => { MV.ptr.delete(e.pointerId); if (MV.ptr.size < 2) MV.pinch = null; };
+    cv.addEventListener('pointerup', e => { const t = MV.tap && MV.ptr.size === 1 ? loc(e) : null; MV.tap = null; end(e); if (t) markOp({ x: MV.cx + (t[0] - MV.W / 2) / MV.scale, y: MV.cy - (t[1] - MV.H / 2) / MV.scale }); }); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('wheel', e => { e.preventDefault(); const [x, y] = loc(e); zoomAt(Math.pow(1.0018, -e.deltaY), x, y); }, { passive: false });
+    $('zIn').addEventListener('click', () => zoomAt(1.6, MV.W / 2, MV.H / 2));
+    $('zOut').addEventListener('click', () => zoomAt(1 / 1.6, MV.W / 2, MV.H / 2));
+    $('zFit').addEventListener('click', fitMap);
+    $('proOp').addEventListener('click', () => { if (st.pro !== 'op' && !st.opMark) { note('Tap the map to mark your start ◎ first.'); return; } proOn(st.pro === 'op' ? null : 'op', true); });
+    $('proX').addEventListener('click', () => { if (!plotPoint()) { note('Plot first: the ✕ comes from Direction and DISTANCE.'); return; } proOn(st.pro === 'x' ? null : 'x', true); });
+  })();
+
+  // ---------- worksheet: the paper "Call For Fire Grid Mission" sheet; each line is one transmission with its own Send
+  const NA = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"';
+  const chipRow = (id, opts) => `<span class="chips" id="${id}" role="group">${opts.map(o => `<button type="button" class="chip" data-v="${esc(o[0])}" aria-pressed="false">${esc(o[1])}</button>`).join('')}</span>`;
+  const chipVal = id => { const b = $(id) && $(id).querySelector('.chip[aria-pressed="true"]'); return b ? b.dataset.v : ''; };
+  function chipSet(id, v) { $(id).querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
+  const inp = (id, cls, ml, ph) => `<input id="${id}"${cls ? ` class="${cls}"` : ''} inputmode="numeric" maxlength="${ml}" placeholder="${ph}" ${NA}>`;
+  const snd = (id, end) => `<button type="button" class="snd" id="${id}" data-end="${end}">${end}</button>`;
+  const ROWS = 5, LR = [['L', '(L)'], ['R', '(R)']], LRT = { L: '(L)', R: '(R)' }, ADT = { A: '(Add)', D: '(Drop)' };
+  const LNAME = k => k[0] === 'R' ? `row ${+k.slice(1) + 1}` : { L1: 'line 1', L2: 'line 2', L3: 'line 3', LM: 'the MTO', OD: 'DISTANCE', LE: 'End of Mission' }[k];
+  function renderSheet() {
+    const o = st.w.opts, cs = o.cs.map(v => [v, v]), tn = o.tn.map(v => [v, v]);
+    let rows = '';
+    for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="cell">${inp('sp' + i, 'spi', 3, 'mils')}${chipRow('ss' + i, LR)}</span><span class="cell">${chipRow('ds' + i, LR)}${inp('dv' + i, 'dvi', 4, 'm')}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
+    $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
+      <div class="sbox">
+        <div class="wl" id="L1"><span class="n">1.</span>${chipRow('c1a', cs)}<span class="pr">(de) this is</span>${chipRow('c1b', cs)}<span class="pr">AF/FFE</span>${chipRow('c1m', [['AF', 'Adjust Fire'], ['FFE', 'Fire for Effect']])}${snd('x1', 'Over')}</div>
+        <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '6 or 8')}<span class="pr">ALT</span>${inp('gAlt', '', 4, 'm')}<span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</div>
+        <div class="wl" id="L3"><span class="n">3.</span><s>Target Description</s><span class="pen">${L3TXT}</span>${snd('x3', 'Over')}</div>
+        <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s>${chipRow('mC', [['NA', 'N/A'], ['AMMO', 'Ammo'], ['GRID', 'Grid']])}<s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
+      </div>
+      <div class="wl od" id="OD"><span class="pr">OT FACTOR</span>${inp('wOt', '', 2, '#')}<span class="pr">DISTANCE</span>${inp('wDist', '', 5, 'm')}<button type="button" class="btn" id="plotBtn">Plot ✕</button></div>
+      <div class="ch"><span>Spotting</span><span>Deviation Correction</span><span>Range Correction</span></div>
+      ${rows}
+      <div class="nt"><span>(OT Factor x Spotting = Correction)</span><span><s>800</s>, 400, 200, 100, 50FFE (Fire for Effect)</span></div>
+      <div class="wl" id="LE"><span class="pr">End of Mission TGT#</span>${chipRow('eT', tn)}<span class="prt">1 Tank Destroyed/Neutralized, Estimated 3 Casualties</span>${snd('xE', '')}</div>
+      <ul class="fn"><li>Direction is rounded to the nearest 10 mils</li><li>Range/Distance is rounded to the nearest 100 meters</li><li>Minimum Deviation (L/R) Corrections are 30 meters</li><li>Altitude is expressed to the nearest 5 meters</li><li>Magnetic Azimuth (+ or -) GM angle = Grid direction</li></ul>`;
+  }
+  function readSheet() {
+    const s = st.sheet;
+    document.querySelectorAll('#sheet input').forEach(i => { s[i.id] = i.value; });
+    document.querySelectorAll('#sheet .chips').forEach(c => { s[c.id] = chipVal(c.id); });
+  }
+  // Guided checks (exact, to teach) and Exam checks (the standards; the score sheet marks the assumptions)
+  function sheetCheck() {
+    const w = st.w, s = st.sheet, T = w.tgt, t = truth(), g = {}, x = {};
+    const om = st.opMark, opd = om ? Math.hypot(om.x - w.op.x, om.y - w.op.y) : null;
+    g.op = opd != null && opd <= 20; x.op = opd != null && opd <= 100;
+    const dir = num(s.gDir); g.dir = dir != null && dir % 6400 === t.gdir; x.dir = dir != null && dir <= 6400 && dir % 10 === 0 && Math.abs(dm(dir, t.gdir)) <= 10;
+    const dist = num(s.wDist); g.dist = dist === t.dist; x.dist = dist != null && dist % 100 === 0 && Math.abs(dist - t.dist) <= 100;
+    const ot = num(s.wOt), otMine = dist ? Math.max(1, Math.round(dist / 1000)) : null; g.ot = ot === t.otf; x.ot = ot != null && ot === otMine;
+    // Exam: Grid within 100 m of the target; Grid and ALT also count when read right at your own ✕ and ✕ is within
+    // 100 m of the target (a 6-digit square centre can sit just over 100 m away; a small plot error does not fail ALT too)
+    const P = plotPoint(), gc = gridCenter(s.gGrid), gd = gc ? Math.hypot(gc.x - T.x, gc.y - T.y) : null, gx = gc && P ? Math.hypot(gc.x - P.x, gc.y - P.y) : null;
+    const pNear = !!P && Math.hypot(P.x - T.x, P.y - T.y) <= 100;
+    g.plot = !!P && g.dir && g.dist && st.plot.az === dir && st.plot.r === dist;
+    g.grid = !!P && !!gc && [6, 8].some(n => digits(s.gGrid) === digits(worldToGrid(P.x, P.y, n))); x.grid = gd != null && (gd <= 100 || (g.grid && pNear));
+    const alt = num(s.gAlt), altX = pNear ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : null;
+    g.alt = alt != null && alt % 5 === 0 && (Math.abs(alt - t.alt) <= 10 || (altX != null && Math.abs(alt - altX) <= 10)); x.alt = g.alt;
+    return { g, x, opd, dir, dist, ot, otMine, gd, gx, alt, altX };
+  }
+  // the direction line on the map: the plotted direction, or line 2's Direction once it holds a number (Guided: once it is right)
+  function lineAz() { if (st.plot) return st.plot.az; const d = num(st.sheet.gDir); return d != null && d <= 6400 && (!guidedOn() || st.gOk.dir) ? d : null; }
+  // your start position: tap the map (Guided snaps it onto the given grid). Exam: you can mark it again until line 2 is sent;
+  // that clears ✕, so you Plot again
+  function markOp(p) {
+    if (!st.w || st.ended || R.l2) return;
+    const w = st.w;
+    if (guidedOn()) {
+      if (gStep() !== 'op') return;
+      const d = Math.hypot(p.x - w.op.x, p.y - w.op.y);
+      if (d > 400) { note(`That is ${Math.round(d)} m from the start. ${coachData().tip}`); return; }
+      p = w.op;
+    } else if (st.plot) { st.plot = null; note('◎ moved, so ✕ is cleared: press Plot ✕ again.'); }
+    st.opMark = { x: p.x, y: p.y }; refresh();
+  }
+  function doPlot() {
+    readSheet();
+    const a = num(st.sheet.gDir), r = num(st.sheet.wDist);
+    if (!st.opMark) { note('Mark your start ◎ on the map first: tap it.'); return; }
+    if (a == null || a > 6400 || !r || r > 6000) { note('Plot uses line 2 Direction and DISTANCE: fill them first.'); return; }
+    st.plot = { az: a, r };
+    setStage('map'); proOn('x', true); refresh();
+  }
+  // line states: sent (ink, read-only), now (you can fill it), later (grey); Send works only in order
+  function lineStates() {
+    const k = R.rows.length, rowNow = F.phase === 'adjust' && !F.inFlight && !F.busy && F.adj > k && k < ROWS;
+    const o = { L1: R.l1 ? 'sent' : 'now', L2: R.l2 ? 'sent' : 'now', OD: R.l2 ? 'sent' : 'now', L3: R.l3 ? 'sent' : R.l2 ? 'now' : 'later', LM: R.mto ? 'sent' : R.mtoRx ? 'now' : 'later', LE: R.eom ? 'sent' : F.phase === 'eom' ? 'now' : 'later' };
+    for (let i = 0; i < ROWS; i++) o['R' + i] = i < k ? 'sent' : i === k && rowNow ? 'now' : 'later';
+    return o;
+  }
+  function canSend(id) {
+    if (!st.w || st.ended || F.waitRx || lineStates()[id] !== 'now' || id === 'OD') return false;
+    if (id === 'LM') return !!F.pend && F.pend.want === 'mto';
+    // Guided: answer the FDC first. Exam: the next line can go with an FDC message still unanswered (it counts as missed),
+    // a read-back too
+    const p = F.pend, rb = !!p && p.kind === 'call';
+    if (p && (guidedOn() || p.want === 'mto')) return false;
+    return id === 'L1' ? F.phase === 'cff' : id === 'L2' ? R.l1Ack || rb : id === 'L3' ? R.l2Ack || rb : true;
+  }
+  function renderLines() {
+    const ls = lineStates();
+    for (const id in ls) {
+      const el = $(id), s = ls[id]; if (!el) continue;
+      el.classList.toggle('sent', s === 'sent'); el.classList.toggle('later', s === 'later');
+      el.querySelectorAll('input').forEach(i => { i.readOnly = s !== 'now'; i.tabIndex = s === 'now' ? 0 : -1; });
+      el.querySelectorAll('.chip').forEach(b => { b.disabled = s !== 'now'; });
+      const b = el.querySelector('.snd');
+      if (b) { const on = canSend(id), end = b.dataset.end, t = on ? (end ? `Send (${end})` : 'Send') : end ? `(${end})` : ''; b.disabled = !on; if (b.textContent !== t) b.textContent = t; }
+    }
+    $('plotBtn').disabled = !!R.l2;
+  }
+
+  // ---------- radio: the strip under the view (last two transmissions + answer buttons) and the full Log tab
+  function logLine(who, text) {
+    const el = document.createElement('div'); el.className = 'ln ' + who;
+    el.innerHTML = who === 'sys' ? esc(text) : `<span class="who">${who === 'fo' ? st.w.fo + ' (you)' : st.w.fdcCs + ' (FDC)'}</span>${esc(text)}`;
+    $('log').appendChild(el); $('log').scrollTop = $('log').scrollHeight;
+    st.logs.push([who, text]);
+    if (who !== 'fo' && $('radioPanel').hidden) $('radioDot').hidden = false;
+    renderRx();
+  }
+  function renderRx() {
+    const tag = { fo: 'YOU', fdc: 'FDC', sys: '' }, h = st.logs.slice(-2).map(([who, t]) => `<div class="${who}">${tag[who] ? `<b>${tag[who]}</b>` : ''}${esc(t)}</div>`).join('');
+    if (st.rxH !== h) { st.rxH = h; $('rxLog').innerHTML = h; }
+    const p = F.pend, on = !!p && p.want !== 'mto' && !st.ended;
+    $('rxBtns').hidden = !on;
+    if (on && $('rxBtns').dataset.k !== p.key) { $('rxBtns').dataset.k = p.key; $('rxBtns').innerHTML = `<div class="rxq"><b>FDC</b>${esc(p.msg)}</div>` + p.opts.map(v => `<button type="button" class="btn" data-v="${esc(v)}">${esc(v)}</button>`).join(''); }
+  }
+  $('rxBtns').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) reply(b.dataset.v, b); });
+
+  // ---------- FDC: it reads back every line that ends OVER; everything it sends that ends OVER needs your answer
+  function newFdc() {
+    // the first round lands off target (unknown firing errors, as in the class simulator); corrections take it out
+    const rr = mulberry32(st.seed * 7 + 3), th = truth().az * MIL, rg = (rr() < 0.5 ? -1 : 1) * (160 + rr() * 220), lat = (rr() < 0.5 ? -1 : 1) * (20 + rr() * 70);
+    const bias = cfg.firstOff ? { x: Math.sin(th) * rg + Math.cos(th) * lat, y: Math.cos(th) * rg - Math.sin(th) * lat } : { x: 0, y: 0 };
+    F = { phase: 'cff', aim: null, dir: null, inFlight: false, busy: false, waitRx: false, pend: null, lastBurst: null, spots: [], lastMag: 0, bracketed: false, adj: 0, killed: 0, bias };
+    R = { t0: performance.now(), l1: null, l2: null, l3: false, l1Ack: false, l2Ack: false, l3Ack: false, mtoRx: false, mto: null, rows: [], eom: null, sayAgain: [], replies: [], ffeAim: null, lastN: 8, nMsg: 0 };
+  }
+  const fdcSay = t => logLine('fdc', t);
+  const REPLYWHY = { call: 'The read-back matches what you sent.', corr: 'The read-back matches your correction.', shot: 'It ends OVER: say you heard it.', rc: 'All rounds are fired: say you heard it.' };
+  // an FDC message ending OVER waits for your answer; a new one replaces an unanswered one, which counts as missed
+  function fdcOver(msg, want, kind, n, then) {
+    if (F.pend && F.pend.want !== 'mto') R.replies.push({ msg: F.pend.msg, want: F.pend.want, kind: F.pend.kind, said: '', ok: false });
+    R.nMsg++;
+    const o = [want, 'ROGER, OVER', 'SAY AGAIN, OVER'], k = R.nMsg % 3;
+    F.pend = { msg, want, kind, n, next: then, key: String(R.nMsg), opts: o.slice(k).concat(o.slice(0, k)) };
+    fdcSay(msg); refresh();
+  }
+  function reply(v, btn) {
+    const p = F.pend; if (!p || p.want === 'mto' || st.ended) return;
+    if (guidedOn() && v !== p.want) { note(`Answer <b>${esc(p.want)}</b>. ${REPLYWHY[p.kind]}`); shake(btn); return; }
+    logLine('fo', v);
+    R.replies.push({ msg: p.msg, want: p.want, kind: p.kind, said: v, ok: v === p.want });
+    F.pend = null;
+    // SAY AGAIN: the FDC repeats it (nothing else goes out meanwhile), unless its next message (SPLASH after SHOT) came first
+    if (v === 'SAY AGAIN, OVER') { const n0 = R.nMsg; F.waitRx = true; later(900 * K(), () => { F.waitRx = false; if (R.nMsg === n0) fdcOver(p.msg, p.want, p.kind, p.n, p.next); else refresh(); }); refresh(); return; }
+    if (p.next) p.next();
+    refresh();
+  }
+  const ADJ = { AF: 'ADJUST FIRE', FFE: 'FIRE FOR EFFECT' };
+  const roundsTxt = n => `${n} ROUND${+n > 1 ? 'S' : ''}`;
+  // what a line says on the radio (rb = the FDC's read-back); err = why the FDC cannot copy it (SAY AGAIN)
+  function lineMsg(id) {
+    const s = st.sheet;
+    if (id === 'L1') {
+      if (!s.c1a || !s.c1b || !s.c1m) return { err: 'Line 1 needs who you call, who you are, and AF/FFE.', el: !s.c1a ? 'c1a' : !s.c1b ? 'c1b' : 'c1m' };
+      return { text: `${s.c1a}, THIS IS ${s.c1b}, ${ADJ[s.c1m]}, OVER`, rb: `${s.c1b}, THIS IS ${s.c1a}, ${ADJ[s.c1m]}, OVER` };
+    }
+    if (id === 'L2') {
+      const gd = digits(s.gGrid), alt = num(s.gAlt), dir = num(s.gDir);
+      if (![6, 8].includes(gd.length)) return { err: 'Grid: 6 or 8 digits.', el: 'gGrid' };
+      if (alt == null || alt > 3000) return { err: 'ALT: the altitude in meters.', el: 'gAlt' };
+      if (dir == null || dir > 6400) return { err: 'Direction: 0 to 6400 mils.', el: 'gDir' };
+      const t = `GRID GA ${gridTxt(gd)}, ALT ${Math.round(alt)}, DIRECTION ${fmt4(dir)}, OVER`; return { text: t, rb: t };
+    }
+    if (id === 'L3') { const t = `${L3TXT}, OVER`; return { text: t, rb: t }; }
+    if (id === 'LM') {
+      if (!s.mU || !s.mC || !s.mN || !s.mT) return { err: 'MTO: write all four: unit, changes, rounds, TGT #.', el: !s.mU ? 'mU' : !s.mC ? 'mC' : !s.mN ? 'mN' : 'mT' };
+      return { text: `${s.mU}${s.mC !== 'NA' ? ', CHANGE ' + s.mC : ''}, ${roundsTxt(s.mN)}, TARGET NUMBER ${s.mT}, OUT` };
+    }
+    if (id === 'LE') {
+      if (!s.eT) return { err: 'End of Mission: write the TGT #.', el: 'eT' };
+      return { text: `END OF MISSION, TARGET NUMBER ${s.eT}, ${EOMTXT}, OVER` };
+    }
+    const k = id.slice(1), ds = s['ds' + k], dv = num(s['dv' + k]), rk = s['rk' + k], rm = s['rm' + k], part = [];
+    if (ds || s['dv' + k]) { if (!ds || !dv || dv > 3000) return { err: 'Deviation: (L) or (R) and the meters, or leave both blank.', el: ds ? 'dv' + k : 'ds' + k }; part.push(`${ds === 'L' ? 'LEFT' : 'RIGHT'} ${Math.round(dv)}`); }
+    if (rk && !rm) return { err: 'Range: Add or Drop, and how much.', el: 'rm' + k };
+    if (rm && rm !== '50' && !rk) return { err: 'Range: Add or Drop?', el: 'rk' + k };
+    if (rk) part.push(`${rk === 'A' ? 'ADD' : 'DROP'} ${rm}`);
+    if (rm === '50') part.push('FIRE FOR EFFECT');
+    if (!part.length) return { err: 'A correction needs a deviation or a range correction.', el: 'rk' + k };
+    const t = part.join(', ') + ', OVER'; return { text: t, rb: t };
+  }
+  const LINE_STEP = { L1: 'l1', L2: 'l2', L3: 'l3', LM: 'mto', LE: 'eom' };
+  function sendLine(id) {
+    if (!canSend(id)) return;
+    readSheet();
+    const w = st.w, s = st.sheet, row = id[0] === 'R', k = row ? +id.slice(1) : -1, m = lineMsg(id);
+    if (guidedOn()) {
+      const gs = gStep(), need = row ? 'corr' : LINE_STEP[id];
+      if (gs !== need && !(row && gs === 'spot')) { note(`First: ${coachData().title}.`); return; }
+      if (id === 'L2' && !(st.gOk.dir && st.gOk.grid && st.gOk.alt)) { note('First: Grid, ALT and Direction from Phase 1.'); return; }
+      const f = stepWant(row ? 'corr' : gs), bad = f && Object.keys(f).find(i => fieldBad(i, f[i]));
+      if (bad) { note(`${badWhy(bad)} ${coachData().tip}`); const el = hintEl(bad, f[bad]) || $(bad); shake(el); want(el); return; }
+    }
+    // Exam: sent with an FDC message still unanswered: that answer counts as missed and the FDC goes on
+    if (F.pend && F.pend.want !== 'mto') { const p = F.pend; R.replies.push({ msg: p.msg, want: p.want, kind: p.kind, said: '', ok: false }); F.pend = null; if (p.next) p.next(); }
+    if (m.err) {
+      if (guidedOn()) { note(m.err); want($(m.el)); return; }
+      R.sayAgain.push({ line: id, why: m.err });
+      logLine('sys', `(${LNAME(id)}: the FDC could not copy it)`);
+      F.waitRx = true;
+      later(900 * K(), () => { F.waitRx = false; fdcSay('SAY AGAIN, OVER'); refresh(); });
+      refresh(); return;
+    }
+    logLine('fo', m.text);
+    let then = null;
+    if (id === 'L1') { R.l1 = { a: s.c1a, b: s.c1b, m: s.c1m, text: m.text }; R.lastN = 8; then = () => { R.l1Ack = true; }; }
+    else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: num(s.gAlt), dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.dir = R.l2.dir; R.lastN = 9; then = () => { R.l2Ack = true; }; }
+    else if (id === 'L3') {
+      R.l3 = true; R.lastN = 10;
+      then = () => { R.l3Ack = true; F.waitRx = true; later(2000 * K(), () => { F.waitRx = false; R.mtoRx = true; fdcOver(`MESSAGE TO OBSERVER, ${w.bty}, ${roundsTxt(w.rounds)}, TARGET NUMBER ${w.tn}, OVER`, 'mto', 'mto', 11); }); };
+    } else if (id === 'LM') { R.mto = { u: s.mU, c: s.mC, n: s.mN, tn: s.mT }; F.pend = null; R.lastN = 11; F.waitRx = true; later(2500 * K(), () => { F.waitRx = false; R.l1.m === 'FFE' ? fireFFE() : fireAdj(); }); refresh(); return; }
+    else if (id === 'LE') { const tn = s.eT; R.eom = { tn }; F.phase = 'done'; later(1100 * K(), () => { fdcSay(`END OF MISSION, TARGET NUMBER ${tn}, ${EOMTXT}, OUT`); later(1500, finish); }); refresh(); return; }
+    else {
+      const e = expCorr(), dv = num(s['dv' + k]), ds = s['ds' + k], rk = s['rk' + k], rm = s['rm' + k], dev = ds && dv ? (ds === 'L' ? -dv : dv) : 0, rng = rk ? (rk === 'A' ? 1 : -1) * +rm : 0, ffe = rm === '50';
+      R.rows.push({ sp: num(s['sp' + k]), ss: s['ss' + k], ds, dv, rk, rm, exp: e && { spot: e.spot, side: e.side, dev: e.dev, rng: e.rng, ffe: e.ffe, ot: e.ot, raw: e.raw, why: e.why, devM: e.sp.devM, range: e.sp.range } });
+      // the FDC moves the aim along the observer-target line you sent (line 2 Direction)
+      const th = (F.dir != null ? F.dir : azOf(F.aim.x - w.op.x, F.aim.y - w.op.y)) * MIL;
+      F.aim = { x: F.aim.x + Math.cos(th) * dev + Math.sin(th) * rng, y: F.aim.y - Math.sin(th) * dev + Math.cos(th) * rng };
+      if (rng) F.lastMag = Math.abs(rng);
+      F.busy = true; R.lastN = 14;
+      then = () => later(1200 * K(), () => ffe ? fireFFE() : fireAdj());
+    }
+    F.waitRx = true;
+    const kind = row ? 'corr' : 'call', n = R.lastN;
+    later(1100 * K(), () => { F.waitRx = false; fdcOver(m.rb, OK_RB, kind, n, then); });
+    refresh();
+  }
+  function splashBinos() {
+    if (st.stage !== 'view') setStage('view');
+    // Guided: the vertical line goes on the target, so the burst can be read from it. Exam: where you last aimed the
+    // binoculars, or on the target if you never did (the exam screen always shows it)
+    if (guidedOn() || !st.lastAim) st.lastAim = tgtAim();
+    // Guided: tilted toward where the round lands (half way, or the burst 15 mils off the centre), so a burst beyond or short
+    // of the target is in the field too; the vertical line stays on the target
+    if (guidedOn() && F.aim) { const w = st.w, bx = F.aim.x + F.bias.x, by = F.aim.y + F.bias.y, a = st.lastAim, dl = (groundAt(w, bx, by) + 4.6 - w.eyeZ) / Math.hypot(bx - w.op.x, by - w.op.y) - a.pitch; a.pitch += Math.sign(dl) * Math.max(Math.abs(dl) / 2, Math.abs(dl) - 15 * MIL); }
+    if (st.lastAim) setView(st.lastAim.az, st.lastAim.pitch);
+    if (!st.bino) setBino(true);
+    // sideways the stage does not pin: bring the view up for the impact (not while you type)
+    if (LAND.matches && !document.body.classList.contains('kbd')) $('viewCard').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  // SHOT, OVER and SPLASH, OVER: in Guided the round leaves once you answer SHOT; in the exam it flies anyway
+  function fireAdj() {
+    F.busy = false; F.inFlight = true; F.phase = 'adjust';
+    const go = () => {
+      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 12); splashBinos(); });
+      later(TOF(), impact);
+    };
+    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 12, guidedOn() ? go : null);
+    if (!guidedOn()) go();
+  }
+  function impact() {
+    const ix = F.aim.x + F.bias.x, iy = F.aim.y + F.bias.y;
+    addBurst(ix, iy, 'he');
+    F.inFlight = false; F.lastBurst = { x: ix, y: iy }; F.adj++;
+    const sp = spotOf(F.lastBurst), prev = F.spots[F.spots.length - 1];
+    if (prev && prev !== 'RC' && sp.range !== 'RC' && prev !== sp.range) F.bracketed = true;
+    F.spots.push(sp.range);
+    if (R.rows.length >= ROWS) { logLine('sys', '(all 5 rows used: no fire for effect)'); F.phase = 'eom'; }
+    refresh();
+  }
+  function fireFFE() {
+    const w = st.w, cx = F.aim.x + F.bias.x, cy = F.aim.y + F.bias.y, nr = w.rounds * 4;
+    F.busy = false; F.inFlight = true; F.phase = 'ffe'; R.ffeAim = { x: cx, y: cy };
+    const th = azOf(cx - w.op.x, cy - w.op.y) * MIL, rt = [Math.cos(th), -Math.sin(th)], u = [Math.sin(th), Math.cos(th)], pts = [];
+    for (let n = 0; n < nr; n++) { const lat = ((n % 4) - 1.5) * 18 + (Math.random() - 0.5) * 10, lon = (Math.random() - 0.5) * 30; pts.push([cx + rt[0] * lat + u[0] * lon, cy + rt[1] * lat + u[1] * lon]); }
+    const go = () => {
+      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 15); splashBinos(); });
+      pts.forEach((p, n) => later(TOF() + n * 230, () => addBurst(p[0], p[1], 'he')));
+      later(TOF() + nr * 230 + 400, () => {
+        for (const v of w.tgt.veh) if (pts.some(p => Math.hypot(p[0] - v.x, p[1] - v.y) <= 50)) { v.dead = true; F.killed++; }
+        F.inFlight = false; kick(); refresh();
+      });
+      later(TOF() + nr * 230 + 3200 * K(), () => { F.phase = 'eom'; fdcOver('ROUNDS COMPLETE, OVER', 'ROUNDS COMPLETE, OUT', 'rc', 15); });
+    };
+    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 15, guidedOn() ? go : null);
+    if (!guidedOn()) go();
+  }
+  function spotOf(b) {
+    const w = st.w, op = w.op, t = truth(), azB = azOf(b.x - op.x, b.y - op.y), devM = dm(azB, t.az), th = t.az * MIL;
+    const er = (b.x - op.x) * Math.sin(th) + (b.y - op.y) * Math.cos(th) - t.d;
+    return { devM, er, range: er > 25 ? 'OVER' : er < -25 ? 'SHORT' : 'RC' };
+  }
+  // the row the coach expects: spotting in mils; deviation = OT × spotting, opposite side, nearest 10, none under 30 m;
+  // range 400 (repeat until bracketed) → 200 → 100 → 50FFE. OT = your OT FACTOR when it is a whole number, else the true one.
+  function expCorr() {
+    const t = truth(), b = F.lastBurst; if (!b) return null;
+    const sp = spotOf(b), n = Math.round(Math.abs(sp.devM)), side = n <= 2 ? '*' : sp.devM > 0 ? 'R' : 'L';
+    const otIn = num(st.sheet.wOt), ot = Number.isInteger(otIn) && otIn >= 1 && otIn <= 9 ? otIn : t.otf, raw = ot * n, dv = r10(raw);
+    const dev = dv >= 30 ? { k: sp.devM > 0 ? 'L' : 'R', m: dv } : null;
+    let rng = null, ffe = false, why;
+    if (sp.range === 'RC') { ffe = true; why = 'within 25 m of the target\'s range = range correct: leave Add/Drop blank, 50FFE = fire for effect'; }
+    else {
+      const k = sp.range === 'SHORT' ? 'A' : 'D', wd = sp.range === 'SHORT' ? 'SHORT (in front) → Add' : 'OVER (beyond) → Drop'; let c;
+      if (!F.bracketed) { c = 400; why = F.lastMag ? `still ${wd}, no bracket yet → 400 again` : `burst ${wd}: first step of 400 → 200 → 100 → 50FFE`; }
+      else { c = Math.max(50, F.lastMag / 2); why = `burst ${wd}, bracketed → half of ${F.lastMag} = ${c}`; }
+      rng = { k, m: c };
+      if (c === 50) { ffe = true; why += ' = 50FFE, fire for effect'; }
+    }
+    return { sp, spot: n, side, ot, raw, dv, dev, rng, ffe, why, t };
+  }
+
+  // ---------- Guided coach: 17 steps in 5 phases (Orient / Call / MTO / Adjust / End)
+  const guidedOn = () => st.mode === 'guided' && !st.examOn && !st.ended;
+  function spotOk() { const f = stepWant('spot'); return !!f && !Object.keys(f).some(id => fieldBad(id, f[id])); }
+  // the burst lies outside the binoculars' field when their vertical line is on the target
+  function spotOut() { const e = expCorr(); return !!e && Math.abs(e.sp.devM) > (V.fieldM || 62); }
+  function gStep() {
+    const g = st.gOk || {};
+    if (F.pend) return F.pend.want === 'mto' ? 'mto' : 'reply';
+    if (F.waitRx) return 'rx';
+    if (!R.l1) return !g.op ? 'op' : !g.dir ? 'dir' : !g.dist ? 'dist' : !g.ot ? 'ot' : !g.plot ? 'plot' : !g.grid ? 'grid' : !g.alt ? 'alt' : 'l1';
+    if (!R.l2) return 'l2';
+    if (!R.l3) return 'l3';
+    if (!R.mto) return 'rx';
+    if (F.phase === 'adjust') return F.busy || F.inFlight ? 'wait' : spotOk() ? 'corr' : 'spot';
+    if (F.phase === 'ffe') return 'ffe';
+    if (F.phase === 'eom') return 'eom';
+    return 'done';
+  }
+  const GN = { op: 1, dir: 2, dist: 3, ot: 4, plot: 5, grid: 6, alt: 7, l1: 8, l2: 9, l3: 10, mto: 11, wait: 12, spot: 13, corr: 14, ffe: 15, eom: 16, done: 17 };
+  const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 17;
+  const PHN = ['Orient', 'Call', 'MTO', 'Adjust', 'End', 'Done'];
+  // what each field of the step should hold now
+  function stepWant(s) {
+    const w = st.w, t = truth(), k = R.rows.length;
+    if (s === 'dir') return { gDir: t.gdir };
+    if (s === 'dist') return { wDist: t.dist };
+    if (s === 'ot') return { wOt: t.otf };
+    if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 6) } : null; }
+    if (s === 'alt') { const P = plotPoint(); return { gAlt: P ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : t.alt }; }
+    if (s === 'l1') return { c1a: w.fdcCs, c1b: w.fo, c1m: 'AF' };
+    if (s === 'mto') return { mU: w.bty, mC: 'NA', mN: String(w.rounds), mT: w.tn };
+    if (s === 'eom') return { eT: w.tn };
+    if (s === 'spot' || s === 'corr') {
+      const e = expCorr(); if (!e) return null;
+      const f = { ['sp' + k]: e.spot, ['ss' + k]: e.side };
+      return s === 'spot' ? f : Object.assign(f, { ['ds' + k]: e.dev ? e.dev.k : '', ['dv' + k]: e.dev ? e.dev.m : '', ['rk' + k]: e.rng ? e.rng.k : '', ['rm' + k]: e.rng ? String(e.rng.m) : '50' });
+    }
+    return null;
+  }
+  const hintEl = (id, v) => { const e = $(id); if (!e || !e.classList.contains('chips')) return e; return v === '' ? e.querySelector('.chip[aria-pressed="true"]') : e.querySelector(`.chip[data-v="${v}"]`); };
+  function fieldBad(id, v) {
+    const e = $(id); if (!e || v === '*') return false;
+    if (e.classList.contains('chips')) return chipVal(id) !== String(v);
+    const raw = String(e.value).trim(), x = num(raw);
+    if (v === '') return raw !== '';
+    if (id === 'gGrid') { const P = plotPoint(); return !P || ![6, 8].some(n => digits(raw) === digits(worldToGrid(P.x, P.y, n))); }
+    if (id === 'gAlt') return x == null || x % 5 !== 0 || (Math.abs(x - v) > 10 && Math.abs(x - truth().alt) > 10);
+    if (/^sp/.test(id)) return x == null || Math.abs(x - v) > 5;
+    if (/^dv/.test(id)) return x == null || x % 10 !== 0 || Math.abs(x - v) > (expCorr().ot >= 3 ? 20 : 10);
+    return x == null || x % 6400 !== +v;
+  }
+  // Guided: what is wrong with a refused entry, in a few words (the toast then shows the DO box)
+  function badWhy(id) {
+    const v = st.sheet[id], x = num(v), t = truth(), e = /^(sp|ss|ds|dv|rk|rm)\d$/.test(id) && expCorr();
+    if (v == null || v === '') return '';
+    if (x == null && /^(gDir|wDist|wOt|gAlt|sp\d|dv\d)$/.test(id)) return 'Write digits only (no spaces, commas or other signs).';
+    if (id === 'gDir') return x === t.mag ? `${fmt4(x)} is the magnetic direction: subtract 112.` : x != null && Math.abs(dm(x, t.mag + 112)) <= 5 ? 'G-M is west here: subtract 112, do not add it.' : x % 10 ? 'Round it to the nearest 10 mils.' : '';
+    if (id === 'wDist') return x % 100 ? 'Round it to the nearest 100 m.' : `${x > t.dist ? 'Too far' : 'Too short'}: find TGT ${st.w.tgtNo} on your line again.`;
+    if (id === 'wOt') return 'OT FACTOR = DISTANCE ÷ 1000, to the nearest whole number.';
+    if (id === 'gGrid') { const P = plotPoint(), g = P ? digits(worldToGrid(P.x, P.y, 6)) : ''; return digits(v) === g.slice(3) + g.slice(0, 3) ? 'Read right first, then up.' : 'Read it at ✕ with the protractor.'; }
+    if (id === 'gAlt') return x % 5 ? 'Round it to the nearest 5 m.' : 'More than 10 m off: read the contours at ✕.';
+    if (/^sp/.test(id)) return 'Count again from the vertical line to the burst.';
+    if (/^ss/.test(id)) return `The burst is ${e.side === 'L' ? 'left' : 'right'} of the vertical line.`;
+    if (/^ds/.test(id)) return 'The deviation goes to the side opposite the burst.';
+    if (/^dv/.test(id)) return x % 10 ? 'Round it to the nearest 10 m.' : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m.`;
+    if (/^rk/.test(id)) return !e.rng ? 'Level with the target: leave Add/Drop blank.' : e.rng.k === 'A' ? 'The burst is short (in front): Add.' : 'The burst is over (beyond): Drop.';
+    if (/^rm/.test(id)) return !e.rng ? 'Level with the target: 50FFE.' : F.bracketed ? `Bracketed: half of ${F.lastMag}.` : 'No bracket yet: 400.';
+    if (id === 'c1a' || id === 'c1b') return 'The FDC\'s call sign first, then yours (Given box).';
+    if (id === 'c1m') return 'A grid mission starts with Adjust Fire.';
+    if (id === 'mC') return 'The MTO announced no change: N/A.';
+    if (/^m[UNT]$/.test(id)) return 'Copy it from the FDC\'s MTO under the view.';
+    if (id === 'eT') return 'Use the TGT # from the MTO.';
+    return '';
+  }
+  // Guided: one step at a time. title = what, tip = the exact action with its formula (shown beside the control), bullets = how
+  function coachData() {
+    const w = st.w, T = w.tgt, t = truth();
+    if (st.examOn) return { lbl: st.ended ? 'Exam over' : 'Exam', title: st.ended ? 'See your result' : 'No coach in the exam', bullets: ['Orient → lines 1, 2, 3 → MTO → one row per round → End of Mission.', 'Answer every FDC message that ends OVER.', '10 minutes for the whole mission: the exam stops at 10:00.'] };
+    if (st.ended) return { lbl: 'Done', title: 'Mission complete', bullets: ['Press New card for another target, or switch to Exam.'] };
+    const s = gStep(), k = R.rows.length, sq = P => { const r = proRead(P); return `square <b>${r.sqE}|${r.sqN}</b>, ${r.e[0]}/10 right, ${r.n[0]}/10 up`; };
+    switch (s) {
+      case 'op': return { title: 'Mark your start position', tip: `Tap here: <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
+      case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (magnetic, Given box) − 112 (G-M 6.3° W, Given box) = ${fmt4(t.raw)} → nearest 10`, bullets: ['Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. G-M here is west: subtract.'] };
+      case 'dist': {
+        // what your line crosses just before and just beyond the target (map ticks), in sight from ◎ (at the crossing or 60 m beside it)
+        // and within 800 m of the target, and how far along that gap the target sits on the ground (3D view); the tenths are checked
+        // to give this card's DISTANCE
+        const op = w.op, a0 = t.gdir * MIL, n = `TGT ${w.tgtNo}`;
+        const seen = m => [0, -60, 60].some(o => { const x = op.x + Math.sin(a0) * m.d + Math.cos(a0) * o, y = op.y + Math.cos(a0) * m.d - Math.sin(a0) * o; return los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + 1); });
+        const all = lineMarks(w, t.gdir).filter(seen), pick = l => [l.filter(m => m.d < t.d && m.d > t.d - 800).pop(), l.find(m => m.d > t.d && m.d < t.d + 800)];
+        // the stream hardly shows in the view: use it only when no road or railroad is near the target
+        let [b, a] = pick(all.filter(m => m.name !== 'the stream')); if (!b && !a) [b, a] = pick(all);
+        const B = b && r10(b.d), A = a && r10(a.d), est = t.dist + clamp(r10(t.d - t.dist), -40, 40);
+        const q = b && a && [0, 1, -1].map(k => clamp(Math.round((t.d - b.d) / (a.d - b.d) * 10) + k, 1, 9) / 10).find(v => Math.round((B + v * (A - B)) / 100) * 100 === t.dist);
+        let tip;
+        if (q) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${b.name} ${B} m, ${a.name} ${A} m; in the 3D view ${n} sits ${q === 0.5 ? 'halfway' : `about ${q * 10}/10 of the way`} between them → ${B} + ${q} × ${A - B} = ${Math.round(B + q * (A - B))} → nearest 100`;
+        else if (b) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${b.name} ${B} m; in the 3D view ${n} sits about ${est - B} m beyond it → ${B} + ${est - B} = ${est} → nearest 100`;
+        else if (a) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${a.name} ${A} m; in the 3D view ${n} sits about ${A - est} m short of it → ${A} − ${A - est} = ${est} → nearest 100`;
+        else { const nl = nearestLm(w, T.x, T.y); tip = `DISTANCE → <b>${t.dist}</b>: ${n} sits at the ${t.dist} m tick of your line (about ${Math.round(nl.d / 50) * 50} m ${nl.dir} of ${nl.lm.name}) → nearest 100`; }
+        return { title: 'Estimate the distance', tip, bullets: ['Map: the line from ◎ has a tick every 100 m and a number every 500 m; read where it crosses the railroad, roads and stream.', `3D view: see what lies just in front of ${n} and just beyond it, then find the same spot on your line.`, 'The view squeezes far ground: halfway on the ground shows above the middle of the gap on the screen.'] };
+      }
+      case 'ot': return { title: 'OT factor', tip: `OT FACTOR → <b>${t.otf}</b> = ${t.dist} ÷ 1000 = ${(t.dist / 1000).toFixed(1)} → nearest whole number`, bullets: [] };
+      case 'plot': return { title: 'Plot the target', tip: `Press <strong>Plot ✕</strong>: ✕ = ${fmt4(t.gdir)} mils, ${t.dist} m from ◎`, bullets: ['Plot lays the protractor along your direction and marks ✕ at the distance.'] };
+      case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 6)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up. 6 digits = 100 m; 8 digits also work.'] }; }
+      case 'alt': { const P = plotPoint(), h = P ? groundAt(w, P.x, P.y) : t.h, lo = Math.floor(h / 10) * 10; return { title: 'Read the altitude', tip: `ALT → <b>${Math.round(h / 5) * 5}</b>: the ground at ✕ is between the ${lo} and ${lo + 10} m contours (about ${Math.round(h)}) → nearest 5`, bullets: ['Zoomed in on ✕, the map prints the value of each contour near it (Guided only: the exam prints none, so there you count the lines). Contours every 10 m; the darker ones every 50 m.'] }; }
+      case 'l1': return { title: 'Line 1: who and what', tip: `<b>${w.fdcCs}</b> (de) this is <b>${w.fo}</b> · AF/FFE <b>Adjust Fire</b> → <strong>Send (Over)</strong>`, bullets: ['The FDC\'s call sign first, then yours (Given box).'] };
+      case 'l2': return { title: 'Line 2: where', tip: 'Line 2 is filled from Phase 1 → <strong>Send (Over)</strong>', bullets: [] };
+      case 'l3': return { title: 'Line 3: what', tip: 'Line 3 is printed → <strong>Send (Over)</strong>', bullets: [] };
+      case 'reply': { const p = F.pend; return { title: 'Answer the FDC', tip: `FDC: ${esc(p.msg)} → tap <b>${esc(p.want)}</b>`, bullets: [REPLYWHY[p.kind]] }; }
+      case 'mto': return { title: 'Write the message to observer', tip: `<b>${w.bty}</b> · <b>N/A</b> · <b>${w.rounds} Round${w.rounds > 1 ? 's' : ''}</b> · <b>${w.tn}</b> → <strong>Send (Out)</strong>`, bullets: ['From the FDC\'s MTO under the view. No change announced → Changes to CFF: N/A.', 'Reading it back ends OUT: nothing more to answer.'] };
+      case 'rx': return { title: 'Wait for the FDC', tip: 'The FDC is answering', bullets: [] };
+      case 'wait': return { title: 'Round on the way', tip: `Watch the target: SPLASH = ${(TOF() - SPL()) / 1000} s to impact`, bullets: [] };
+      case 'spot': { const e = expCorr(); return { title: `Row ${k + 1}: spot the burst`, tip: `Spotting → <b>${e.spot}${e.side === '*' ? '' : ' ' + LRT[e.side]}</b>: burst ${e.side === '*' ? 'on the vertical line (2 mils or less: no side)' : `${e.spot} mils ${e.side === 'R' ? 'right' : 'left'} of the vertical line`}${spotOut() ? ', past the edge of the binoculars: close them to see it' : ''}`, bullets: ['Each number on the reticle = 10 mils, each small tick = 5.'] }; }
+      case 'corr': {
+        const e = expCorr();
+        const dv = e.dev ? `Deviation → <b>${LRT[e.dev.k]} ${e.dev.m}</b> = OT ${e.ot} × ${e.spot} mils = ${e.raw} → nearest 10, opposite side` : `Deviation → <b>leave blank</b>: OT ${e.ot} × ${e.spot} = ${e.raw} m, under 30`;
+        const rg = e.rng ? `Range → <b>${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}</b>: ${e.why}` : `Range → <b>50FFE</b> only: ${e.why}`;
+        return { title: `Row ${k + 1}: correct it`, tip: `${dv}<br>${rg} → <strong>Send (OVER)</strong>`, bullets: [] };
+      }
+      case 'ffe': return { title: 'Fire for effect', tip: 'Watch the target', bullets: [] };
+      case 'eom': return { title: 'End of mission', tip: `TGT# → <b>${w.tn}</b> (from the MTO) → <strong>Send</strong>`, bullets: ['The rest of the line is printed.'] };
+      default: return { title: 'Mission complete', bullets: [] };
+    }
+  }
+  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], dist: ['OD', 'after'], ot: ['OD', 'after'], plot: ['OD', 'after'], grid: ['L2', 'after'], alt: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
+  // sideways step 1's box goes above the map: under it, it would sit below the screen
+  const tipAt = s => s === 'spot' || s === 'corr' ? ['R' + R.rows.length, 'after'] : s === 'op' && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
+  // why each step matters, in one line under the action
+  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here magnetic − 112 = grid.', dist: 'Distance places the target on the line and gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', plot: 'Direction + distance from your position = the target\'s spot on the map.', grid: 'The FDC aims at the grid.', alt: 'Altitude lets the FDC correct for height.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: opposite side, OT × mils; 400 until the target is bracketed, then halve each time until 50 = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
+  function placeTip(cd) {
+    const tip = $('gtip'), step = guidedOn() ? gStep() : '', at = tipAt(step), key = step + R.rows.length + (F.pend ? F.pend.key : '');
+    if (!at || !cd.tip) { tip.hidden = true; st.tipStep = key; return; }
+    const html = cd.tip + (WHY[step] ? `<small class="tw"><em>Why</em> ${WHY[step]}</small>` : '');
+    if (tip.innerHTML !== html) tip.innerHTML = html;
+    tip.hidden = false;
+    const el = $(at[0]);
+    if (at[1] === 'in') { if (tip.parentNode !== el) el.appendChild(tip); }
+    else if (at[1] === 'before') { if (tip.nextElementSibling !== el) el.before(tip); }
+    else if (tip.previousElementSibling !== el) el.after(tip);
+    // sideways the view and the row do not fit on one screen: let the burst show for a moment before the row comes up
+    if (key !== st.tipStep) { const first = !st.tipStep; st.tipStep = key; if (!first) setTimeout(showTip, LAND.matches && step === 'spot' ? 2500 : 120); }
+  }
+  // phones held sideways: the stage does not pin (no room), answers pop up in a bar at the bottom
+  const LAND = matchMedia('(max-width: 1099px) and (max-height: 639px)');
+  // bring the line and its DO box into view: the line at the top, just under the pinned stage
+  function showTip() {
+    const tip = $('gtip'), s = guidedOn() ? gStep() : '', at = tipAt(s), el = at && at[1] === 'after' && at[0] !== 'coach' ? $(at[0]) : null;
+    if (tip.hidden) return;
+    // sideways: the answer bar needs no scroll, and the round needs the view on screen
+    if (LAND.matches && ['reply', 'rx', 'wait', 'ffe'].includes(s)) { if (s === 'wait' || s === 'ffe') $('viewCard').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    // 'nearest' does not see the pinned stage on phones: scroll whenever the box sits under the stage or below the screen
+    const r = tip.getBoundingClientRect(), mt = parseFloat(getComputedStyle(el || tip).scrollMarginTop);
+    // a line taller than the room under the stage (the MTO on a small phone): its bottom goes to the screen edge, so Send shows
+    if (el || r.top < mt || r.bottom > innerHeight) (el || tip).scrollIntoView({ block: el && el.offsetHeight > innerHeight - mt ? 'end' : 'start', behavior: 'smooth' });
+  }
+  // turning the phone moves the page under the pinned stage: put the DO box back in sight
+  LAND.addEventListener('change', () => { refresh(); setTimeout(showTip, 400); });
+  const SENDOF = s => ({ l1: 'x1', l2: 'x2', l3: 'x3', mto: 'xM', eom: 'xE', corr: 'xr' + R.rows.length })[s];
+  function hints() {
+    document.querySelectorAll('.hint').forEach(e => e.classList.remove('hint'));
+    if (!guidedOn() || !st.w) return;
+    const s = gStep(), add = el => el && el.classList.add('hint'), f = stepWant(s);
+    const bad = f ? Object.keys(f).filter(id => fieldBad(id, f[id])) : [];
+    bad.forEach(id => add(hintEl(id, f[id])));
+    if (!bad.length && SENDOF(s)) add($(SENDOF(s)));
+    if (s === 'plot') add($('plotBtn'));
+    if (s === 'reply') add($('rxBtns').querySelector(`button[data-v="${F.pend.want}"]`));
+  }
+  function note(html) {
+    const t = $('toast'); t.innerHTML = (guidedOn() && !/^(Plot|Mark|Tap the map|First|Line 1 needs|Grid:|ALT:|Direction:|MTO:|End of Mission:|Deviation:|Range:|A correction)/.test(html) ? '<b>Not that one.</b> ' : '') + html + '<small>Tap to close</small>';
+    t.hidden = false; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
+    clearTimeout(note.t); note.t = setTimeout(() => { t.hidden = true; }, 6000);
+    $('coach').classList.remove('shake'); void $('coach').offsetWidth; $('coach').classList.add('shake');
+  }
+  $('toast').addEventListener('click', () => { $('toast').hidden = true; });
+  function shake(el) { if (!el) return; el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 700); }
+  function want(el) { if (!el) return; el.classList.remove('want'); void el.offsetWidth; el.classList.add('want'); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); setTimeout(() => el.classList.remove('want'), 1700); }
+  // Guided: once the field you are typing is right and you pause, move on by itself (next field, or close the keyboard)
+  function autoNext(el) {
+    clearTimeout(st.jumpT);
+    const gs = guidedOn() && document.activeElement === el ? gStep() : '';
+    if (!gs || gs === st.typeStep) return;
+    st.jumpT = setTimeout(() => {
+      if (document.activeElement !== el || gStep() !== gs) return;
+      const e = gs === 'corr' && expCorr(), nx = { ot: 'wOt', alt: 'gAlt' }[gs] || (e && e.dev ? 'dv' + R.rows.length : '');
+      if (nx && $(nx) && !$(nx).readOnly) { $(nx).focus(); st.typeStep = gs; }
+      else { el.blur(); setTimeout(showTip, 150); }
+    }, 1200);
+  }
+  $('sheet').addEventListener('input', e => { if (e.target.tagName !== 'INPUT') return; readSheet(); refresh(); autoNext(e.target); });
+  $('sheet').addEventListener('change', e => {
+    const el = e.target; if (el.tagName !== 'INPUT') return;
+    readSheet(); const f = guidedOn() && stepWant(gStep());
+    if (f && el.id in f && String(el.value).trim() && fieldBad(el.id, f[el.id])) { note(`${badWhy(el.id)} ${coachData().tip}`); shake(el); }
+    refresh();
+  });
+  $('sheet').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || b.disabled) return;
+    if (b.classList.contains('chip')) {
+      const id = b.parentNode.id, on = b.getAttribute('aria-pressed') !== 'true';
+      chipSet(id, on ? b.dataset.v : ''); readSheet();
+      if (guidedOn()) {
+        // Guided writes the deviation side for you: the opposite of the burst
+        if (on && /^ss\d$/.test(id)) { const x = expCorr(), k = id.slice(2); if (x && x.dev && !chipVal('ds' + k)) { chipSet('ds' + k, x.dev.k); readSheet(); } }
+        const f = stepWant(gStep()); if (f && id in f && on && fieldBad(id, f[id])) { note(`${badWhy(id)} ${coachData().tip}`); shake(b); }
+      }
+      refresh(); return;
+    }
+    if (b.id === 'plotBtn') doPlot();
+    else if (b.classList.contains('snd')) sendLine(b.closest('.wl').id);
+  });
+
+  // ---------- grading (Exam standards; assumptions are marked)
+  function rowGrade(r) {
+    const e = r.exp; if (!e) return { sp: false, dv: false, rg: false };
+    const tol = e.ot >= 3 ? 20 : 10;
+    return {
+      sp: r.sp != null && Math.abs(r.sp - e.spot) <= 5 && (e.side === '*' || r.ss === e.side || (r.sp === 0 && !r.ss)),
+      dv: e.dev ? r.ds === e.dev.k && r.dv != null && r.dv % 10 === 0 && Math.abs(r.dv - e.dev.m) <= tol : !r.ds && !r.dv,
+      rg: e.rng ? r.rk === e.rng.k && r.rm === String(e.rng.m) : !r.rk && r.rm === '50'
+    };
+  }
+  function evalAll() {
+    const w = st.w, c = sheetCheck(), rg = R.rows.map(rowGrade), fe = R.ffeAim ? axisErr(R.ffeAim) : null;
+    const rep = kinds => { const a = R.replies.filter(x => kinds.includes(x.kind)); return a.length > 0 && a.every(x => x.ok); };
+    const all = k => rg.length > 0 && rg.every(x => x[k]);
+    const mtoOk = !!R.mto && R.mto.u === w.bty && R.mto.c === 'NA' && +R.mto.n === w.rounds && R.mto.tn === w.tn;
+    return [
+      { t: 'Orient (Phase 1)', subs: [
+        { txt: 'Start position ◎ within 100 m', ok: c.x.op },
+        { txt: 'Direction = magnetic − 112, nearest 10 (±10 mils, assumption)', ok: c.x.dir },
+        { txt: 'DISTANCE to the nearest 100 m, at most one 100 m step off the true distance', ok: c.x.dist },
+        { txt: 'OT FACTOR = DISTANCE ÷ 1000, nearest whole number', ok: c.x.ot },
+        { txt: 'Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of the target)', ok: c.x.grid },
+        { txt: 'ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target)', ok: c.x.alt }] },
+      { t: 'Call for fire (lines 1–3)', subs: [
+        { txt: 'Line 1: FDC (de) you, Adjust Fire', ok: !!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF' },
+        { txt: 'Lines 2 and 3 sent', ok: !!R.l2 && R.l3 },
+        { txt: 'Each read-back answered THAT IS CORRECT, OUT', ok: R.l3Ack && rep(['call']) },
+        { txt: 'No SAY AGAIN on lines 1–3', ok: R.l3 && !R.sayAgain.some(x => /^L[123]$/.test(x.line)) }] },
+      { t: 'Message to observer', subs: [
+        { txt: 'Unit to Fire, Changes, # of Rounds and TGT # written right', ok: mtoOk },
+        { txt: 'MTO read back (Out)', ok: !!R.mto }] },
+      { t: 'Adjust fire (one row per round)', subs: [
+        { txt: 'Spotting within 5 mils, right side (assumption)', ok: all('sp') },
+        { txt: 'Deviation: OT × spotting, opposite side, nearest 10 (±10 m); under 30 m blank', ok: all('dv') },
+        { txt: 'Range: Add if short, Drop if over; 400 → 200 → 100 → 50FFE', ok: all('rg') },
+        { txt: 'Every read-back, SHOT and SPLASH answered right', ok: rep(['corr', 'shot']) }] },
+      { t: 'Fire for effect', subs: [
+        { txt: 'Fire for effect on row 5 at the latest (rows 1–4 adjust)', ok: !!R.ffeAim },
+        { txt: 'Fire for effect within 50 m of the target (assumption)', ok: !!fe && fe.max <= 50 },
+        { txt: 'ROUNDS COMPLETE, OUT', ok: rep(['rc']) }] },
+      { t: 'End of mission', subs: [
+        { txt: 'End of Mission sent with the TGT # from the MTO', ok: !!R.eom && R.eom.tn === w.tn }] }
+    ];
+  }
+  // debrief: you wrote / correct / formula, NO-GO first
+  function feedback() {
+    const w = st.w, T = w.tgt, t = truth(), c = sheetCheck(), s = st.sheet, out = [], yw = v => v === '' || v == null ? 'blank' : v;
+    const add = (ok, txt) => out.push([ok ? '' : 'bad', txt]);
+    if (st.examOn && R.tEnd >= 600 && !R.eom) add(false, 'Time ran out: the exam stops at 10:00 (10 minutes for the whole mission).');
+    add(c.x.op, `Start ◎: ${c.opd != null ? `${Math.round(c.opd)} m from` : 'not marked; it is'} GA ${worldToGrid(w.op.x, w.op.y, 6)} · standard ≤ 100 m`);
+    add(c.x.dir, `Direction: you wrote ${yw(s.gDir)} · correct ${fmt4(t.gdir)} = ${fmt4(t.mag)} (magnetic) − 112 (G-M) = ${fmt4(t.raw)} → nearest 10 · ±10 mils (assumption)`);
+    add(c.x.dist, `DISTANCE: you wrote ${yw(s.wDist)} · true ${Math.round(t.d)} m → ${t.dist} (nearest 100) · standard ${t.dist} ±100 (${t.dist - 100}, ${t.dist} or ${t.dist + 100})`);
+    add(c.x.ot, `OT FACTOR: you wrote ${yw(s.wOt)} · correct ${c.otMine != null ? `${c.otMine} = ${c.dist} ÷ 1000 = ${(c.dist / 1000).toFixed(1)}` : `${t.otf} = ${t.dist} ÷ 1000`} → nearest whole number`);
+    add(c.x.grid, `Grid: you wrote ${s.gGrid ? 'GA ' + gridTxt(s.gGrid) : 'blank'}${c.gd != null ? `, ${Math.round(c.gd)} m from the target${c.gx != null ? ` (${Math.round(c.gx)} m from your ✕)` : ''}` : ''} · target GA ${worldToGrid(T.x, T.y, 6)} · standard ≤ 100 m from the target (or read right at your ✕ when ✕ is within 100 m of it)`);
+    add(c.x.alt, `ALT: you wrote ${yw(s.gAlt)} · correct ${t.alt} (ground at the target ${Math.round(t.h)} m → nearest 5)${c.altX != null && c.altX !== t.alt ? ` or ${c.altX} at your ✕ (✕ is within 100 m of the target)` : ''} · standard ±10 m`);
+    add(!!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF', `Line 1: you sent ${R.l1 ? R.l1.text : 'nothing'} · correct ${w.fdcCs}, THIS IS ${w.fo}, ADJUST FIRE, OVER`);
+    if (!R.l2) add(false, 'Line 2 was never sent.');
+    if (!R.l3) add(false, 'Line 3 was never sent.');
+    // only lines 1–3 are graded for SAY AGAIN (the standard); elsewhere it is a note
+    for (const x of R.sayAgain) { const call = /^L[123]$/.test(x.line); add(!call, `SAY AGAIN on ${LNAME(x.line)}${call ? '' : ' (not graded)'}: ${x.why}`); }
+    for (const x of R.replies) if (!x.ok) add(false, `Answer to "${x.msg}": you said ${x.said || 'nothing'} · correct ${x.want}`);
+    const m = R.mto, mOk = !!m && m.u === w.bty && m.c === 'NA' && +m.n === w.rounds && m.tn === w.tn;
+    add(mOk, `MTO: you wrote ${m ? `${m.u} / ${m.c === 'NA' ? 'N/A' : m.c} / ${roundsTxt(m.n)} / ${m.tn}` : 'nothing'} · correct ${w.bty} / N/A / ${roundsTxt(w.rounds)} / ${w.tn}`);
+    R.rows.forEach((r, i) => {
+      const gr = rowGrade(r), e = r.exp; if (!e) return;
+      const mine = `${r.sp != null ? r.sp : '—'} ${LRT[r.ss] || ''} | ${r.ds ? `${LRT[r.ds]} ${r.dv}` : 'blank'} | ${r.rk ? `${ADT[r.rk]} ` : ''}${r.rm ? (r.rm === '50' ? '50FFE' : r.rm) : 'blank'}`;
+      const right = `${e.spot} ${e.side === '*' ? '' : LRT[e.side]} | ${e.dev ? `${LRT[e.dev.k]} ${e.dev.m}` : 'blank'} (OT ${e.ot} × ${e.spot} = ${e.raw} → ${e.dev ? 'nearest 10' : 'under 30 m: blank'}) | ${e.rng ? `${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}` : '50FFE'} (${e.why})`;
+      add(gr.sp && gr.dv && gr.rg, `Row ${i + 1}: you wrote ${mine} · correct ${right}`);
+    });
+    if (R.ffeAim) { const fe = axisErr(R.ffeAim); add(fe.max <= 50, `Fire for effect after ${R.rows.length} row(s), ${Math.round(fe.d)} m from the target (range ${Math.round(Math.abs(fe.rng))} m ${fe.rng > 0 ? 'over' : 'short'}, deviation ${Math.round(Math.abs(fe.dev))} m) · standard ≤ 50 m (assumption)`); }
+    else add(false, R.rows.length >= ROWS ? 'No fire for effect by row 5 (rows 1–4 adjust; row 5 at the latest is 50FFE).' : `No fire for effect: the mission ended after ${R.rows.length} row(s).`);
+    add(!!R.eom && R.eom.tn === w.tn, `End of Mission TGT#: you wrote ${R.eom ? R.eom.tn : 'nothing'} · correct ${w.tn} (from the MTO)`);
+    return out.sort((a, b) => (a[0] ? 0 : 1) - (b[0] ? 0 : 1));
+  }
+  function finish() {
+    if (st.ended) return;
+    if (F.pend && F.pend.want !== 'mto') { R.replies.push({ msg: F.pend.msg, want: F.pend.want, kind: F.pend.kind, said: '', ok: false }); F.pend = null; }
+    st.ended = true; st.running = false; clearTimers();
+    const ms = evalAll(), go = ms.every(m => m.subs.every(x => x.ok)), secs = R.tEnd = (performance.now() - R.t0) / 1000, exam = st.examOn;
+    if (exam && go) { try { const b = +localStorage.getItem('cffT.best') || 0; if (!b || secs < b) localStorage.setItem('cffT.best', String(Math.round(secs))); } catch (e) { /* storage blocked */ } }
+    $('resT').textContent = exam ? 'Exam result' : 'Practice debrief';
+    const rows = ms.map((m, i) => { const ok = m.subs.every(x => x.ok); return `<tr><td>${i + 1}. ${esc(m.t)}</td><td class="${ok ? 'go' : 'nogo'}">${ok ? 'GO' : 'NO-GO'}</td></tr>`; }).join('');
+    $('resBody').innerHTML = `<p><span class="verdict ${go ? 'go' : 'nogo'}">${go ? 'GO' : 'NO-GO'}</span> &nbsp;Time ${mmss(secs)}</p><div class="tbl"><table><tr><th>Measure</th><th>Result</th></tr>${rows}</table></div><h3>Details: you wrote · correct · formula</h3><ul class="fb">${feedback().map(([c, t]) => `<li class="${c}">${esc(t)}</li>`).join('')}</ul>`;
+    refresh();
+    // the 10:00 end can come while Settings, Ref or the Exam intro is open: the result goes on top of nothing
+    ['mSet', 'mRef', 'mIntro'].forEach(closeModal);
+    if (exam && !go) { $('chStats').textContent = `NO-GO on ${ms.filter(m => !m.subs.every(x => x.ok)).length} of ${ms.length} measures · time ${mmss(secs)}`; openModal('mCharlie'); }
+    else openModal('mRes');
+  }
+
+  // ---------- render
+  function renderScore() {
+    const ms = evalAll(), show = !st.examOn || st.ended;
+    $('score').innerHTML = ms.map((m, i) => {
+      const done = show && m.subs.every(x => x.ok);
+      return `<li class="m${done ? ' done' : ''}"><span class="num">${i + 1}</span><div><div class="mt">${esc(m.t)}</div><ul class="subs">${m.subs.map(x => `<li class="${show && x.ok ? 'ok' : ''}">${esc(x.txt)}</li>`).join('')}</ul></div></li>`;
+    }).join('');
+  }
+  function renderMission() {
+    const w = st.w, t = truth();
+    $('mission').innerHTML = `<span>You <b>${w.fo}</b> → FDC <b>${w.fdcCs}</b></span><span>TGT <b>${w.tgtNo}</b></span><button class="linkbtn" id="newCard">New card</button>`;
+    $('newCard').addEventListener('click', () => newCard());
+    $('given').innerHTML = `<div class="gt">Given by the evaluator</div><span>Start position</span><b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b><span>You</span><b>${w.fo}</b><span>FDC</span><b>${w.fdcCs}</b><span>Magnetic direction to TGT ${w.tgtNo}</span><b>${fmt4(t.mag)} mils</b><span>G-M angle</span><b>112 mils (6.3°) W → subtract</b>`;
+    $('wsnote').textContent = 'Each line is one transmission: fill it, then press its Send. Sent lines turn to ink; grey lines come later.';
+    $('mapNote').textContent = `Map: grid squares 1,000 m (yellow circle = grid line number) · contours 10 m · big green number = training area, not a grid number · pink/red = impact area · card #${st.seed}`;
+  }
+  // the stage at the top shows what the step needs: the 3D view or the map
+  const STAGE = { op: 'map', dir: 'view', dist: 'map', ot: 'map', plot: 'map', grid: 'map', alt: 'map', l1: 'view', l2: 'view', l3: 'view', mto: 'view', wait: 'view', spot: 'view', corr: 'view', ffe: 'view', eom: 'view' };
+  function setStage(m) {
+    st.stage = m;
+    $('paneView').hidden = m !== 'view'; $('paneMap').hidden = m !== 'map';
+    $('stView').setAttribute('aria-selected', String(m === 'view')); $('stMap').setAttribute('aria-selected', String(m === 'map'));
+    if (m === 'map') { sizeMap(); drawMap(); } else { sizeView(); V.dirty = true; kick(); }
+  }
+  // Guided: what the map shows when a step starts
+  function stepEnter(gs) {
+    if (gs === 'op') proOn('op', true);
+    else if (gs === 'dir') proOn(null);
+    else if (gs === 'dist') {
+      const o = st.opMark || st.w.op, a = truth().gdir * MIL;
+      st.pro = null; MV.scale = clamp(Math.min(MV.W, MV.H) / 3100, minScale(), maxScale()); MV.cx = o.x + Math.sin(a) * 1150; MV.cy = o.y + Math.cos(a) * 1150; proOn(null);
+    } else if (gs === 'alt') {
+      // ALT: ✕ in the middle, close enough that the contour values round it are printed
+      const P = plotPoint(); if (P) { MV.scale = clamp(Math.min(MV.W, MV.H) / 900, minScale(), maxScale()); MV.cx = P.x; MV.cy = P.y; proOn(null); }
+    }
+  }
+  // the pinned stage changes height (map, binoculars, radio strip) and the top bar is taller on phones: keep the stage just under
+  // the bar and the scroll offset below the stage in step
+  const stickRO = new ResizeObserver(() => { const tb = document.querySelector('.top-bar').offsetHeight, s = document.documentElement.style; s.setProperty('--tb', tb + 'px'); s.setProperty('--stick', ($('viewCard').offsetHeight + tb) + 'px'); });
+  stickRO.observe($('viewCard')); stickRO.observe(document.querySelector('.top-bar'));
+  $('stView').addEventListener('click', () => setStage('view'));
+  $('stMap').addEventListener('click', () => setStage('map'));
+  function setTab(t) {
+    // a field on the panel that goes away loses the keyboard now, so the stage pins again before anything scrolls
+    const ae = document.activeElement; if (ae && ae.matches('#tools input, #tools select') && !ae.closest(`[data-panel="${t}"]`)) { ae.blur(); document.body.classList.remove('kbd'); }
+    st.tab = t;
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    document.querySelectorAll('.panel').forEach(p => { p.hidden = p.dataset.panel !== t; });
+    if (t === 'radio') { $('radioDot').hidden = true; $('log').scrollTop = $('log').scrollHeight; }
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  function phaseIdx() {
+    if (st.ended) return 5;
+    if (guidedOn()) { const n = stepNo(gStep()); return n <= 7 ? 0 : n <= 10 ? 1 : n <= 12 && !F.adj ? 2 : n <= 15 ? 3 : 4; }
+    return !R.l1 ? 0 : !R.l3Ack ? 1 : !F.adj ? 2 : F.phase === 'eom' || F.phase === 'done' ? 4 : 3;
+  }
+  function refresh() {
+    if (!st.w) return;
+    readSheet();
+    const c = sheetCheck(); st.gOk = c.g;
+    renderLines();
+    const gs = guidedOn() ? gStep() : '';
+    if (gs && gs !== st.stageStep) { st.stageStep = gs; if (STAGE[gs] && STAGE[gs] !== st.stage) setStage(STAGE[gs]); if (st.tab !== 'locate') setTab('locate'); stepEnter(gs); }
+    const cd = coachData(), pi = phaseIdx();
+    $('cStep').textContent = gs ? `Step ${stepNo(gs)} of 17 · ${PHN[pi]}` : cd.lbl;
+    $('cDo').textContent = cd.title; $('cHow').innerHTML = (cd.bullets || []).map(b => `<li>${b}</li>`).join('');
+    placeTip(cd);
+    // phones: the line is often below the fold, so the coach card has a jump button to it
+    const at = tipAt(gs), row = at && at[1] === 'after' && at[0] !== 'coach' ? at[0] : '';
+    $('cGo').hidden = !row; if (row) $('cGo').textContent = `↓ Go to ${LNAME(row)}`;
+    document.querySelectorAll('#phases li').forEach((li, i) => { li.className = i < pi ? 'done' : i === pi ? 'now' : ''; });
+    renderRx(); hints(); renderScore(); renderCap();
+    $('endBar').hidden = !(st.examOn && st.running);
+    $('btnRef').disabled = st.examOn && st.running;
+    drawMap(); kick();
+  }
+
+  // ---------- cards, modes, clock
+  function newCard(seed) {
+    clearTimers(); closeAll();
+    st.seed = seed != null ? seed : Math.floor(Math.random() * 90000) + 10000;
+    $('busy').hidden = false;
+    setTimeout(() => {
+      const w = genWorld(st.seed); st.w = w; MV.img = null;
+      st.bursts = []; st.plot = null; st.opMark = null; st.ended = false; st.sheet = {}; st.logs = []; st.rxH = null;
+      $('coach').after($('gtip')); renderSheet();
+      st.tipStep = ''; st.stageStep = ''; st.typeStep = ''; setTab('locate'); $('radioDot').hidden = true;
+      $('log').innerHTML = ''; $('rxBtns').dataset.k = '';
+      newFdc();
+      const tr = truth();
+      st.bino = false; st.lastAim = null; $('binoBtn').setAttribute('aria-pressed', 'false');
+      // start 80–170 mils off the target (inside the 400-mil view); the target at 2/3 height, lower if needed to keep a band of sky
+      const off = (w.r() < 0.5 ? -1 : 1) * (80 + w.r() * 90), el = (groundAt(w, w.tgt.x, w.tgt.y) + 1 - w.eyeZ) / tr.d, fH = V.W ? V.H / camF() : 0.24;
+      setView(tr.az + off, el + clamp(0.22 * fH - el, 0.66 * fH, 0.85 * fH) - 0.66 * fH);
+      renderMission();
+      setStage('map'); sizeMap(); fitMap();
+      st.pro = null; proOn(null);
+      st.t0 = performance.now(); st.running = true;
+      $('busy').hidden = true;
+      refresh();
+    }, 30);
+  }
+  function setMode(m) {
+    $('mGuided').setAttribute('aria-pressed', String(m === 'guided')); $('mExam').setAttribute('aria-pressed', String(m === 'exam'));
+    // Exam only opens its intro: the mode changes at Start, so Back to Guided can keep the Guided card as it was
+    if (m === 'exam') { renderIntro(); openModal('mIntro'); }
+    else { st.mode = m; st.examOn = false; newCard(); }
+  }
+  function renderIntro() {
+    const items = [
+      'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
+      'Phase 1 · Orient: the Given box has your start grid, both call signs and the magnetic direction to the target in mils. Mark ◎ on the map (tap it; within 100 m of the start). You can tap ◎ again until line 2 is sent; that clears ✕, so press Plot ✕ again. Direction = magnetic − 112 (G-M 6.3° W), nearest 10 (±10 mils: assumption). Estimate DISTANCE on the direction line to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, Plot ✕, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
+      'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
+      'Phase 3 · MTO: write unit, changes, rounds and TGT #, then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
+      'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10, none under 30 m; range Add/Drop 400 → 200 → 100 → 50FFE, and a burst within 25 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target (assumption).',
+      'Phase 5 · End: ROUNDS COMPLETE, OUT, then End of Mission with the TGT # from the MTO.',
+      'No coach, no highlights, no ✓ marks, no Ref until the end. Any NO-GO sends you to Charlie Company.'
+    ];
+    $('exList').innerHTML = items.map(t => `<li>${esc(t)}</li>`).join('');
+    $('refStd').innerHTML = items.slice(0, 6).map(t => `<li>${esc(t)}</li>`).join('');
+  }
+  function openModal(id) { $(id).hidden = false; document.body.classList.add('locked'); }
+  function closeModal(id) { $(id).hidden = true; if (!document.querySelector('.modal:not([hidden])')) document.body.classList.remove('locked'); }
+  function closeAll() { document.querySelectorAll('.modal').forEach(m => { m.hidden = true; }); document.body.classList.remove('locked'); }
+  document.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c) closeModal(c.dataset.close); });
+  $('mGuided').addEventListener('click', () => { if (st.mode !== 'guided' || st.examOn) setMode('guided'); });
+  $('mExam').addEventListener('click', () => setMode('exam'));
+  $('exBack').addEventListener('click', () => { closeModal('mIntro'); if (st.mode === 'guided' && !st.examOn) { $('mGuided').setAttribute('aria-pressed', 'true'); $('mExam').setAttribute('aria-pressed', 'false'); } else setMode('guided'); });
+  $('exStart').addEventListener('click', () => { closeModal('mIntro'); st.mode = 'exam'; st.examOn = true; newCard(); });
+  $('endExam').addEventListener('click', () => finish());
+  $('resNew').addEventListener('click', () => { closeModal('mRes'); newCard(); });
+  $('resSame').addEventListener('click', () => { closeModal('mRes'); newCard(st.seed); });
+  $('resGuided').addEventListener('click', () => { closeModal('mRes'); setMode('guided'); });
+  $('chWhy').addEventListener('click', () => { closeModal('mCharlie'); openModal('mRes'); });
+  $('chRetry').addEventListener('click', () => { closeModal('mCharlie'); newCard(); });
+  $('btnRef').addEventListener('click', () => { renderIntro(); openModal('mRef'); });
+  $('cGo').addEventListener('click', () => showTip());
+  // math video in a layer over the trainer: the page never leaves, so the worksheet and the mission stay as they are
+  function openVid() {
+    if (!$('mVid').hidden) return;
+    if (!$('vidFrame').getAttribute('src')) $('vidFrame').src = 'math/index.html';
+    openModal('mVid'); history.pushState({ vid: 1 }, '');
+  }
+  // opened as a local file the video page cannot be reached to pause it: swap in an empty frame (no history entry), so its sound stops too
+  function shutVid() { try { $('vidFrame').contentDocument.getElementById('vid').pause(); } catch (e) { const f = $('vidFrame'), n = f.cloneNode(false); n.removeAttribute('src'); f.replaceWith(n); } closeModal('mVid'); }
+  document.addEventListener('click', e => { const a = e.target.closest('a[href="math/index.html"]'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); openVid(); });
+  $('vidClose').addEventListener('click', () => { if (history.state && history.state.vid) history.back(); else shutVid(); });
+  window.addEventListener('popstate', () => { if (!$('mVid').hidden) shutVid(); });
+  $('btnSet').addEventListener('click', () => {
+    document.querySelector(`input[name="spd"][value="${cfg.speed}"]`).checked = true;
+    document.querySelector(`input[name="fro"][value="${cfg.firstOff ? 1 : 0}"]`).checked = true;
+    let b = 0; try { b = +localStorage.getItem('cffT.best') || 0; } catch (e) { /* storage blocked */ }
+    $('bestTxt').textContent = b ? `Best exam GO: ${mmss(b)}` : '';
+    openModal('mSet');
+  });
+  $('setSave').addEventListener('click', () => {
+    cfg.speed = document.querySelector('input[name="spd"]:checked').value;
+    cfg.firstOff = document.querySelector('input[name="fro"]:checked').value === '1';
+    saveCfg(); closeModal('mSet'); renderIntro(); newCard();
+  });
+  setInterval(() => {
+    if (!st.w) return;
+    const secs = st.running ? (performance.now() - (st.examOn ? R.t0 : st.t0)) / 1000 : 0;
+    if (st.running) $('clock').textContent = mmss(secs);
+    // the exam clock turns red in its last minute and stops the exam at 10:00
+    $('clock').classList.toggle('warn', st.examOn && st.running && secs >= 540);
+    if (st.examOn && st.running && secs >= 600) finish();
+  }, 250);
+
+  new ResizeObserver(() => { sizeView(); sizeMap(); }).observe(document.body);
+  // phones: while a field in the tool card has focus, let the view scroll away so the keyboard and the field both fit
+  // Guided: once the keyboard is up, the line goes to the top so its DO box shows above the keyboard
+  document.addEventListener('focusin', e => { if (e.target.matches('#tools input, #tools select')) { document.body.classList.add('kbd'); st.typeStep = st.w && guidedOn() ? gStep() : ''; if (st.typeStep) { clearTimeout(st.kbT); st.kbT = setTimeout(showTip, 350); } } });
+  // and when it goes down the stage pins again over the top of the page: bring the line back out from under it
+  document.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('#tools input, #tools select')) { const was = document.body.classList.contains('kbd'); document.body.classList.remove('kbd'); if (was && st.w && guidedOn()) showTip(); } }, 50));
+  renderIntro();
+  // test hook: the truth for this card, the expected answers and replies, and the controls a test drives
+  function fill(id, v) {
+    const e = $(id); if (!e) return false;
+    if (e.classList.contains('chips')) { const b = v === '' ? null : e.querySelector(`.chip[data-v="${v}"]`); if (b) b.click(); else { chipSet(id, ''); refresh(); } return true; }
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true;
+  }
+  function exp() {
+    const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
+    return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n })), knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) }, marks: lineMarks(w, t.gdir) };
+  }
+  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, plot: doPlot, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, lineMarks, visibleSet, openAround, nearestLm, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
+  newCard(QS.get('seed') ? +QS.get('seed') : undefined);
+})();
+</script>
+</body>
+</html>

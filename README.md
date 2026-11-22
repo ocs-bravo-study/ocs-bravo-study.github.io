@@ -10,13 +10,14 @@ They run in any phone or computer browser. There is no sign-in, no server, and n
 | MBITR radio | `/mbitr/` | AN/PRC-148: load a SINCGARS single-channel frequency |
 | Weapons 3D | `/weapons/` | M249 / M240B maintenance: take apart and put back |
 | Weapons drills | `/weapons/drills/` | Clearing, functions check, load / malfunction / unload |
+| Call for Fire | `/cff/` | The sim center grid mission: orient on the map, the 3-line call, MTO, adjust, FFE, end of mission (math video in `/cff/math/`) |
 
 ## How it is built
 
 - Each tool is **one HTML file** (`<tool>/index.html`) with its own CSS and JavaScript inside. No build step, no packages.
 - The 3D weapons pages use Three.js 0.160.0, kept in `vendor/three-0.160.0/` (MIT license in that folder) so the site
   depends on nothing outside github.io. Don't change the version without testing both weapons pages.
-- The weapons demo videos are in `weapons/video/`.
+- The weapons demo videos are in `weapons/video/`; the Call for Fire math video is in `cff/math/`.
 - Progress and settings stay in each visitor's browser (localStorage). Changing the site's address resets everyone's progress.
 - The old address `asip-trainer.github.io` forwards to this site; Phase Up progress comes along (`#carry=`).
 
@@ -26,6 +27,7 @@ They run in any phone or computer browser. There is no sign-in, no server, and n
   change the tool to match the sheet.
 - Phase Up Recall: all content is the `SECTIONS` array near the top of `phaseup/index.html`. Spelling never counts.
 - Radio and weapons trainers: Guided mode coaches and blocks wrong presses; Exam grades like the lane, with the sheet's time limit.
+- Call for Fire: follows the class worksheet "Call For Fire Grid Mission" (G-M 6.3° W = 112 mils, subtract). Every world is made up from a seed; no real map is used.
 
 ## How to change something
 
