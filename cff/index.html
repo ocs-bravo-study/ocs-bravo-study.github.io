@@ -136,7 +136,10 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .mapbox { position: relative; }
 #map { display: block; width: 100%; height: min(calc(100vw - 54px), 36vh); touch-action: none; border: 1px solid var(--line); border-radius: 10px; background: #fbfaf5; cursor: grab; }
 @media (min-width: 700px) { #map { height: 32vh; } }
-@media (max-height: 639px) { #map { height: calc(100vh - 124px); } }
+/* short phones (667 px): the Tap marks row takes room, so the pinned stage still leaves a third of the screen */
+@media (max-height: 720px) { #map { height: min(calc(100vw - 54px), 31vh); } }
+/* sideways: the 3D view | Map tabs, the map and its tools row (with Tap marks) all fit under the top bar, no scroll */
+@media (max-height: 639px) { #map { height: calc(100vh - var(--tb, 62px) - 117px); } }
 @media (min-width: 1100px) { #map { height: min(640px, calc(100vh - 250px)); } }
 .stageSeg { display: flex; gap: 6px; margin-bottom: 6px; }
 .stageSeg button { flex: 1; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-weight: 700; cursor: pointer; }
@@ -147,12 +150,20 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .given b { font-family: var(--mono); }
 .mz { display: flex; gap: 6px; }
 .mnote { margin: 6px 0 0; font-size: 12px; }
-.prow { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+.prow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+/* the Tap marks switch shares the row (it wraps under the tools on a phone, so the row stays on screen sideways): two joined
+   halves, the one on in ink, unlike the protractor tools (blue) */
+.tapm { display: flex; align-items: center; }
+.tapm .pro { gap: 0; }
+.tapm .btn:first-child { border-radius: 10px 0 0 10px; }
+.tapm .btn:last-child { margin-left: -1px; border-radius: 0 10px 10px 0; }
+.prow .tapm .btn[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
 @media (pointer: coarse), (max-width: 640px) { .stageSeg button { padding-block: 8px; } }
 .prow .pro { display: flex; align-items: center; gap: 6px; }
 .prow .lbl { margin-right: 2px; }
 .prow .btn { padding: 7px 10px; font-size: 13.5px; white-space: nowrap; }
 .prow .btn[aria-pressed="true"] { border-color: #1e3c6e; background: #1e3c6e; color: #fff; }
+.prow .btn:disabled { opacity: .4; cursor: default; }
 
 /* worksheet: the paper "Call For Fire Grid Mission" sheet; it is also the radio form (one line = one transmission) */
 .paper { --ink: #1b1b1b; --muted: #5d5d55; --line: #b9b9ae; --bg: #f3f3ee; margin-top: 12px; padding: 12px 12px 10px; border: 1px solid #cfcfc6; border-radius: 6px; background: #fdfdfb; color: var(--ink); font: 13.5px/1.35 Arial, Helvetica, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
@@ -188,7 +199,6 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .nt { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 6px 0 4px; font-size: 12px; }
 .fn { margin: 12px 0 0; padding: 0; list-style: none; text-align: center; font-size: 11.5px; color: #333; }
 .fn li::before { content: "* "; }
-#plotBtn { padding: 7px 12px; }
 .wl { scroll-margin-top: 72px; }
 @media (max-width: 1099px) and (min-height: 640px) { .wl { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .wl { scroll-margin-top: 70px; } }
 .wsnote { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
@@ -222,7 +232,7 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .log .sys { align-self: center; color: var(--muted); font: italic 500 12px var(--ui); }
 .log .who { display: block; font: 700 9.5px/1.2 var(--ui); letter-spacing: .08em; color: var(--muted); }
 
-@media (pointer: coarse), (max-width: 640px) { .tk { padding: 11px 12px; } .ibtn { height: 40px; min-width: 40px; } .seg button { padding-block: 10px; } .chip, .snd, .wl input, #plotBtn, .vctl .btn, .prow .btn { min-height: 40px; } }
+@media (pointer: coarse), (max-width: 640px) { .tk { padding: 11px 12px; } .ibtn { height: 40px; min-width: 40px; } .seg button { padding-block: 10px; } .chip, .snd, .wl input, .vctl .btn, .prow .btn { min-height: 40px; } .prow .btn { min-width: 40px; } }
 
 /* score sheet */
 .score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -342,7 +352,8 @@ legend { padding: 0 4px; font-weight: 650; }
         </div>
         <div class="prow">
           <div class="mz"><button class="ibtn" id="zOut" aria-label="Zoom out">−</button><button class="ibtn" id="zIn" aria-label="Zoom in">+</button><button class="ibtn" id="zFit">Fit</button></div>
-          <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on the plotted point" title="Protractor on the plotted point">✕ Plot</button></div>
+          <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on your ✕" title="Protractor on your ✕">✕</button><button class="btn" id="proRng" aria-pressed="false" aria-label="Range scale from ◎ through ✕" title="Range scale from ◎ through ✕">◎→✕</button></div>
+          <div class="tapm"><span class="lbl">Tap marks</span><div class="pro" role="group" aria-label="Tap marks"><button class="btn" id="tapOp" aria-pressed="true">◎ Start</button><button class="btn" id="tapX" aria-pressed="false">✕ Target</button></div></div>
         </div>
       </div>
       <div class="rx" id="rx" aria-live="polite"><div class="rxl" id="rxLog"></div><div class="rxb" id="rxBtns" hidden></div></div>
@@ -461,10 +472,11 @@ legend { padding: 0 4px; font-weight: 650; }
     <h3>Phase 1 · Orient</h3>
     <ol>
       <li><b>Start position:</b> the evaluator gives a 6-digit grid. Find the square (read right, then up), then the tenths inside it, and mark ◎ on the map. Grid line numbers are the yellow circles; a big green number is a training area, not a grid number.</li>
-      <li><b>Direction:</b> the evaluator gives the magnetic direction to the target in mils. Magnetic − G-M angle 112 mils (6.3° W) = grid direction, to the nearest 10 mils → line 2 Direction. 1° = 17.78 mils, because 360° = 6400 mils.</li>
-      <li><b>Distance:</b> from ◎, the direction line has a tick every 100 m. Match what you see in the 3D view (crossroads, railroad, small hills, cut, big hill) to the map to find where the target sits on the line; nearest 100 m → DISTANCE.</li>
+      <li><b>Direction:</b> the 3D view has a mil scale across its top (0–6400, magnetic). Read the number straight above the target (TGT n in the yellow circle) and add the G-M angle 70 mils = grid direction, to the nearest 10 mils → line 2 Direction (6370 + 70 = 6440 → 0040). 1° = 17.78 mils, because 360° = 6400 mils.</li>
+      <li><b>Mark ✕:</b> match what you see in the 3D view (crossroads, railroad, small hills, cut, big hill) to the map, set <b>Tap marks</b> to ✕ Target and tap where the target is.</li>
+      <li><b>Distance:</b> the protractor's range scale ◎→✕ lies from ◎ through ✕, a tick every 100 m: read where ✕ sits, nearest 100 m → DISTANCE.</li>
       <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
-      <li><b>Plot ✕</b> at that distance on the line, then read <b>Grid</b> (protractor) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
+      <li>Read <b>Grid</b> (protractor on ✕) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
     </ol>
     <h3>Phase 2 · Call: three lines, each ends OVER</h3>
     <p><code>HAMMER 3, THIS IS STEEL 2, ADJUST FIRE, OVER</code><br><code>GRID GA 652 214, ALT 345, DIRECTION 5620, OVER</code><br><code>1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH, OVER</code></p>
@@ -483,7 +495,7 @@ legend { padding: 0 4px; font-weight: 650; }
     <p><code>ROUNDS COMPLETE, OVER</code> → <code>ROUNDS COMPLETE, OUT</code>. Then End of Mission: write the TGT # from the MTO; the rest is printed: <code>END OF MISSION, TGT# …, 1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES</code>.</p>
     <h3>Standards used in Exam</h3>
     <ul id="refStd"></ul>
-    <a class="vidlink" id="refVid" href="math/index.html">▶ Math video (older flow: W ÷ M, the compass, an east G-M; not this exam)</a>
+    <a class="vidlink" id="refVid" href="math/index.html">▶ Math video (older flow: W ÷ M, the compass, a 120-mil G-M; not this exam)</a>
     <p class="muted">Sources: the real "Call For Fire Grid Mission" sheet and its five footnotes, the class steps, FM 6-30 / ATP 3-09.30 call-for-fire format. Where the sheet is silent, the trainer marks its choice as an assumption.</p>
   </div>
 </div>
@@ -533,7 +545,7 @@ legend { padding: 0 4px; font-weight: 650; }
 
   // ---------- the target (always 1 tank, as on the real sheet) and the fixed texts
   const VEH = { T72: { L: 6.9, H: 2.2, Wd: 3.6, hull: 1.35, tur: 0.85, turW: 2.7, gun: 4.2, armor: true } };
-  const GM = 112; // G-M angle 6.3° W = 112 mils: magnetic − 112 = grid
+  const GM = 70; // G-M angle 70 mils: the 3D view's scale (magnetic) + 70 = grid
   const L3TXT = '1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH';
   const EOMTXT = '1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES';
   const OK_RB = 'THAT IS CORRECT, OUT';
@@ -890,8 +902,8 @@ legend { padding: 0 4px; font-weight: 650; }
       w.fo = FOS[Math.floor(r() * 5)];
       w.fdcCs = FDCS[Math.floor(r() * 5)];
       r(); // was the radio frequency: the radio is already on the fire net
-      r(); r(); // were a random G-M angle and side: G-M is fixed at 112 mils (6.3°) W
-      w.gmAbs = GM; w.gmEast = false;
+      r(); r(); // were a random G-M angle and side: G-M is fixed at 70 mils, added
+      w.gmAbs = GM; w.gmEast = true;
       w.tn = 'A' + 'BCDEFGH'[Math.floor(r() * 7)] + (1000 + Math.floor(r() * 9000));
       r(); w.bty = UNITS[Math.floor(r2() * UNITS.length)];
       r(); // was the casualty count: the sheet prints 3
@@ -935,17 +947,18 @@ legend { padding: 0 4px; font-weight: 650; }
   }
 
   // ---------- state
-  const st = { mode: 'guided', w: null, seed: 0, az: 0, pitch: 0, bino: false, sheet: {}, gOk: {}, bursts: [], plot: null, opMark: null, logs: [], t0: 0, running: false, examOn: false, ended: false };
+  const st = { mode: 'guided', w: null, seed: 0, az: 0, pitch: 0, bino: false, sheet: {}, gOk: {}, bursts: [], xMark: null, opMark: null, tap: 'op', logs: [], t0: 0, running: false, examOn: false, ended: false };
   let F = {}, R = {};
   const timers = new Set();
   const later = (ms, fn) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); };
   const clearTimers = () => { for (const id of timers) clearTimeout(id); timers.clear(); };
   const W = () => st.w;
-  // the answers for this card: magnetic direction given by the evaluator (mils), grid direction = magnetic − 112, nearest 10;
-  // distance to the nearest 100 m; OT factor = distance in thousands, nearest whole number; ALT = ground at the target, nearest 5 m
+  // the answers for this card: the 3D view's scale shows magnetic mils (grid − 70); mag = its reading above the target,
+  // grid direction = mag + 70, nearest 10; distance to the nearest 100 m; OT factor = distance in thousands, nearest whole number;
+  // ALT = ground at the target, nearest 5 m
   const truth = () => {
     const w = st.w, T = w.tgt, op = w.op, az = azOf(T.x - op.x, T.y - op.y), d = Math.hypot(T.x - op.x, T.y - op.y);
-    const mag = Math.round(w64(az + w.gmAbs)) % 6400, raw = w64(mag - w.gmAbs), dist = Math.round(d / 100) * 100;
+    const mag = Math.round(w64(az - w.gmAbs)) % 6400, raw = w64(mag + w.gmAbs), dist = Math.round(d / 100) * 100;
     return { az, mag, raw, gdir: r10(raw) % 6400, d, dist, otf: Math.max(1, Math.round(dist / 1000)), h: groundAt(w, T.x, T.y), alt: Math.round(groundAt(w, T.x, T.y) / 5) * 5 };
   };
   function gridToWorld(s) {
@@ -972,10 +985,12 @@ legend { padding: 0 4px; font-weight: 650; }
   const HZN = 450, HZ = new Float32Array(HZN);
   for (let i = 0; i < HZN; i++) HZ[i] = 0.85 * (1 - Math.exp(-(i * 20) / 3200));
   const FOV0 = 400; // naked-eye field of view in mils, as on the exam screen (the map's Guided fan shows it too)
+  const BAND = 22; // the azimuth scale's height across the top of the naked-eye view, css px
   const fov = () => st.bino ? 130 : FOV0;
   const camF = () => V.W / (fov() * MIL);
-  // the naked eye holds the aim point (the target at the start) at 2/3 height under a band of sky; the binoculars center it
-  const aimY = () => st.bino ? V.H / 2 : V.H * 0.66;
+  // the naked eye holds the aim point (the target at the start) at 2/3 height, lower on a steep card to keep a band of sky under
+  // the azimuth scale (V.aimK, set per card: the view after the binoculars looks like the start view); the binoculars center it
+  const aimY = () => st.bino ? V.H / 2 : V.H * (V.aimK || 0.66);
   const horizonY = () => aimY() + st.pitch * camF();
   function sizeView() {
     const css = $('vwrap').clientWidth; if (!css) return;
@@ -986,6 +1001,7 @@ legend { padding: 0 4px; font-weight: 650; }
       : css < 600 ? Math.min(css * 0.6, Math.max(140, longS * (longS < 720 ? 0.22 : 0.26)))
       : innerWidth < 1100 ? Math.min(css * 0.6, longS * 0.32) : css * 0.6;
     const w = clamp(Math.round(css * dpr), 300, 980), h = Math.round(w * hCss / css);
+    V.sc = w / css;
     if (w === V.W && h === V.H) return;
     V.W = w; V.H = h; V.cv.width = w; V.cv.height = h;
     V.img = V.ctx.createImageData(w, h); V.d32 = new Uint32Array(V.img.data.buffer);
@@ -1182,27 +1198,54 @@ legend { padding: 0 4px; font-weight: 650; }
     g.textAlign = 'center'; g.textBaseline = 'middle';
     // the simulator's red points stand on the ground: a short dark stake, the number on top (12 css px, 20 in the binoculars).
     // They are part of the screen, so the binoculars see them too; only points in sight from the start were placed.
-    const fs = (st.bino ? 20 : 12) * sc, stk = (st.bino ? 6 : 3) * sc;
+    const fs = (st.bino ? 20 : 12) * sc, stk = (st.bino ? 6 : 3) * sc, bh = BAND * sc;
+    if (!st.bino) {
+      // the simulator's azimuth scale across the top (naked eye only): magnetic mils (grid − 70), a tick every 10, longer every 50,
+      // a 4-digit number every 100; it turns with the view. Read the value straight above the target, then add 70. Drawn first,
+      // so it never covers a red point
+      const m0 = st.az - w.gmAbs - Wd / 2 / pm, m1 = m0 + Wd / pm;
+      g.fillStyle = 'rgba(10,16,34,.58)'; g.fillRect(0, 0, Wd, bh);
+      g.strokeStyle = '#eef2fa'; g.lineWidth = Math.max(1, sc); g.beginPath();
+      for (let m = Math.ceil(m0 / 10) * 10; m <= m1; m += 10) { const x = (m - m0) * pm, l = (m % 100 === 0 ? 8.5 : m % 50 === 0 ? 6 : 3.5) * sc; g.moveTo(x, bh); g.lineTo(x, bh - l); }
+      g.stroke();
+      g.fillStyle = '#fff'; g.font = `700 ${Math.round(12 * sc)}px Arial, sans-serif`;
+      for (let m = Math.ceil(m0 / 100) * 100; m <= m1 + 100; m += 100) g.fillText(String(w64(m)).padStart(4, '0'), (m - m0) * pm, 7 * sc);
+    }
     g.font = `700 ${Math.round(fs)}px Arial, sans-serif`; g.lineJoin = 'round';
-    const mark = (x, y, txt) => {
+    // naked eye: a number that would reach into the scale, or into the "TGT n" label under it, goes just under them, beside its
+    // place if another number is there, with a thin line up to its point (those numbers go after the others)
+    const tl = 11 * sc + g.measureText(`TGT ${w.tgtNo}`).width, box = [], late = [];
+    const mark = (x, y, txt, moved) => {
       const p = proj(x, y, groundAt(w, x, y) + 0.3);
       if (p.sx < -fs * 2 || p.sx > Wd + fs * 2 || p.sy < 0 || p.sy > Hd + fs) return p;
-      g.strokeStyle = '#1a0606'; g.lineWidth = Math.max(1, 1.3 * sc); g.beginPath(); g.moveTo(p.sx, p.sy); g.lineTo(p.sx, p.sy - stk); g.stroke();
-      g.lineWidth = 2.4 * sc; g.strokeText(txt, p.sx, p.sy - stk - fs * 0.45);
-      g.fillStyle = '#d42a2a'; g.fillText(txt, p.sx, p.sy - stk - fs * 0.45);
+      const hw = g.measureText(txt).width / 2 + sc, top = cx => st.bino ? -Hd : bh + (cx - hw < tl ? 20 * sc : 0) + fs * 0.6;
+      let lx = p.sx, ly = p.sy - stk - fs * 0.45;
+      if (ly < top(lx)) {
+        if (!moved) { late.push([x, y, txt]); return p; }
+        const cand = [];
+        for (let r = 0; r < 8; r++) for (const k of [0, 1, -1, 2, -2, 3, -3]) { const cx = clamp(p.sx + k * hw, hw, Wd - hw); cand.push([cx, top(cx) + r * fs]); }
+        [lx, ly] = cand.find(([cx, cy]) => !box.some(b => Math.abs(b[0] - cx) < b[1] + hw && Math.abs(b[2] - cy) < fs)) || cand[0];
+      }
+      box.push([lx, hw, ly]);
+      g.strokeStyle = '#1a0606'; g.lineWidth = Math.max(1, 1.3 * sc); g.beginPath();
+      if (ly - fs * 0.55 > p.sy + sc) { g.moveTo(p.sx, Math.max(p.sy, bh)); g.lineTo(lx, ly - fs * 0.55); } else { g.moveTo(p.sx, p.sy); g.lineTo(p.sx, p.sy - stk); }
+      g.stroke();
+      g.lineWidth = 2.4 * sc; g.strokeText(txt, lx, ly);
+      g.fillStyle = '#d42a2a'; g.fillText(txt, lx, ly);
       return p;
     };
     for (const q of w.knp.concat(w.pts)) mark(q.x, q.y, q.n);
+    for (const q of late) mark(q[0], q[1], q[2], true);
     // the target is point TGT n: its number inside a thin yellow circle around the tank. An over burst rises right behind
     // that number, so it fades while a round's smoke is up
     g.globalAlpha = st.bursts.some(b => performance.now() - b.t0 < 30000) ? 0.35 : 1;
-    const p = mark(T.x, T.y, String(w.tgtNo)), lab = stk + fs * 0.9;
+    const p = mark(T.x, T.y, String(w.tgtNo), true), lab = stk + fs * 0.9;
     if (p.sx > -40 && p.sx < Wd + 40) { g.strokeStyle = '#f2ea4c'; g.lineWidth = Math.max(1, 1.4 * sc); g.beginPath(); g.arc(p.sx, p.sy - lab * 0.45, Math.max(7 * sc, 6.6 * p.s, lab * 0.62 + 2 * sc), 0, Math.PI * 2); g.stroke(); }
     g.globalAlpha = 1;
     if (!st.bino) {
-      // top-left overlay: only the target number
+      // top-left overlay, under the scale: only the target number
       g.fillStyle = '#0f1d45'; g.textAlign = 'left'; g.font = `700 ${Math.round(12 * sc)}px Arial, sans-serif`;
-      g.fillText(`TGT ${w.tgtNo}`, 8 * sc, 13 * sc);
+      g.fillText(`TGT ${w.tgtNo}`, 8 * sc, bh + 13 * sc);
     } else {
       const cx = Wd / 2, cy = Hd / 2;
       if (!V.mask || V.mask.width !== Wd || V.mask.height !== Hd) {
@@ -1236,12 +1279,13 @@ legend { padding: 0 4px; font-weight: 650; }
   // the strip under the view says, in words, what to do with it (nothing is drawn in the binoculars but the reticle)
   function binoCaption() {
     const s = guidedOn() ? gStep() : '';
+    if (s === 'dir') return `The mil scale is on the naked-eye view: press Binoculars to close them, then read it above TGT ${st.w.tgtNo}.`;
     if (s === 'spot') return spotOut() ? 'The burst is past the edge of the binoculars: press Binoculars to see it with the naked eye.' : 'Vertical line = your line to the target. Count to the burst: each number = 10 mils, ticks = 5.';
     if (s === 'corr') return 'Burst beyond the target = OVER → Drop · in front = SHORT → Add.';
     if (s === 'wait' || s === 'reply' || s === 'ffe') return 'Keep the vertical line on the target.';
     return `TGT ${st.w.tgtNo} is in the yellow circle · tap to center on it.`;
   }
-  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
+  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : guidedOn() && gStep() === 'dir' ? `Read the scale above TGT ${st.w.tgtNo} (yellow circle), then add 70` : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
   function setView(az, pitch, fast) {
     st.az = w64(az); st.pitch = clamp(pitch, -0.3, 0.15);
     V.dirty = true; V.fast = !!fast; kick();
@@ -1395,7 +1439,8 @@ legend { padding: 0 4px; font-weight: 650; }
     const fit = MV.W ? MV.scale / (MV.W / S) : 0;
     MV.W = w; MV.H = h; MV.cv.width = w; MV.cv.height = h;
     MV.scale = fit ? fit * w / S : w / S;
-    drawMap();
+    // a protractor tool out is fitted again (the phone turned)
+    if (st.pro) proOn(st.pro, true); else drawMap();
   }
   // Fit = the whole sheet inside the margin bands (26 px left, 20 px top and bottom), so the start and the far hill both show
   const fitScale = () => { const u = MV.W / (MV.cv.clientWidth || MV.W); return Math.min(MV.W - 26 * u, MV.H - 40 * u) / S; };
@@ -1423,8 +1468,8 @@ legend { padding: 0 4px; font-weight: 650; }
     const gs = guidedOn() ? gStep() : '';
     // Guided step 1: a dashed ring where the evaluator's start grid is
     if (gs === 'op') { g.strokeStyle = '#e09a00'; g.lineWidth = 2.5 * u; g.setLineDash([7 * u, 5 * u]); g.beginPath(); g.arc(X(w.op.x), Y(w.op.y), Math.max(12 * u, 60 * sc), 0, 7); g.stroke(); g.setLineDash([]); }
-    // Guided, Phase 1: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area, as you would draw them
-    if (['dist', 'ot', 'plot'].includes(gs)) {
+    // Guided, mark ✕: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area, as you would draw them
+    if (gs === 'plot') {
       const o = st.opMark || w.op, a0 = (st.az - FOV0 / 2) * MIL, a1 = (st.az + FOV0 / 2) * MIL, bx = Math.round(w.tgt.x / 1000) * 1000 - 1000, by = Math.round(w.tgt.y / 1000) * 1000 + 1000;
       g.save(); g.fillStyle = 'rgba(20,50,100,.07)'; g.strokeStyle = 'rgba(20,50,100,.45)'; g.lineWidth = 1.2 * u; g.setLineDash([6 * u, 4 * u]);
       g.beginPath(); g.moveTo(X(o.x), Y(o.y));
@@ -1432,49 +1477,31 @@ legend { padding: 0 4px; font-weight: 650; }
       g.closePath(); g.fill(); g.stroke(); g.setLineDash([]);
       g.strokeStyle = '#111'; g.lineWidth = 1.4 * u; g.strokeRect(X(bx), Y(by), 2000 * sc, 2000 * sc);
       g.font = `italic 600 ${Math.round(12 * u)}px system-ui, sans-serif`; g.fillStyle = '#111';
-      // the label goes in the inside corner of the box farthest from your direction line (whose numbers must stay clear), on screen
-      const la = lineAz(), dx = Math.sin((la == null ? st.az : la) * MIL), dy = Math.cos((la == null ? st.az : la) * MIL), tw = g.measureText('likely area').width, k = 4 * u;
+      // the label goes in the inside corner of the box farthest from the line ◎ → the box's centre (the ground you look for), on screen
+      const la = azOf(bx + 1000 - o.x, by - 1000 - o.y), dx = Math.sin(la * MIL), dy = Math.cos(la * MIL), tw = g.measureText('likely area').width, k = 4 * u;
       let best = null;
       for (const [cx, cy, al, bl] of [[X(bx) + k, Y(by) + k, 'left', 'top'], [X(bx + 2000) - k, Y(by) + k, 'right', 'top'], [X(bx) + k, Y(by - 2000) - k, 'left', 'bottom'], [X(bx + 2000) - k, Y(by - 2000) - k, 'right', 'bottom']]) {
-        // clearance from the line: its numbers sit 17 px off it on one side (the + side), its ticks 8 px either side
-        const mx = al === 'left' ? cx + tw / 2 : cx - tw / 2, my = bl === 'top' ? cy + 7 * u : cy - 7 * u, sd = dx * (my - Y(o.y)) + dy * (mx - X(o.x)), d = Math.abs(sd) - Math.abs(dy) * tw / 2 - Math.abs(dx) * 7 * u - (sd > 0 ? 32 : 9) * u;
+        const mx = al === 'left' ? cx + tw / 2 : cx - tw / 2, my = bl === 'top' ? cy + 7 * u : cy - 7 * u, d = Math.abs(dx * (my - Y(o.y)) + dy * (mx - X(o.x)));
         const on = mx - tw / 2 > 26 * u && mx + tw / 2 < Wd && my > 27 * u && my < Hd - 27 * u;
         if (!best || (on && !best.on) || (on === best.on && d > best.d)) best = { cx, cy, al, bl, d, on };
       }
-      g.textAlign = best.al; g.textBaseline = best.bl; if (best.on && best.d >= 0) g.fillText('likely area', best.cx, best.cy); g.restore();
+      g.textAlign = best.al; g.textBaseline = best.bl; if (best.on) g.fillText('likely area', best.cx, best.cy); g.restore();
     }
-    // your start ◎ (black pen), the direction line from it with a tick every 100 m, and the plotted ✕
-    const om = st.opMark, mark = (px, py, kind) => {
+    // your start ◎ and your ✕ on the target (black pen)
+    // (lab: with its "OP" label; the range scale draws ◎ again over its body, label and all)
+    const om = st.opMark, mark = (px, py, kind, lab) => {
       g.save(); g.strokeStyle = '#111'; g.fillStyle = '#111'; g.lineWidth = 2.2 * u;
       if (kind === 'op') { g.beginPath(); g.arc(px, py, 9 * u, 0, 7); g.stroke(); g.beginPath(); g.arc(px, py, 2.2 * u, 0, 7); g.fill(); }
       else { const k = 7 * u; g.beginPath(); g.moveTo(px - k, py - k); g.lineTo(px + k, py + k); g.moveTo(px + k, py - k); g.lineTo(px - k, py + k); g.stroke(); }
+      if (lab) {
+        g.font = `800 ${Math.round(13 * u)}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle';
+        g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(px + 11 * u, py - 9 * u, 28 * u, 18 * u); g.fillStyle = '#111'; g.fillText('OP', px + 13 * u, py);
+      }
       g.restore();
     };
-    if (om) {
-      const ox = X(om.x), oy = Y(om.y), laz = lineAz();
-      if (laz != null) {
-        // your direction line in pen, out to the sheet's edge: a tick every 100 m (longer every 500 m), numbered every 500 m (every 100 m zoomed in)
-        const a = laz * MIL, sx = Math.sin(a), sy = Math.cos(a), pm = sc / u;
-        let len = 100;
-        while (len < 8500) { const x = om.x + sx * (len + 100), y = om.y + sy * (len + 100); if (x < 0 || y < 0 || x > S || y > S) break; len += 100; }
-        g.strokeStyle = '#111'; g.lineWidth = 1.5 * u; g.beginPath(); g.moveTo(ox, oy); g.lineTo(X(om.x + sx * len), Y(om.y + sy * len));
-        // (100 m ticks closer than 5 px would only blur into a bar over the yellow circles: then every 500 m only)
-        for (let m = 100; m <= len; m += 100) { if (m % 500 && pm * 100 < 5) continue; const px = X(om.x + sx * m), py = Y(om.y + sy * m), tl = (m % 500 ? 4 : 8) * u; g.moveTo(px - sy * tl, py - sx * tl); g.lineTo(px + sy * tl, py + sx * tl); }
-        g.stroke();
-        const step = pm * 100 >= 40 ? 100 : pm * 500 >= 34 ? 500 : 1000;
-        if (st.pro !== 'x' && pm * step >= 30) {
-          g.font = `700 ${Math.round(12 * u)}px ui-monospace, Menlo, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.9)'; g.fillStyle = '#111';
-          // a number that would cover a yellow grid circle or the big hill's name is left out (count the ticks from the one before)
-          const hx = X(w.hill.x), hy = Y(w.hill.y), hw = (23 + 7 * w.hill.name.length) * u;
-          for (let m = step; m <= len; m += step) { const px = X(om.x + sx * m) + sy * 17 * u, py = Y(om.y + sy * m) + sx * 17 * u; if (MV.yelP.some(q => Math.abs(q[0] - px) < 27 * u && Math.abs(q[1] - py) < 17 * u) || (Math.abs(py - hy) < 15 * u && Math.abs(px - hx) < hw)) continue; g.strokeText(String(m), px, py); g.fillText(String(m), px, py); }
-        }
-      }
-      mark(ox, oy, 'op');
-      g.font = `800 ${Math.round(13 * u)}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle';
-      g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(ox + 11 * u, oy - 9 * u, 28 * u, 18 * u); g.fillStyle = '#111'; g.fillText('OP', ox + 13 * u, oy);
-      const P = plotPoint(); if (P) mark(X(P.x), Y(P.y), 'x');
-    }
-    // the big hill: a triangle and its name (= its elevation), over your direction line's numbers so the name stays readable
+    if (om) mark(X(om.x), Y(om.y), 'op', true);
+    const P = plotPoint(); if (P) mark(X(P.x), Y(P.y), 'x');
+    // the big hill: a triangle and its name (= its elevation)
     const hx = X(w.hill.x), hy = Y(w.hill.y);
     if (hx > -80 * u && hx < Wd && hy > -20 * u && hy < Hd + 20 * u) {
       g.save(); g.fillStyle = '#111'; g.beginPath(); g.moveTo(hx, hy - 6 * u); g.lineTo(hx + 5.5 * u, hy + 4 * u); g.lineTo(hx - 5.5 * u, hy + 4 * u); g.closePath(); g.fill();
@@ -1484,15 +1511,17 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     const pp = proPoint();
     if (pp) { drawProtractor(g, X, Y, u, sc, pp); if (st.pro === 'x' || om) mark(X(pp.x), Y(pp.y), st.pro); }
+    else if (st.pro === 'rng') drawRange(g, X, Y, u, sc, mark);
     // the contour values near ✕: Guided only (in the exam you count the lines)
-    const px = plotPoint(); if (px && !st.examOn && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
+    const px = plotPoint(); if (px && !st.examOn && st.pro !== 'rng' && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
     mapRulers(g, X, Y, u, Wd, Hd);
     const ta = zoomed() ? 'none' : 'pan-y';
     if (MV.cv.style.touchAction !== ta) MV.cv.style.touchAction = ta;
   }
   // the protractor's coordinate scale, already slid into place: the bottom scale lies on the square's bottom grid line
   // with its 0 at the corner under the point, the side scale runs up through the point (read right, then up)
-  function plotPoint() { if (!st.plot || !st.plot.r || !st.opMark) return null; const t = st.plot.az * MIL; return { x: st.opMark.x + Math.sin(t) * st.plot.r, y: st.opMark.y + Math.cos(t) * st.plot.r }; }
+  // your ✕: the point you tapped on the map where the 3D view shows the target
+  function plotPoint() { return st.xMark; }
   function proPoint() { return st.pro === 'op' ? (st.opMark || (guidedOn() && gStep() === 'op' ? st.w.op : null)) : st.pro === 'x' ? plotPoint() : null; }
   function proRead(P) {
     const x0 = Math.floor(P.x / 1000) * 1000, y0 = Math.floor(P.y / 1000) * 1000, w = st.w;
@@ -1524,15 +1553,51 @@ legend { padding: 0 4px; font-weight: 650; }
     for (let d = 0; d <= 1000; d += 100) { g.fillText(String(d / 100), cx - d * m, cy + 21 * u); g.fillText(String(d / 100), cx + 21 * u, cy - d * m); }
     g.restore();
   }
+  // the protractor's range scale: its straight edge laid from ◎ through ✕, a tick every 100 m (longer every 500 m), a number every
+  // 500 m (every 100 m zoomed in), running a little past ✕: you read where ✕ sits. A number on a yellow circle or the hill's name is
+  // left out (count the ticks from the one before)
+  function drawRange(g, X, Y, u, m, mark) {
+    const o = st.opMark, P = plotPoint(), w = st.w; MV.pro = MV.proBox = MV.rng = null;
+    if (!o || !P) return;
+    const d = Math.hypot(P.x - o.x, P.y - o.y); if (d < 1) return;
+    const sx = (P.x - o.x) / d, sy = (P.y - o.y) / d, len = Math.ceil((d + 150) / 100) * 100, pm = m / u, ink = '#14243f';
+    // on screen the edge runs along (sx, −sy) and the body lies on its right, along (sy, sx): wide enough for a 4-digit number either way
+    const at = (k, n) => [X(o.x + sx * k) + sy * n, Y(o.y + sy * k) + sx * n];
+    g.save(); g.font = `700 ${Math.round(12 * u)}px ui-monospace, Menlo, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const half = t => Math.abs(sy) * g.measureText(t).width / 2 + Math.abs(sx) * 6 * u, bw = 15 * u + 2 * half('0000') + 4 * u, k0 = -8 * u / m;
+    g.fillStyle = 'rgba(244,248,255,.62)'; g.strokeStyle = 'rgba(30,60,110,.75)'; g.lineWidth = 1.2 * u;
+    g.beginPath(); [at(k0, 0), at(len, 0), at(len, bw), at(k0, bw)].forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill(); g.stroke();
+    // ticks from the edge into the body (100 m ticks closer than 5 px would blur into a bar: then every 500 m only)
+    g.strokeStyle = ink; g.lineWidth = Math.max(1, 0.9 * u); g.beginPath();
+    for (let k = 0; k <= len; k += 100) { if (k % 500 && pm * 100 < 5) continue; const a = at(k, 0), b = at(k, (k % 500 ? 6 : 12) * u); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); }
+    g.stroke();
+    const step = pm * 100 >= 40 ? 100 : pm * 500 >= 34 ? 500 : 1000, hx = X(w.hill.x), hy = Y(w.hill.y), hw = (23 + 7 * w.hill.name.length) * u, nums = [];
+    g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.9)'; g.fillStyle = ink;
+    for (let k = step; k <= len; k += step) {
+      const t = String(k), [px, py] = at(k, 15 * u + half(t));
+      if (MV.yelP.some(q => Math.abs(q[0] - px) < 27 * u && Math.abs(q[1] - py) < 17 * u) || (Math.abs(py - hy) < 15 * u && Math.abs(px - hx) < hw)) continue;
+      g.strokeText(t, px, py); g.fillText(t, px, py); nums.push([k, px, py]);
+    }
+    g.restore();
+    mark(X(o.x), Y(o.y), 'op', true); mark(X(P.x), Y(P.y), 'x');
+    MV.rng = { d, len, step, nums, bw, px100: pm * 100 };
+  }
   function proOn(which, zoom) {
-    st.pro = which; $('proOp').setAttribute('aria-pressed', String(which === 'op')); $('proX').setAttribute('aria-pressed', String(which === 'x'));
-    const P = proPoint();
+    st.pro = which; $('proOp').setAttribute('aria-pressed', String(which === 'op')); $('proX').setAttribute('aria-pressed', String(which === 'x')); $('proRng').setAttribute('aria-pressed', String(which === 'rng'));
+    const P = proPoint(), u = MV.W / (MV.cv.clientWidth || MV.W), side = 26 * u, band = 20 * u;
     if (P && zoom) {
       // fit the whole scale (1 km plus its body) inside the map, clear of the margin bands
-      const u = MV.W / (MV.cv.clientWidth || MV.W), side = 26 * u, band = 20 * u, pad = 10 * u;
+      const pad = 10 * u;
       MV.scale = clamp(Math.min(MV.W - side - 2 * pad, MV.H - 2 * band - 2 * pad) / 1110, minScale(), maxScale());
       const bwM = Math.max(30 * u / MV.scale, 80);
       MV.cx = P.x - 500 + bwM / 2 - side / 2 / MV.scale; MV.cy = Math.floor(P.y / 1000) * 1000 + 500 - bwM / 2;
+    } else if (which === 'rng' && zoom && st.opMark && plotPoint()) {
+      // fit the whole range scale (◎ to its end past ✕, and its body on the right) inside the map, clear of the margin bands
+      const o = st.opMark, X1 = plotPoint(), d = Math.hypot(X1.x - o.x, X1.y - o.y) || 1, sx = (X1.x - o.x) / d, sy = (X1.y - o.y) / d, len = Math.ceil((d + 150) / 100) * 100, pad = 14 * u;
+      const fit = bwM => clamp(Math.min((MV.W - side - 2 * pad) / (Math.abs(sx) * len + Math.abs(sy) * bwM), (MV.H - 2 * band - 2 * pad) / (Math.abs(sy) * len + Math.abs(sx) * bwM)), minScale(), maxScale());
+      MV.scale = fit(46 * u / fit(0));
+      const bwM = 46 * u / MV.scale;
+      MV.cx = o.x + sx * len / 2 + sy * bwM / 2 - side / 2 / MV.scale; MV.cy = o.y + sy * len / 2 - sx * bwM / 2;
     }
     drawMap();
   }
@@ -1635,7 +1700,7 @@ legend { padding: 0 4px; font-weight: 650; }
       MV.cx = wx - (px - MV.W / 2) / ns; MV.cy = wy + (py - MV.H / 2) / ns; MV.scale = ns; drawMap();
     };
     const loc = e => { const rc = cv.getBoundingClientRect(), k = MV.W / (cv.clientWidth || rc.width); return [(e.clientX - rc.left - cv.clientLeft) * k, (e.clientY - rc.top - cv.clientTop) * k]; }; // inside the 1 px border
-    // a tap (no drag) marks your start ◎
+    // a tap (no drag) marks your start ◎ or your ✕, as the Tap marks switch says
     cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); MV.ptr.set(e.pointerId, loc(e)); MV.tap = MV.ptr.size === 1 ? loc(e) : null; if (MV.ptr.size === 2) { const [a, b] = [...MV.ptr.values()]; MV.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: MV.scale }; } });
     cv.addEventListener('pointermove', e => {
       if (!MV.ptr.has(e.pointerId)) return;
@@ -1647,13 +1712,16 @@ legend { padding: 0 4px; font-weight: 650; }
       } else if (MV.ptr.size === 1 && zoomed()) { MV.cx -= (p[0] - q[0]) / MV.scale; MV.cy += (p[1] - q[1]) / MV.scale; drawMap(); }
     });
     const end = e => { MV.ptr.delete(e.pointerId); if (MV.ptr.size < 2) MV.pinch = null; };
-    cv.addEventListener('pointerup', e => { const t = MV.tap && MV.ptr.size === 1 ? loc(e) : null; MV.tap = null; end(e); if (t) markOp({ x: MV.cx + (t[0] - MV.W / 2) / MV.scale, y: MV.cy - (t[1] - MV.H / 2) / MV.scale }); }); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('pointerup', e => { const t = MV.tap && MV.ptr.size === 1 ? loc(e) : null; MV.tap = null; end(e); if (t) (st.tap === 'x' ? markX : markOp)({ x: MV.cx + (t[0] - MV.W / 2) / MV.scale, y: MV.cy - (t[1] - MV.H / 2) / MV.scale }); }); cv.addEventListener('pointercancel', end);
     cv.addEventListener('wheel', e => { e.preventDefault(); const [x, y] = loc(e); zoomAt(Math.pow(1.0018, -e.deltaY), x, y); }, { passive: false });
     $('zIn').addEventListener('click', () => zoomAt(1.6, MV.W / 2, MV.H / 2));
     $('zOut').addEventListener('click', () => zoomAt(1 / 1.6, MV.W / 2, MV.H / 2));
     $('zFit').addEventListener('click', fitMap);
     $('proOp').addEventListener('click', () => { if (st.pro !== 'op' && !st.opMark) { note('Tap the map to mark your start ◎ first.'); return; } proOn(st.pro === 'op' ? null : 'op', true); });
-    $('proX').addEventListener('click', () => { if (!plotPoint()) { note('Plot first: the ✕ comes from Direction and DISTANCE.'); return; } proOn(st.pro === 'x' ? null : 'x', true); });
+    $('proX').addEventListener('click', () => { if (st.pro !== 'x' && !plotPoint()) { note('Mark ✕ first: Tap marks ✕ Target, then tap the map where the target is.'); return; } proOn(st.pro === 'x' ? null : 'x', true); });
+    $('proRng').addEventListener('click', () => { if (st.pro !== 'rng' && (!st.opMark || !plotPoint())) { note('Mark ◎ and ✕ first: the range scale runs from ◎ through ✕.'); return; } proOn(st.pro === 'rng' ? null : 'rng', true); });
+    $('tapOp').addEventListener('click', () => setTap('op'));
+    $('tapX').addEventListener('click', () => setTap('x'));
   })();
 
   // ---------- worksheet: the paper "Call For Fire Grid Mission" sheet; each line is one transmission with its own Send
@@ -1676,7 +1744,7 @@ legend { padding: 0 4px; font-weight: 650; }
         <div class="wl" id="L3"><span class="n">3.</span><s>Target Description</s><span class="pen">${L3TXT}</span>${snd('x3', 'Over')}</div>
         <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s>${chipRow('mC', [['NA', 'N/A'], ['AMMO', 'Ammo'], ['GRID', 'Grid']])}<s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
       </div>
-      <div class="wl od" id="OD"><span class="pr">OT FACTOR</span>${inp('wOt', '', 2, '#')}<span class="pr">DISTANCE</span>${inp('wDist', '', 5, 'm')}<button type="button" class="btn" id="plotBtn">Plot ✕</button></div>
+      <div class="wl od" id="OD"><span class="pr">OT FACTOR</span>${inp('wOt', '', 2, '#')}<span class="pr">DISTANCE</span>${inp('wDist', '', 5, 'm')}</div>
       <div class="ch"><span>Spotting</span><span>Deviation Correction</span><span>Range Correction</span></div>
       ${rows}
       <div class="nt"><span>(OT Factor x Spotting = Correction)</span><span><s>800</s>, 400, 200, 100, 50FFE (Fire for Effect)</span></div>
@@ -1693,41 +1761,52 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, s = st.sheet, T = w.tgt, t = truth(), g = {}, x = {};
     const om = st.opMark, opd = om ? Math.hypot(om.x - w.op.x, om.y - w.op.y) : null;
     g.op = opd != null && opd <= 20; x.op = opd != null && opd <= 100;
-    const dir = num(s.gDir); g.dir = dir != null && dir % 6400 === t.gdir; x.dir = dir != null && dir <= 6400 && dir % 10 === 0 && Math.abs(dm(dir, t.gdir)) <= 10;
-    const dist = num(s.wDist); g.dist = dist === t.dist; x.dist = dist != null && dist % 100 === 0 && Math.abs(dist - t.dist) <= 100;
-    const ot = num(s.wOt), otMine = dist ? Math.max(1, Math.round(dist / 1000)) : null; g.ot = ot === t.otf; x.ot = ot != null && ot === otMine;
+    const dir = num(s.gDir); g.dir = dir != null && dir <= 6400 && dir % 6400 === t.gdir; x.dir = dir != null && dir <= 6400 && dir % 10 === 0 && Math.abs(dm(dir, t.gdir)) <= 10;
+    // Guided: ✕ within 100 m of the target; DISTANCE = your own ◎ → ✕ on the range scale, nearest 100; OT FACTOR from your DISTANCE
+    const P = plotPoint(), myD = om && P ? Math.hypot(P.x - om.x, P.y - om.y) : null, myDist = myD != null ? Math.round(myD / 100) * 100 : null;
+    const pNear = !!P && Math.hypot(P.x - T.x, P.y - T.y) <= 100; g.plot = pNear;
+    const dist = num(s.wDist); g.dist = dist != null && dist === myDist; x.dist = dist != null && dist % 100 === 0 && Math.abs(dist - t.dist) <= 100;
+    const ot = num(s.wOt), otMine = dist ? Math.max(1, Math.round(dist / 1000)) : null; g.ot = ot != null && ot === otMine; x.ot = ot != null && ot === otMine;
     // Exam: Grid within 100 m of the target; Grid and ALT also count when read right at your own ✕ and ✕ is within
-    // 100 m of the target (a 6-digit square centre can sit just over 100 m away; a small plot error does not fail ALT too)
-    const P = plotPoint(), gc = gridCenter(s.gGrid), gd = gc ? Math.hypot(gc.x - T.x, gc.y - T.y) : null, gx = gc && P ? Math.hypot(gc.x - P.x, gc.y - P.y) : null;
-    const pNear = !!P && Math.hypot(P.x - T.x, P.y - T.y) <= 100;
-    g.plot = !!P && g.dir && g.dist && st.plot.az === dir && st.plot.r === dist;
+    // 100 m of the target (a 6-digit square centre can sit just over 100 m away; a small error in ✕ does not fail ALT too)
+    const gc = gridCenter(s.gGrid), gd = gc ? Math.hypot(gc.x - T.x, gc.y - T.y) : null, gx = gc && P ? Math.hypot(gc.x - P.x, gc.y - P.y) : null;
     g.grid = !!P && !!gc && [6, 8].some(n => digits(s.gGrid) === digits(worldToGrid(P.x, P.y, n))); x.grid = gd != null && (gd <= 100 || (g.grid && pNear));
     const alt = num(s.gAlt), altX = pNear ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : null;
     g.alt = alt != null && alt % 5 === 0 && (Math.abs(alt - t.alt) <= 10 || (altX != null && Math.abs(alt - altX) <= 10)); x.alt = g.alt;
-    return { g, x, opd, dir, dist, ot, otMine, gd, gx, alt, altX };
+    return { g, x, opd, dir, dist, ot, otMine, gd, gx, alt, altX, myD, myDist };
   }
-  // the direction line on the map: the plotted direction, or line 2's Direction once it holds a number (Guided: once it is right)
-  function lineAz() { if (st.plot) return st.plot.az; const d = num(st.sheet.gDir); return d != null && d <= 6400 && (!guidedOn() || st.gOk.dir) ? d : null; }
-  // your start position: tap the map (Guided snaps it onto the given grid). Exam: you can mark it again until line 2 is sent;
-  // that clears ✕, so you Plot again
+  // what a tap on the map marks: ◎ (your start) or ✕ (the target)
+  function setTap(k) { st.tap = k; $('tapOp').setAttribute('aria-pressed', String(k === 'op')); $('tapX').setAttribute('aria-pressed', String(k === 'x')); }
+  // Guided, a step that marks nothing (◎ is done, ✕ is not yet due or done): a map tap says so and what the step wants
+  const tapIdle = s => note(`Map taps mark nothing now: ${s === 'dir' ? 'first the Direction, then ✕ (step 3)' : '◎ and ✕ are marked'}. ${coachData().tip}`);
+  // your start position: tap the map (Guided snaps it onto the given grid). Exam: ◎ and ✕ can be marked again until line 2 is sent;
+  // moving one leaves the other where it is. The first ◎ turns the taps to ✕ by itself
   function markOp(p) {
     if (!st.w || st.ended || R.l2) return;
     const w = st.w;
     if (guidedOn()) {
-      if (gStep() !== 'op') return;
+      // a step that marks ✕ (or nothing): say how this tap is set
+      if (gStep() !== 'op') { if (gStep() === 'plot') note(`Mark ✕ now: switch Tap marks to ✕ Target, then tap where TGT ${w.tgtNo} is.`); else tapIdle(gStep()); return; }
       const d = Math.hypot(p.x - w.op.x, p.y - w.op.y);
       if (d > 400) { note(`That is ${Math.round(d)} m from the start. ${coachData().tip}`); return; }
       p = w.op;
-    } else if (st.plot) { st.plot = null; note('◎ moved, so ✕ is cleared: press Plot ✕ again.'); }
-    st.opMark = { x: p.x, y: p.y }; refresh();
+    }
+    st.opMark = { x: p.x, y: p.y };
+    if (!st.xMark) setTap('x');
+    refresh();
   }
-  function doPlot() {
-    readSheet();
-    const a = num(st.sheet.gDir), r = num(st.sheet.wDist);
-    if (!st.opMark) { note('Mark your start ◎ on the map first: tap it.'); return; }
-    if (a == null || a > 6400 || !r || r > 6000) { note('Plot uses line 2 Direction and DISTANCE: fill them first.'); return; }
-    st.plot = { az: a, r };
-    setStage('map'); proOn('x', true); refresh();
+  // your ✕: tap the map where the 3D view shows the target (Guided: within 100 m of it, else a toast says how far and which way)
+  function markX(p) {
+    if (!st.w || st.ended || R.l2) return;
+    if (guidedOn()) {
+      if (gStep() !== 'plot') { if (gStep() === 'op') note('Mark ◎ first: switch Tap marks to ◎ Start, then tap your start.'); else tapIdle(gStep()); return; }
+      const T = st.w.tgt, d = Math.hypot(p.x - T.x, p.y - T.y);
+      if (d > 100) { note(`TGT ${st.w.tgtNo} is about ${Math.max(110, Math.round(d / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - p.x, T.y - p.y) / 800) % 8]} of that spot. ${coachData().tip}`); return; }
+    }
+    // a target is never next to you: a tap on ◎ (a second tap to move it, a double tap) does not put ✕ there
+    const om = st.opMark;
+    if (om && Math.hypot(p.x - om.x, p.y - om.y) <= 100) { note('Tap marks is on ✕ Target: to move ◎, press ◎ Start first.'); return; }
+    st.xMark = { x: p.x, y: p.y }; refresh();
   }
   // line states: sent (ink, read-only), now (you can fill it), later (grey); Send works only in order
   function lineStates() {
@@ -1755,7 +1834,8 @@ legend { padding: 0 4px; font-weight: 650; }
       const b = el.querySelector('.snd');
       if (b) { const on = canSend(id), end = b.dataset.end, t = on ? (end ? `Send (${end})` : 'Send') : end ? `(${end})` : ''; b.disabled = !on; if (b.textContent !== t) b.textContent = t; }
     }
-    $('plotBtn').disabled = !!R.l2;
+    // ◎ and ✕ lock once line 2 is sent; Guided sets the switch, and only its ◎ and ✕ steps let it change
+    $('tapOp').disabled = $('tapX').disabled = !!R.l2 || st.ended || guidedOn() && !['op', 'plot'].includes(gStep());
   }
 
   // ---------- radio: the strip under the view (last two transmissions + answer buttons) and the full Log tab
@@ -1964,7 +2044,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const g = st.gOk || {};
     if (F.pend) return F.pend.want === 'mto' ? 'mto' : 'reply';
     if (F.waitRx) return 'rx';
-    if (!R.l1) return !g.op ? 'op' : !g.dir ? 'dir' : !g.dist ? 'dist' : !g.ot ? 'ot' : !g.plot ? 'plot' : !g.grid ? 'grid' : !g.alt ? 'alt' : 'l1';
+    if (!R.l1) return !g.op ? 'op' : !g.dir ? 'dir' : !g.plot ? 'plot' : !g.dist ? 'dist' : !g.ot ? 'ot' : !g.grid ? 'grid' : !g.alt ? 'alt' : 'l1';
     if (!R.l2) return 'l2';
     if (!R.l3) return 'l3';
     if (!R.mto) return 'rx';
@@ -1973,15 +2053,15 @@ legend { padding: 0 4px; font-weight: 650; }
     if (F.phase === 'eom') return 'eom';
     return 'done';
   }
-  const GN = { op: 1, dir: 2, dist: 3, ot: 4, plot: 5, grid: 6, alt: 7, l1: 8, l2: 9, l3: 10, mto: 11, wait: 12, spot: 13, corr: 14, ffe: 15, eom: 16, done: 17 };
+  const GN = { op: 1, dir: 2, plot: 3, dist: 4, ot: 5, grid: 6, alt: 7, l1: 8, l2: 9, l3: 10, mto: 11, wait: 12, spot: 13, corr: 14, ffe: 15, eom: 16, done: 17 };
   const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 17;
   const PHN = ['Orient', 'Call', 'MTO', 'Adjust', 'End', 'Done'];
   // what each field of the step should hold now
   function stepWant(s) {
     const w = st.w, t = truth(), k = R.rows.length;
     if (s === 'dir') return { gDir: t.gdir };
-    if (s === 'dist') return { wDist: t.dist };
-    if (s === 'ot') return { wOt: t.otf };
+    if (s === 'dist') { const m = sheetCheck().myDist; return { wDist: m != null ? m : t.dist }; }
+    if (s === 'ot') { const d = num(st.sheet.wDist); return { wOt: d ? Math.max(1, Math.round(d / 1000)) : t.otf }; }
     if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 6) } : null; }
     if (s === 'alt') { const P = plotPoint(); return { gAlt: P ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : t.alt }; }
     if (s === 'mto') return { mU: w.bty, mC: 'NA', mN: String(w.rounds), mT: w.tn };
@@ -2003,6 +2083,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (id === 'gAlt') return x == null || x % 5 !== 0 || (Math.abs(x - v) > 10 && Math.abs(x - truth().alt) > 10);
     if (/^sp/.test(id)) return x == null || Math.abs(x - v) > 5;
     if (/^dv/.test(id)) return x == null || x % 10 !== 0 || Math.abs(x - v) > (expCorr().ot >= 3 ? 20 : 10);
+    if (id === 'gDir') return x == null || x > 6400 || x % 6400 !== +v;
     return x == null || x % 6400 !== +v;
   }
   // Guided: what is wrong with a refused entry, in a few words (the toast then shows the DO box)
@@ -2010,8 +2091,8 @@ legend { padding: 0 4px; font-weight: 650; }
     const v = st.sheet[id], x = num(v), t = truth(), e = /^(sp|ss|ds|dv|rk|rm)\d$/.test(id) && expCorr();
     if (v == null || v === '') return '';
     if (x == null && /^(gDir|wDist|wOt|gAlt|sp\d|dv\d)$/.test(id)) return 'Write digits only (no spaces, commas or other signs).';
-    if (id === 'gDir') return x === t.mag ? `${fmt4(x)} is the magnetic direction: subtract 112.` : x != null && Math.abs(dm(x, t.mag + 112)) <= 5 ? 'G-M is west here: subtract 112, do not add it.' : x % 10 ? 'Round it to the nearest 10 mils.' : '';
-    if (id === 'wDist') return x % 100 ? 'Round it to the nearest 100 m.' : `${x > t.dist ? 'Too far' : 'Too short'}: find TGT ${st.w.tgtNo} on your line again.`;
+    if (id === 'gDir') return x > 6400 ? 'Past 6400: take 6400 off (6440 → 0040).' : Math.abs(dm(x, t.mag)) <= 5 ? `${x === 6400 ? x : fmt4(x)} is the scale reading: add 70.` : Math.abs(dm(x, t.mag - 70)) <= 5 ? 'Add 70, do not subtract it.' : x % 10 ? 'Round it to the nearest 10 mils.' : '';
+    if (id === 'wDist') return x % 100 ? 'Round it to the nearest 100 m.' : `${x > sheetCheck().myDist ? 'Too far' : 'Too short'}: read where ✕ sits on the range scale again.`;
     if (id === 'wOt') return 'OT FACTOR = DISTANCE ÷ 1000, to the nearest whole number.';
     if (id === 'gGrid') { const P = plotPoint(), g = P ? digits(worldToGrid(P.x, P.y, 6)) : ''; return digits(v) === g.slice(3) + g.slice(0, 3) ? 'Read right first, then up.' : 'Read it at ✕ with the protractor.'; }
     if (id === 'gAlt') return x % 5 ? 'Round it to the nearest 5 m.' : 'More than 10 m off: read the contours at ✕.';
@@ -2034,27 +2115,24 @@ legend { padding: 0 4px; font-weight: 650; }
     const s = gStep(), k = R.rows.length, sq = P => { const r = proRead(P); return `square <b>${r.sqE}|${r.sqN}</b>, ${r.e[0]}/10 right, ${r.n[0]}/10 up`; };
     switch (s) {
       case 'op': return { title: 'Mark your start position', tip: `Tap here: <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
-      case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (magnetic, Given box) − 112 (G-M 6.3° W, Given box) = ${fmt4(t.raw)} → nearest 10`, bullets: ['Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. G-M here is west: subtract.'] };
-      case 'dist': {
-        // what your line crosses just before and just beyond the target (map ticks), in sight from ◎ (at the crossing or 60 m beside it)
-        // and within 800 m of the target, and how far along that gap the target sits on the ground (3D view); the tenths are checked
-        // to give this card's DISTANCE
-        const op = w.op, a0 = t.gdir * MIL, n = `TGT ${w.tgtNo}`;
+      case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''}`, bullets: [`3D view: the scale across the top is in mils, 0–6400. Read the number straight above the yellow circle (TGT ${w.tgtNo}).`, 'Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. Here: add 70. Nobody reminds you in the exam (it is not in the Given box): remember it.'] };
+      case 'plot': {
+        // where the target is, in words: what your line of sight crosses just before it (or just beyond), in sight from ◎ (at the
+        // crossing or 60 m beside it) and within 800 m of the target, and the nearest landmark
+        const op = w.op, a0 = t.az * MIL, n = `TGT ${w.tgtNo}`, r50 = v => Math.max(50, Math.round(v / 50) * 50);
         const seen = m => [0, -60, 60].some(o => { const x = op.x + Math.sin(a0) * m.d + Math.cos(a0) * o, y = op.y + Math.cos(a0) * m.d - Math.sin(a0) * o; return los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + 1); });
-        const all = lineMarks(w, t.gdir).filter(seen), pick = l => [l.filter(m => m.d < t.d && m.d > t.d - 800).pop(), l.find(m => m.d > t.d && m.d < t.d + 800)];
+        const all = lineMarks(w, t.az).filter(seen), pick = l => [l.filter(m => m.d < t.d && m.d > t.d - 800).pop(), l.find(m => m.d > t.d && m.d < t.d + 800)];
         // the stream hardly shows in the view: use it only when no road or railroad is near the target
         let [b, a] = pick(all.filter(m => m.name !== 'the stream')); if (!b && !a) [b, a] = pick(all);
-        const B = b && r10(b.d), A = a && r10(a.d), est = t.dist + clamp(r10(t.d - t.dist), -40, 40);
-        const q = b && a && [0, 1, -1].map(k => clamp(Math.round((t.d - b.d) / (a.d - b.d) * 10) + k, 1, 9) / 10).find(v => Math.round((B + v * (A - B)) / 100) * 100 === t.dist);
-        let tip;
-        if (q) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${b.name} ${B} m, ${a.name} ${A} m; in the 3D view ${n} sits ${q === 0.5 ? 'halfway' : `about ${q * 10}/10 of the way`} between them → ${B} + ${q} × ${A - B} = ${Math.round(B + q * (A - B))} → nearest 100`;
-        else if (b) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${b.name} ${B} m; in the 3D view ${n} sits about ${est - B} m beyond it → ${B} + ${est - B} = ${est} → nearest 100`;
-        else if (a) tip = `DISTANCE → <b>${t.dist}</b>: ticks on your line: ${a.name} ${A} m; in the 3D view ${n} sits about ${A - est} m short of it → ${A} − ${A - est} = ${est} → nearest 100`;
-        else { const nl = nearestLm(w, T.x, T.y); tip = `DISTANCE → <b>${t.dist}</b>: ${n} sits at the ${t.dist} m tick of your line (about ${Math.round(nl.d / 50) * 50} m ${nl.dir} of ${nl.lm.name}) → nearest 100`; }
-        return { title: 'Estimate the distance', tip, bullets: ['Map: the line from ◎ has a tick every 100 m and a number every 500 m; read where it crosses the railroad, roads and stream.', `3D view: see what lies just in front of ${n} and just beyond it, then find the same spot on your line.`, 'The view squeezes far ground: halfway on the ground shows above the middle of the gap on the screen.'] };
+        const nl = nearestLm(w, T.x, T.y), along = b ? `about ${r50(t.d - b.d)} m beyond ${b.name}, ` : a ? `about ${r50(a.d - t.d)} m short of ${a.name}, ` : '';
+        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: ${along}about ${r50(nl.d)} m ${nl.dir} of ${nl.lm.name}`, bullets: [`3D view: see what lies just in front of ${n} and just beyond it, and which landmark is near it.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same features there and tap ✕.', 'The view squeezes far ground: halfway on the ground shows above the middle of the gap on the screen.'] };
       }
-      case 'ot': return { title: 'OT factor', tip: `OT FACTOR → <b>${t.otf}</b> = ${t.dist} ÷ 1000 = ${(t.dist / 1000).toFixed(1)} → nearest whole number`, bullets: [] };
-      case 'plot': return { title: 'Plot the target', tip: `Press <strong>Plot ✕</strong>: ✕ = ${fmt4(t.gdir)} mils, ${t.dist} m from ◎`, bullets: ['Plot lays the protractor along your direction and marks ✕ at the distance.'] };
+      case 'dist': {
+        // your own ◎ → ✕ on the range scale, to the nearest 10 m (or 1 m where that would round to another 100 or sit on the half)
+        const c = sheetCheck(), d = c.myD != null ? c.myD : t.d, want = c.myDist != null ? c.myDist : t.dist, m1 = Math.round(d), shown = r10(d) % 100 !== 50 && Math.round(r10(d) / 100) * 100 === want ? r10(d) : m1 % 100 === 50 ? m1 + (want > d ? 1 : -1) : m1;
+        return { title: 'Measure the distance', tip: `DISTANCE → <b>${want}</b>: ✕ sits at about ${shown} m on the range scale → nearest 100`, bullets: ['Protractor ◎→✕: its edge runs from ◎ through ✕, a tick every 100 m, a number every 500 m (every 100 m zoomed in).', 'Count the ticks from the last number to ✕; past the half (50 m) rounds up.'] };
+      }
+      case 'ot': { const d = num(st.sheet.wDist) || t.dist, ot = Math.max(1, Math.round(d / 1000)); return { title: 'OT factor', tip: `OT FACTOR → <b>${ot}</b> = ${d} ÷ 1000 = ${(d / 1000).toFixed(1)} → nearest whole number`, bullets: [] }; }
       case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 6)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up. 6 digits = 100 m; 8 digits also work.'] }; }
       case 'alt': { const P = plotPoint(), h = P ? groundAt(w, P.x, P.y) : t.h, lo = Math.floor(h / 10) * 10; return { title: 'Read the altitude', tip: `ALT → <b>${Math.round(h / 5) * 5}</b>: the ground at ✕ is between the ${lo} and ${lo + 10} m contours (about ${Math.round(h)}) → nearest 5`, bullets: ['Zoomed in on ✕, the map prints the value of each contour near it (Guided only: the exam prints none, so there you count the lines). Contours every 10 m; the darker ones every 50 m.'] }; }
       case 'l1': return { title: 'Line 1: who and what', tip: `Line 1 is printed: <b>${w.fdcCs}</b> (FDC call sign) (de) this is <b>${w.fo}</b> (your call sign) · Adjust Fire → <strong>Send (Over)</strong>`, bullets: ['The FDC\'s call sign first, then yours (Given box). A grid mission starts with Adjust Fire.'] };
@@ -2076,11 +2154,11 @@ legend { padding: 0 4px; font-weight: 650; }
       default: return { title: 'Mission complete', bullets: [] };
     }
   }
-  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], dist: ['OD', 'after'], ot: ['OD', 'after'], plot: ['OD', 'after'], grid: ['L2', 'after'], alt: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
-  // sideways step 1's box goes above the map: under it, it would sit below the screen
-  const tipAt = s => s === 'spot' || s === 'corr' ? ['R' + R.rows.length, 'after'] : s === 'op' && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
+  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], plot: ['viewCard', 'in'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], alt: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
+  // sideways the box of a map tap (◎, ✕) goes above the map: under it, it would sit below the screen
+  const tipAt = s => s === 'spot' || s === 'corr' ? ['R' + R.rows.length, 'after'] : (s === 'op' || s === 'plot') && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
   // why each step matters, in one line under the action
-  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here magnetic − 112 = grid.', dist: 'Distance places the target on the line and gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', plot: 'Direction + distance from your position = the target\'s spot on the map.', grid: 'The FDC aims at the grid.', alt: 'Altitude lets the FDC correct for height.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: opposite side, OT × mils; 400 until the target is bracketed, then halve each time until 50 = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
+  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid, ALT and DISTANCE all come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', alt: 'Altitude lets the FDC correct for height.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: opposite side, OT × mils; 400 until the target is bracketed, then halve each time until 50 = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
   function placeTip(cd) {
     const tip = $('gtip'), step = guidedOn() ? gStep() : '', at = tipAt(step), key = step + R.rows.length + (F.pend ? F.pend.key : '');
     if (!at || !cd.tip) { tip.hidden = true; st.tipStep = key; return; }
@@ -2117,16 +2195,16 @@ legend { padding: 0 4px; font-weight: 650; }
     const bad = f ? Object.keys(f).filter(id => fieldBad(id, f[id])) : [];
     bad.forEach(id => add(hintEl(id, f[id])));
     if (!bad.length && SENDOF(s)) add($(SENDOF(s)));
-    if (s === 'plot') add($('plotBtn'));
     if (s === 'reply') add($('rxBtns').querySelector(`button[data-v="${F.pend.want}"]`));
   }
   function note(html) {
-    const t = $('toast'); t.innerHTML = (guidedOn() && !/^(Plot|Mark|Tap the map|First|Line 1 needs|Grid:|ALT:|Direction:|MTO:|End of Mission:|Deviation:|Range:|A correction)/.test(html) ? '<b>Not that one.</b> ' : '') + html + '<small>Tap to close</small>';
+    const t = $('toast'); t.innerHTML = (guidedOn() && !/^(Mark|Map taps|Tap the map|First|Line 1 needs|Grid:|ALT:|Direction:|MTO:|End of Mission:|Deviation:|Range:|A correction)/.test(html) ? '<b>Not that one.</b> ' : '') + html + '<small>Tap to close</small>';
     t.hidden = false; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
-    clearTimeout(note.t); note.t = setTimeout(() => { t.hidden = true; }, 6000);
+    note.at = performance.now(); clearTimeout(note.t); note.t = setTimeout(() => { t.hidden = true; }, 6000);
     $('coach').classList.remove('shake'); void $('coach').offsetWidth; $('coach').classList.add('shake');
   }
-  $('toast').addEventListener('click', () => { $('toast').hidden = true; });
+  // the tap that showed the toast can land on it as a click: ignore clicks in its first 0.5 s
+  $('toast').addEventListener('click', () => { if (performance.now() - (note.at || 0) < 500) return; $('toast').hidden = true; });
   function shake(el) { if (!el) return; el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); setTimeout(() => el.classList.remove('nope'), 700); }
   function want(el) { if (!el) return; el.classList.remove('want'); void el.offsetWidth; el.classList.add('want'); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); setTimeout(() => el.classList.remove('want'), 1700); }
   // Guided: once the field you are typing is right and you pause, move on by itself (next field, or close the keyboard)
@@ -2160,8 +2238,7 @@ legend { padding: 0 4px; font-weight: 650; }
       }
       refresh(); return;
     }
-    if (b.id === 'plotBtn') doPlot();
-    else if (b.classList.contains('snd')) sendLine(b.closest('.wl').id);
+    if (b.classList.contains('snd')) sendLine(b.closest('.wl').id);
   });
 
   // ---------- grading (Exam standards; assumptions are marked)
@@ -2182,7 +2259,7 @@ legend { padding: 0 4px; font-weight: 650; }
     return [
       { t: 'Orient (Phase 1)', subs: [
         { txt: 'Start position ◎ within 100 m', ok: c.x.op },
-        { txt: 'Direction = magnetic − 112, nearest 10 (±10 mils, assumption)', ok: c.x.dir },
+        { txt: 'Direction: the scale reading as a grid direction, nearest 10 (±10 mils, assumption)', ok: c.x.dir },
         { txt: 'DISTANCE to the nearest 100 m, at most one 100 m step off the true distance', ok: c.x.dist },
         { txt: 'OT FACTOR = DISTANCE ÷ 1000, nearest whole number', ok: c.x.ot },
         { txt: 'Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of the target)', ok: c.x.grid },
@@ -2210,14 +2287,16 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   // debrief: you wrote / correct / formula, NO-GO first
   function feedback() {
-    const w = st.w, T = w.tgt, t = truth(), c = sheetCheck(), s = st.sheet, out = [], yw = v => v === '' || v == null ? 'blank' : v;
+    const w = st.w, T = w.tgt, t = truth(), c = sheetCheck(), s = st.sheet, out = [], yw = v => v === '' || v == null ? 'blank' : v, P = plotPoint();
+    // a distance just over the 100 m standard is not rounded down to 100
+    const m100 = v => v > 100 && v < 100.5 ? v.toFixed(1) : Math.round(v);
     const add = (ok, txt) => out.push([ok ? '' : 'bad', txt]);
     if (st.examOn && R.tEnd >= 600 && !R.eom) add(false, 'Time ran out: the exam stops at 10:00 (10 minutes for the whole mission).');
-    add(c.x.op, `Start ◎: ${c.opd != null ? `${Math.round(c.opd)} m from` : 'not marked; it is'} GA ${worldToGrid(w.op.x, w.op.y, 6)} · standard ≤ 100 m`);
-    add(c.x.dir, `Direction: you wrote ${yw(s.gDir)} · correct ${fmt4(t.gdir)} = ${fmt4(t.mag)} (magnetic) − 112 (G-M) = ${fmt4(t.raw)} → nearest 10 · ±10 mils (assumption)`);
-    add(c.x.dist, `DISTANCE: you wrote ${yw(s.wDist)} · true ${Math.round(t.d)} m → ${t.dist} (nearest 100) · standard ${t.dist} ±100 (${t.dist - 100}, ${t.dist} or ${t.dist + 100})`);
+    add(c.x.op, `Start ◎: ${c.opd != null ? `${m100(c.opd)} m from` : 'not marked; it is'} GA ${worldToGrid(w.op.x, w.op.y, 6)} · standard ≤ 100 m`);
+    add(c.x.dir, `Direction: you wrote ${yw(s.gDir)} · correct ${fmt4(t.gdir)} = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''} · ±10 mils (assumption)`);
+    add(c.x.dist, `DISTANCE: you wrote ${yw(s.wDist)}${c.myD != null ? ` (your ◎ → ✕ ${Math.round(c.myD)} m)` : ''} · true ${Math.round(t.d)} m → ${t.dist} (nearest 100) · standard ${t.dist} ±100 (${t.dist - 100}, ${t.dist} or ${t.dist + 100})`);
     add(c.x.ot, `OT FACTOR: you wrote ${yw(s.wOt)} · correct ${c.otMine != null ? `${c.otMine} = ${c.dist} ÷ 1000 = ${(c.dist / 1000).toFixed(1)}` : `${t.otf} = ${t.dist} ÷ 1000`} → nearest whole number`);
-    add(c.x.grid, `Grid: you wrote ${s.gGrid ? 'GA ' + gridTxt(s.gGrid) : 'blank'}${c.gd != null ? `, ${Math.round(c.gd)} m from the target${c.gx != null ? ` (${Math.round(c.gx)} m from your ✕)` : ''}` : ''} · target GA ${worldToGrid(T.x, T.y, 6)} · standard ≤ 100 m from the target (or read right at your ✕ when ✕ is within 100 m of it)`);
+    add(c.x.grid, `Grid: you wrote ${s.gGrid ? 'GA ' + gridTxt(s.gGrid) : 'blank'}${c.gd != null ? `, ${m100(c.gd)} m from the target${c.gx != null ? ` (${Math.round(c.gx)} m from your ✕; your ✕ is ${m100(Math.hypot(P.x - T.x, P.y - T.y))} m from the target)` : ''}` : ''} · target GA ${worldToGrid(T.x, T.y, 6)} · standard ≤ 100 m from the target (or read right at your ✕ when ✕ is within 100 m of it)`);
     add(c.x.alt, `ALT: you wrote ${yw(s.gAlt)} · correct ${t.alt} (ground at the target ${Math.round(t.h)} m → nearest 5)${c.altX != null && c.altX !== t.alt ? ` or ${c.altX} at your ✕ (✕ is within 100 m of the target)` : ''} · standard ±10 m`);
     add(!!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF', `Line 1: you sent ${R.l1 ? R.l1.text : 'nothing'} · correct ${w.fdcCs}, THIS IS ${w.fo}, ADJUST FIRE, OVER`);
     if (!R.l2) add(false, 'Line 2 was never sent.');
@@ -2263,10 +2342,10 @@ legend { padding: 0 4px; font-weight: 650; }
     }).join('');
   }
   function renderMission() {
-    const w = st.w, t = truth();
+    const w = st.w;
     $('mission').innerHTML = `<span>You <b>${w.fo}</b> → FDC <b>${w.fdcCs}</b></span><span>TGT <b>${w.tgtNo}</b></span><button class="linkbtn" id="newCard">New card</button>`;
     $('newCard').addEventListener('click', () => newCard());
-    $('given').innerHTML = `<div class="gt">Given by the evaluator</div><span>Start position</span><b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b><span>Your call sign</span><b>${w.fo}</b><span>FDC call sign</span><b>${w.fdcCs}</b><span>Magnetic direction to TGT ${w.tgtNo}</span><b>${fmt4(t.mag)} mils</b><span>G-M angle</span><b>112 mils (6.3°) W → subtract</b>`;
+    $('given').innerHTML = `<div class="gt">Given by the evaluator</div><span>Start position</span><b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b><span>Your call sign</span><b>${w.fo}</b><span>FDC call sign</span><b>${w.fdcCs}</b>`;
     $('wsnote').textContent = 'Each line is one transmission: fill it, then press its Send. Sent lines turn to ink; grey lines come later.';
     $('mapNote').textContent = `Map: grid squares 1,000 m (yellow circle = grid line number) · contours 10 m · big green number = training area, not a grid number · pink/red = impact area · card #${st.seed}`;
   }
@@ -2280,12 +2359,15 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   // Guided: what the map shows when a step starts
   function stepEnter(gs) {
-    if (gs === 'op') proOn('op', true);
+    if (gs === 'op') { setTap('op'); proOn('op', true); }
     else if (gs === 'dir') proOn(null);
-    else if (gs === 'dist') {
-      const o = st.opMark || st.w.op, a = truth().gdir * MIL;
-      st.pro = null; MV.scale = clamp(Math.min(MV.W, MV.H) / 3100, minScale(), maxScale()); MV.cx = o.x + Math.sin(a) * 1150; MV.cy = o.y + Math.cos(a) * 1150; proOn(null);
-    } else if (gs === 'alt') {
+    else if (gs === 'plot') {
+      // mark ✕: taps mark ✕; the map shows the ground out toward the target, with the fan and the likely area
+      const o = st.opMark || st.w.op, a = truth().az * MIL;
+      setTap('x'); st.pro = null; MV.scale = clamp(Math.min(MV.W, MV.H) / 3100, minScale(), maxScale()); MV.cx = o.x + Math.sin(a) * 1150; MV.cy = o.y + Math.cos(a) * 1150; proOn(null);
+    } else if (gs === 'dist') proOn('rng', true);
+    else if (gs === 'grid') proOn('x', true);
+    else if (gs === 'alt') {
       // ALT: ✕ in the middle, close enough that the contour values round it are printed
       const P = plotPoint(); if (P) { MV.scale = clamp(Math.min(MV.W, MV.H) / 900, minScale(), maxScale()); MV.cx = P.x; MV.cy = P.y; proOn(null); }
     }
@@ -2338,7 +2420,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('busy').hidden = false;
     setTimeout(() => {
       const w = genWorld(st.seed); st.w = w; MV.img = null;
-      st.bursts = []; st.plot = null; st.opMark = null; st.ended = false; st.sheet = {}; st.logs = []; st.rxH = null;
+      st.bursts = []; st.xMark = null; st.opMark = null; setTap('op'); st.ended = false; st.sheet = {}; st.logs = []; st.rxH = null;
       $('coach').after($('gtip')); renderSheet();
       st.tipStep = ''; st.stageStep = ''; st.typeStep = ''; setTab('locate'); $('radioDot').hidden = true;
       $('log').innerHTML = ''; $('rxBtns').dataset.k = '';
@@ -2346,8 +2428,10 @@ legend { padding: 0 4px; font-weight: 650; }
       const tr = truth();
       st.bino = false; st.lastAim = null; $('binoBtn').setAttribute('aria-pressed', 'false');
       // start 80–170 mils off the target (inside the 400-mil view); the target at 2/3 height, lower if needed to keep a band of sky
-      const off = (w.r() < 0.5 ? -1 : 1) * (80 + w.r() * 90), el = (groundAt(w, w.tgt.x, w.tgt.y) + 1 - w.eyeZ) / tr.d, fH = V.W ? V.H / camF() : 0.24;
-      setView(tr.az + off, el + clamp(0.22 * fH - el, 0.66 * fH, 0.85 * fH) - 0.66 * fH);
+      // under the azimuth scale (so the red points near the horizon start clear of it)
+      const off = (w.r() < 0.5 ? -1 : 1) * (80 + w.r() * 90), el = (groundAt(w, w.tgt.x, w.tgt.y) + 1 - w.eyeZ) / tr.d, fH = V.W ? V.H / camF() : 0.24, bR = V.W ? BAND * (V.sc || 1) / camF() : 0;
+      V.aimK = clamp(0.22 + (0.78 * bR - el) / fH, 0.66, 0.9);
+      setView(tr.az + off, el);
       renderMission();
       setStage('map'); sizeMap(); fitMap();
       st.pro = null; proOn(null);
@@ -2365,7 +2449,7 @@ legend { padding: 0 4px; font-weight: 650; }
   function renderIntro() {
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
-      'Phase 1 · Orient: the Given box has your start grid, both call signs and the magnetic direction to the target in mils. Mark ◎ on the map (tap it; within 100 m of the start). You can tap ◎ again until line 2 is sent; that clears ✕, so press Plot ✕ again. Direction = magnetic − 112 (G-M 6.3° W), nearest 10 (±10 mils: assumption). Estimate DISTANCE on the direction line to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, Plot ✕, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
+      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target (match the terrain; "Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
       'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, changes, rounds and TGT #, then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
       'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10, none under 30 m; range Add/Drop 400 → 200 → 100 → 50FFE, and a burst within 25 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target (assumption).',
@@ -2440,7 +2524,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
     return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n })), knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) }, marks: lineMarks(w, t.gdir) };
   }
-  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, plot: doPlot, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, lineMarks, visibleSet, openAround, nearestLm, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
+  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, lineMarks, visibleSet, openAround, nearestLm, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
   newCard(QS.get('seed') ? +QS.get('seed') : undefined);
 })();
 </script>
