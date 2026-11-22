@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Learn the OCS cadre knowledge sheet a few pieces at a time.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Phase Up Recall</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a learning path through the cadre knowledge sheet. Each skill is a node on a vertical rail,
+   grouped by week; a lesson is a short run of exercises (learn a few, build them, recall with fading
+   hints) with a GO / NO-GO bar at the bottom, the way a lane grader calls it. */
+:root {
+  --bg: #ECEEE8; --surface: #FAFBF7; --ink: #161A15; --muted: #586053; --line: #CDD2C5; --rule: #1E231C;
+  --band: #1E231C; --band-ink: #F4F5EF; --gold: #F2C200; --gold-ink: #6F5300; --gold-soft: #FAF0C2; --on-gold: #161A15;
+  --ok: #1C6B34; --ok-bg: #E0EEE2; --warn: #855600; --warn-bg: #F7ECCB; --bad: #AD2A20; --bad-bg: #F5DFDB;
+  --f-display: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  --f-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F110E; --surface: #181B16; --ink: #E4E7DE; --muted: #9AA293; --line: #30352D; --rule: #5F6659;
+    --band: #2A2F26; --band-ink: #EDEFE8; --gold: #F2C230; --gold-ink: #F2C230; --gold-soft: #332B10; --on-gold: #161A15;
+    --ok: #74C98C; --ok-bg: #15301D; --warn: #E8BC5E; --warn-bg: #342910; --bad: #FF8F84; --bad-bg: #3A1815;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F110E; --surface: #181B16; --ink: #E4E7DE; --muted: #9AA293; --line: #30352D; --rule: #5F6659;
+  --band: #2A2F26; --band-ink: #EDEFE8; --gold: #F2C230; --gold-ink: #F2C230; --gold-soft: #332B10; --on-gold: #161A15;
+  --ok: #74C98C; --ok-bg: #15301D; --warn: #E8BC5E; --warn-bg: #342910; --bad: #FF8F84; --bad-bg: #3A1815;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--f-body); -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--band); }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 6; background: var(--band); color: var(--band-ink); }
+.topin { display: flex; align-items: center; gap: 8px 16px; min-height: 52px; flex-wrap: wrap; }
+.brand { font: 700 21px/1 var(--f-display); letter-spacing: .05em; text-transform: uppercase; background: none; border: 0; padding: 0; cursor: pointer; color: var(--band-ink); }
+.brand b { color: var(--gold); font-weight: 700; }
+.tabs { display: flex; gap: 2px; margin-left: auto; }
+.tabs button { font: 600 15px/1 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--band-ink); background: none; border: 0; border-bottom: 3px solid transparent; padding: 17px 10px 14px; cursor: pointer; opacity: .78; }
+.tabs button[aria-current="page"] { border-bottom-color: var(--gold); opacity: 1; }
+.tabs .badge { display: inline-block; min-width: 1.5em; margin-left: 4px; padding: 2px 5px; background: var(--gold); color: var(--on-gold); font: 600 11px/1 var(--f-mono); border-radius: 9px; text-align: center; }
+.tabs .badge:empty { display: none; }
+body.lesson-on .top { display: none; }
+@media (max-width: 420px) { .brand { font-size: 18px; } .tabs button { padding-inline: 8px; } }
+
+main { padding-block: 20px 80px; }
+h1 { font: 700 clamp(30px, 5.4vw, 44px)/1 var(--f-display); text-transform: uppercase; letter-spacing: .01em; margin: 4px 0 10px; text-wrap: balance; }
+.eyebrow { font: 600 12px/1.2 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--gold-ink); margin: 0; }
+.sub { color: var(--muted); max-width: 62ch; margin: 0; }
+
+/* buttons */
+.btn { font: 600 15px/1 var(--f-display); letter-spacing: .07em; text-transform: uppercase; min-height: 46px; padding: 13px 18px; border: 1.5px solid var(--rule); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { background: var(--gold-soft); }
+.btn.pri { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.btn.pri:hover { box-shadow: inset 0 -3px 0 var(--gold); background: var(--ink); }
+.btn.gold { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
+.btn.ghost { border-color: transparent; background: transparent; padding-inline: 10px; }
+.btn.ghost:hover { background: var(--gold-soft); }
+.btn.sm { min-height: 38px; padding: 9px 12px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.link { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
+
+/* path */
+.phead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 32px; align-items: end; padding-bottom: 18px; border-bottom: 1.5px solid var(--rule); }
+.stats { display: flex; gap: 22px; }
+.stats div { display: grid; gap: 2px; }
+.stats b { font: 700 34px/.95 var(--f-display); }
+.stats span { font: 500 12px/1.2 var(--f-mono); color: var(--muted); }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; padding-block: 18px 4px; }
+.weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 40px; align-items: start; }
+.week { margin-top: 22px; min-width: 0; }
+.week h3 { display: flex; align-items: center; gap: 10px; font: 700 15px/1 var(--f-display); text-transform: uppercase; letter-spacing: .12em; margin: 0 0 12px; color: var(--muted); }
+.week h3::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.path { position: relative; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.path::before { content: ""; position: absolute; left: 26px; top: 14px; bottom: 14px; width: 3px; background: var(--line); }
+.node { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 4px 8px 4px 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.ring { flex: none; width: 55px; height: 55px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--gold) calc(var(--p, 0) * 1turn), var(--line) 0); }
+.ring.full { background: var(--ok); }
+.core { width: 43px; height: 43px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1.5px solid var(--rule); font: 700 18px/1 var(--f-display); }
+.ring.full .core { background: var(--ok); color: var(--surface); border-color: var(--ok); }
+.node:hover .core { background: var(--gold-soft); }
+.node.next .core { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
+.nt { display: grid; gap: 3px; min-width: 0; }
+.nt b { font: 700 17px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .03em; }
+.nt small { font: 500 12px/1.3 var(--f-mono); color: var(--muted); }
+.nt small .due { color: var(--gold-ink); }
+.foot { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; color: var(--muted); font-size: 13px; }
+@media (max-width: 640px) { .phead { grid-template-columns: 1fr; } .cta .btn { flex: 1 1 100%; } }
+
+/* skill page */
+.skill { max-width: 720px; margin: 0 auto; display: grid; gap: 18px; }
+.memo { margin: 0; font: 600 21px/1.4 var(--f-body); text-wrap: balance; }
+.memo .mw b { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 3px; }
+.memo .mw.on { background: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-soft); }
+.memo-l { font: 600 11px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+.lvl { display: grid; gap: 4px; align-content: start; text-align: left; padding: 12px; border: 1.5px solid var(--rule); background: var(--surface); cursor: pointer; min-width: 0; }
+.lvl b { font: 700 18px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
+.lvl small { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.lvl .ln { font: 600 11px/1 var(--f-mono); color: var(--muted); letter-spacing: .1em; }
+.lvl.done { background: var(--ok-bg); border-color: var(--ok); }
+.lvl.done .ln { color: var(--ok); }
+.lvl.next { background: var(--gold-soft); border-color: var(--gold-ink); }
+@media (max-width: 520px) { .lvl { padding: 10px; } .lvl small { display: none; } .lvl b { font-size: 16px; } }
+.card { background: var(--surface); border: 1.5px solid var(--rule); }
+.chead { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; background: var(--band); color: var(--band-ink); padding: 9px 12px; }
+.chead h2 { margin: 0; font: 700 18px/1.1 var(--f-display); letter-spacing: .05em; text-transform: uppercase; }
+.chead .cnt { margin-left: auto; font: 500 12px/1 var(--f-mono); opacity: .75; }
+.tag { font: 600 12px/1 var(--f-mono); letter-spacing: .1em; color: var(--gold); }
+.note { margin: 0; padding: 9px 12px; border-top: 1px dashed var(--line); font-size: 13.5px; color: var(--muted); }
+.tips { padding: 12px 14px; border-left: 4px solid var(--gold); background: var(--surface); }
+.tips ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 15px; line-height: 1.5; }
+.custom { display: grid; gap: 6px; }
+.custom label { font: 700 13px/1 var(--f-display); text-transform: uppercase; letter-spacing: .1em; }
+.custom textarea { width: 100%; font: 400 16px/1.5 var(--f-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--rule); border-radius: 0; padding: 10px 12px; resize: vertical; outline: none; }
+.custom small { color: var(--muted); font-size: 13px; }
+.row2 { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* content rows (study + intro) */
+.irows { display: grid; }
+.irow { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); border-top: 1px solid var(--line); }
+.irows > .irow:first-child, .irows > .grp:first-child { border-top: 0; }
+.num { display: flex; align-items: center; justify-content: center; font: 600 13px/1 var(--f-mono); color: var(--muted); border-right: 1px solid var(--line); padding: 4px 2px; text-align: center; }
+.itx { padding: 10px 12px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.itx .fl { color: var(--gold-ink); text-decoration: underline; text-underline-offset: 3px; }
+.mchip { font: 600 12px/1 var(--f-mono); padding: 4px 7px; background: var(--gold-soft); color: var(--gold-ink); }
+.subl { flex-basis: 100%; margin: 0; padding: 0 0 0 16px; font-weight: 400; color: var(--muted); font-size: 14px; }
+.grp { font: 700 12px/1 var(--f-display); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); background: var(--bg); padding: 7px 12px; border-top: 1px solid var(--line); }
+.trow3 { display: grid; grid-template-columns: minmax(7rem, .8fr) 1fr 1fr; border-top: 1px solid var(--line); }
+.trow3 > * { padding: 9px 12px; min-width: 0; }
+.trow3 > * + * { border-left: 1px solid var(--line); }
+.trow3 .cue { font: 700 14px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
+.trow3 .nm { font-weight: 600; }
+.trow3 .nm small { display: none; }
+.irows > .trow3:first-child { border-top: 0; }
+@media (max-width: 560px) {
+  .trow3 { grid-template-columns: 1fr; }
+  .trow3 > * + * { border-left: 0; padding-top: 0; }
+  .trow3 .cue { padding-bottom: 4px; color: var(--muted); }
+  .trow3 .nm small { display: inline; font: 600 11px/1 var(--f-mono); color: var(--muted); margin-right: 6px; }
+  .trow3 .dash { display: none; }
+}
+.ptext { margin: 0; padding: 12px; font-size: 17px; line-height: 1.75; }
+.ptext span { display: block; }
+
+/* lesson */
+.lesson { max-width: 660px; margin: 0 auto; padding-bottom: 260px; }
+.fcue { display: grid; gap: 3px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13.5px; line-height: 1.4; }
+.fcue .memo-l { margin: 0; }
+.ltop { display: flex; align-items: center; gap: 12px; padding-block: 4px 18px; }
+.lx { width: 44px; height: 44px; border: 0; background: none; font: 400 30px/1 var(--f-body); color: var(--muted); cursor: pointer; }
+.lx.arm { width: auto; padding: 0 10px; font: 700 16px/1 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--bad); border: 1.5px solid var(--bad); }
+.lbar { flex: 1; height: 12px; background: var(--line); overflow: hidden; border-radius: 6px; }
+.lbar i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 6px; }
+.lcount { font-size: 13px; color: var(--muted); }
+.lbody { display: grid; gap: 16px; }
+.lq { margin: 0; font: 700 clamp(24px, 4.6vw, 32px)/1.12 var(--f-display); text-transform: uppercase; letter-spacing: .02em; text-wrap: balance; }
+.lq.plain { text-transform: none; font: 600 22px/1.3 var(--f-body); letter-spacing: 0; }
+.ctx { margin: 0; padding: 10px 12px; border-left: 3px solid var(--line); color: var(--muted); font-size: 15px; }
+.ctx b { color: var(--ink); }
+.lact { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.hint { margin: 0; font: 500 15px/1.4 var(--f-mono); letter-spacing: .06em; color: var(--gold-ink); }
+.ain { width: 100%; font: 500 18px/1.3 var(--f-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--rule); border-radius: 0; padding: 13px 14px; outline: none; }
+.ain:focus { border-color: var(--gold-ink); box-shadow: inset 0 -3px 0 var(--gold); }
+.ain::placeholder { color: var(--muted); letter-spacing: .06em; }
+.ain.shake, .chip.shake { animation: shake .32s; border-color: var(--bad); }
+.say { margin: 0; font-size: 14px; color: var(--muted); }
+.say:empty { display: none; }
+@keyframes shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+
+/* chips */
+.pool { display: flex; flex-wrap: wrap; gap: 9px; }
+.chip { font: 500 16px/1.25 var(--f-body); padding: 10px 14px; min-height: 46px; border: 1.5px solid var(--rule); background: var(--surface); box-shadow: 0 3px 0 var(--rule); cursor: pointer; text-align: left; }
+.chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--rule); }
+.chip.used { visibility: hidden; }
+.slots { list-style: none; margin: 0; padding: 0; display: grid; border: 1.5px solid var(--rule); background: var(--surface); }
+.slots li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); border-top: 1px solid var(--line); min-height: 44px; }
+.slots li:first-child { border-top: 0; }
+.slots .sv { padding: 10px 12px; font-weight: 600; }
+.slots li.on .sv { box-shadow: inset 3px 0 0 var(--gold); }
+.slots li.ok { background: var(--ok-bg); }
+.built { margin: 0; min-height: 3.4em; padding: 12px; border: 1.5px solid var(--rule); background: var(--surface); font-size: 18px; line-height: 1.6; }
+.built .gap { display: inline-block; width: 2.2em; border-bottom: 2px solid var(--line); margin: 0 .15em; }
+.sortcard { padding: 26px 16px; border: 1.5px solid var(--rule); background: var(--surface); text-align: center; font: 700 30px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .03em; }
+.sortcard small { display: block; font: 500 12px/1 var(--f-mono); color: var(--muted); letter-spacing: .08em; margin-bottom: 10px; }
+.buckets { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.buckets .btn.right { background: var(--ok-bg); border-color: var(--ok); }
+.buckets .btn.wrong { background: var(--bad-bg); border-color: var(--bad); }
+
+/* recite list */
+.rlist { list-style: none; margin: 0; padding: 0; display: grid; border: 1.5px solid var(--rule); background: var(--surface); }
+.rlist li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); border-top: 1px solid var(--line); min-height: 42px; }
+.rlist li:first-child { border-top: 0; }
+.rlist .sv { padding: 9px 12px; font-weight: 600; }
+.rlist li.ok { background: var(--ok-bg); } .rlist li.ok .sv { color: var(--ok); }
+.rlist li.close { background: var(--warn-bg); }
+.rlist li.bad { background: var(--bad-bg); } .rlist li.bad .sv { color: var(--bad); }
+.rlist li.cur { box-shadow: inset 3px 0 0 var(--gold); background: var(--gold-soft); }
+.acro { margin: 0; font: 700 36px/1 var(--f-display); letter-spacing: .16em; color: var(--muted); }
+.acro .on { color: var(--on-gold); background: var(--gold); padding: 0 .1em; }
+.rin { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.rin .num { border: 0; font-size: 16px; color: var(--ink); min-width: 2.5rem; }
+
+/* first-letter typing */
+.ltext { padding: 14px; border: 1.5px solid var(--rule); background: var(--surface); font-size: 18px; line-height: 2.05; }
+.ltext p { margin: 0; }
+.ltext p + p { margin-top: 4px; }
+.ltext .lab { font: 600 12px/1 var(--f-mono); color: var(--muted); margin-right: 8px; }
+.wd { display: inline-block; color: transparent; border-bottom: 2px solid var(--line); margin: 0 .1em; line-height: 1.5; }
+.wd.ghost { color: var(--muted); opacity: .5; }
+.wd.cur { border-bottom-color: var(--gold); background: var(--gold-soft); }
+.wd.ok, .wd.free { color: var(--ink); border-bottom-color: transparent; opacity: 1; }
+.wd.slip { color: var(--warn); border-bottom-color: transparent; opacity: 1; }
+.wd.bad { color: var(--bad); border-bottom-color: transparent; font-weight: 700; opacity: 1; }
+.wd.flash { background: var(--bad-bg); border-bottom-color: var(--bad); }
+.kbd { display: none; gap: 6px; user-select: none; -webkit-user-select: none; }
+.kbd div { display: flex; gap: 5px; justify-content: center; }
+.kbd button { flex: 1; max-width: 44px; min-height: 48px; border: 1.5px solid var(--rule); background: var(--surface); box-shadow: 0 2px 0 var(--rule); font: 600 18px/1 var(--f-body); text-transform: uppercase; cursor: pointer; padding: 0; }
+.kbd button:active { background: var(--gold-soft); transform: translateY(1px); }
+@media (pointer: coarse) { .kbd { display: grid; } .lesson.typing { padding-bottom: 60px; } }
+
+/* feedback bar */
+.fbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; border-top: 2px solid var(--ok); background: var(--ok-bg); padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
+.fbar.no { border-top-color: var(--bad); background: var(--bad-bg); }
+.fin { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; max-width: 660px; }
+.fmsg { flex: 1 1 260px; display: grid; gap: 4px; min-width: 0; }
+.fgo { font: 700 26px/1 var(--f-display); letter-spacing: .08em; color: var(--ok); }
+.fbar.no .fgo { color: var(--bad); }
+.ftext { font-size: 15px; line-height: 1.4; }
+.ftext b { font-weight: 700; }
+.fin .btn { flex: 0 0 auto; min-width: 160px; }
+@media (max-width: 520px) { .fin .btn { flex: 1 1 100%; } }
+
+/* lesson done */
+.done { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 30px; }
+.stamp { display: inline-block; font: 700 72px/1 var(--f-display); letter-spacing: .1em; color: var(--ok); border: 6px solid currentColor; padding: 4px 22px 2px; margin-bottom: 18px; transform: rotate(-7deg); }
+.stamp.retrain { color: var(--warn); font-size: 52px; }
+.dstats { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; }
+.dstats div { display: grid; gap: 2px; }
+.dstats b { font: 700 32px/1 var(--f-display); }
+.dstats span { font: 500 12px/1 var(--f-mono); color: var(--muted); }
+.done .dact { flex-direction: column; width: 100%; max-width: 380px; }
+.done .dact .btn { width: 100%; }
+.weak { list-style: none; margin: 0; padding: 0; text-align: left; width: 100%; max-width: 520px; border: 1.5px solid var(--rule); background: var(--surface); }
+.weak li { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.weak li:first-child { border-top: 0; }
+.weak small { color: var(--muted); display: block; font-size: 12px; }
+
+
+/* sheet */
+.sheetgrid { columns: 2 380px; column-gap: 16px; }
+.sheetgrid .card { break-inside: avoid; margin-bottom: 16px; }
+.wk { column-span: all; font: 700 15px/1 var(--f-display); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 18px 0 10px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .chip, .node .core, .lvl { transition: background-color .15s ease, box-shadow .15s ease, transform .1s ease; }
+  .lbar i { transition: width .35s ease; }
+  .stamp { animation: stamp .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+  .fbar { animation: rise .18s ease-out both; }
+}
+@keyframes stamp { from { transform: rotate(-7deg) scale(1.8); opacity: 0; } to { transform: rotate(-7deg) scale(1); opacity: 1; } }
+@keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
+</style>
+
+<header class="top">
+  <div class="wrap topin">
+    <button class="brand" data-go="path">Phase Up <b>Recall</b></button>
+    <nav class="tabs" aria-label="Views">
+      <button data-go="path" aria-current="page">Learn</button>
+      <button data-go="review">Review<span class="badge" id="due-badge"></span></button>
+      <button data-go="sheet">Sheet</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- the cadre knowledge sheet, grouped by the study-guide week that teaches it (week 7 = sheet only) ----------
+     "|" after an answer = other accepted wording. Passages: "|" splits lines, {a/b} = either word. */
+  const SECTIONS = [
+    { id: 'honor', week: 1, title: 'OCS Honor Code', type: 'text',
+      tips: ['Three things you do, one thing you allow: lie, cheat, steal … or tolerate.',
+        'Picture three hands: one over a mouth (lie), one copying a test (cheat), one in a pocket (steal). The fourth hand is yours, and it does not look away (tolerate).'],
+      text: 'An officer will not lie, cheat, steal, | or tolerate those who do.' },
+    { id: 'coc', week: 1, title: 'Chain of Command', type: 'table', head: ['Position', 'Commander', 'NCO'],
+      note: 'GEN LaNeve is the VCSA; there is no current CSA. Your note: LaNeve is said “la-nive”. SMA = Sergeant Major of the Army.',
+      tips: ['Go from big to small: the nation (3 civilians), the Army, T2COM, the post (MCoE), the school (USAIS), brigade, battalion, company.',
+        'The first three are civilians, so they have no NCO. From the Army Chief of Staff down, every commander has an NCO beside him.',
+        'The chain ends with B Company’s trainer: SFC Rogers, an NCO with no commander beside him.',
+        'The generals count down their stars: GEN LaNeve 4, LTG Brown 3, MG Tuley 2, BG Keirsey 1. Then COL, LTC, CPT.',
+        'Brigade is the double T: COL Trask and CSM Turkovich.'],
+      rows: [
+        ['Commander-in-Chief|cmdr in chief|commander in chief|cinc', 'President Donald J. Trump', ''],
+        ['Secretary of War|sec of war|secwar', 'Hon. Pete Hegseth', ''],
+        ['Secretary of the Army|sec of the army|secretary of army|sec army', 'Hon. Adam Telle', ''],
+        ['Army Chief of Staff|army cos|chief of staff of the army|csa|army chief of staff|vcsa|vice chief of staff', 'GEN Christopher LaNeve', 'SMA Weimer'],
+        ['T2COM|t2 com|transformation and training command', 'LTG Edmond “Miles” Brown', 'CSM Kupratty'],
+        ['MCoE|maneuver center of excellence|maneuver center', 'MG Colin Tuley', 'CSM Haydt'],
+        ['USAIS|us army infantry school|united states army infantry school|infantry school', 'BG Jim Keirsey', 'CSM Donaldson'],
+        ['199th IN BDE|199th infantry brigade|199 infantry brigade|199th brigade|199th|199 in bde', 'COL James Trask', 'CSM Turkovich'],
+        ['3-11 IN BN|3 11 infantry battalion|3rd battalion 11th infantry|3 11 bn|3 11', 'LTC Jonathan Kingsley', 'CSM Nieves'],
+        ['B Company|b co|bravo company|bravo co', 'CPT Lux', '1SG Kuhns'],
+        ['B Co. Trainer|b company trainer|bravo company trainer|b co trainer|company trainer', '', 'SFC Rogers']
+      ] },
+    { id: 'plt', week: 1, title: 'Platoon Trainers', unit: 'trainers', names: true,
+      groups: [[0, '1st PLT'], [3, '2nd PLT'], [5, '3rd PLT']],
+      groupNoun: { '1st PLT': '1st PLT trainer', '2nd PLT': '2nd PLT trainer', '3rd PLT': '3rd PLT trainer' },
+      tips: ['One officer per platoon: 1LT Hagerman (1st), CPT Shiu (2nd), CPT McKinley (3rd). 1st PLT is the only one with a lieutenant.',
+        '2nd PLT has just two trainers; 1st and 3rd have three.',
+        'Only the platoon counts, not the order: name each platoon’s trainers any way round.'],
+      items: ['1LT Hagerman|hagerman', 'SFC Padilla|padilla', 'SSG Campbell|campbell', 'CPT Shiu|shiu', 'SSG Keith|keith',
+        'CPT McKinley|mckinley|mc kinley', 'SSG Capps|capps', 'SSG Tyree|tyree'] },
+    { id: 'cocdef', week: 1, title: 'Chain of Command (Definition)', type: 'text',
+      tips: ['Succession means one after another, like links in a chain.', 'It runs top-down: from a superior to a subordinate, and command is exercised through it.'],
+      text: 'The succession of commanding officers | from a superior to a subordinate | through which command is exercised.' },
+    { id: 'values', week: 1, title: 'Army Values', tag: 'LDRSHIP',
+      tips: ['LDRSHIP is LEADERSHIP without the vowels E, A, E. Each remaining letter is one value, in order.',
+        'As a story: be loyal to the team, do your duty, respect others, put yourself last, keep your honor, act with integrity, and find the personal courage to do all of it.'],
+      items: ['Loyalty', 'Duty', 'Respect', 'Selfless Service', 'Honor|honour', 'Integrity', 'Personal Courage'] },
+
+    { id: 'cos', week: 2, title: 'Classes of Supply', unit: 'classes', ordered: true, labels: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'],
+      memo: 'Smart Chefs Prepare Creamy Alfredo Pasta Making Meals Really Memorable',
+      note: 'The study guide calls Class III “Petroleum Fuel”; the cadre sheet says Petroleum, Oil, Lubricant. Both are accepted.',
+      tips: ['Each word of the sentence is one class, in Roman-numeral order: Smart = I, Chefs = II … Memorable = X.',
+        'Three groups: I–III you use up every day (food, clothes, fuel). IV builds and V shoots. VI–VII are personal items and the big end items. VIII–X fix people and gear (medical, repair parts), then everything else.',
+        'Class III is the gas station, Class V is the ammo point.'],
+      items: ['Subsistence', 'Clothing', 'Petroleum, Oil, Lubricants|petroleum fuel|petroleum oil lubricant|petroleum oils and lubricants|pol|petroleum|fuel',
+        'Construction Material|construction materials', 'Ammunition|ammo', 'Personal Demand Items|personal demands items', 'Major End Items',
+        'Medical Supplies', 'Repair Parts', 'Miscellaneous Supplies|miscellaneous'] },
+    { id: 'terrain', week: 2, title: 'Terrain Features', unit: 'features', groups: [[0, 'Major'], [5, 'Minor'], [8, 'Supplemental']],
+      groupNoun: { Major: 'major terrain feature', Minor: 'minor terrain feature', Supplemental: 'supplemental terrain feature' },
+      tips: ['Count 5, 3, 2: five major, three minor, two supplemental.',
+        'Major (H V R S D): “Happy Very Rich Soldiers Dance.” Minor (D C S): “Dogs Chase Squirrels.”',
+        'Supplemental are man-made for roads: you cut through high ground and fill in low ground.',
+        'On your fist: a knuckle is a hill, the dip between two knuckles is a saddle, the row of knuckles is a ridge.'],
+      items: ['Hill', 'Valley', 'Ridge', 'Saddle', 'Depression', 'Draw', 'Cliff', 'Spur', 'Cut', 'Fill'] },
+    { id: 'wff', week: 2, title: 'Warfighting Functions', unit: 'functions', memo: 'Commanders Move Swiftly, Intel Protects Forces',
+      tips: ['A story in order: the commander takes charge (C2), moves the force (Movement and Maneuver), feeds it (Sustainment), finds the enemy (Intelligence), shields the force (Protection), then fires (Fires).',
+        'Command and Control comes first because it ties the other five together.'],
+      items: ['Command and Control|c2', 'Movement and Maneuver', 'Sustainment', 'Intelligence', 'Protection', 'Fires'] },
+    { id: 'tlp', week: 2, title: 'Troop Leading Procedures', unit: 'steps', memo: 'Receive Instructions, Make Initial Checks, Complete Important Steps',
+      note: 'Your TLP class (W5D1) words step 8 as “Rehearse, Supervise, and Inspect”; that is accepted too.',
+      tips: ['Two “Issue” steps: the WARNO goes out early (2), the order goes out late (7).',
+        'Two “plan” steps: tentative plan (3), complete the plan (6). Step 3 takes the longest.',
+        'In between you move and look: initiate movement (4), conduct recon (5). Then it ends with supervise (8).'],
+      items: ['Receive the Mission', 'Issue the WARNO|issue a warno|issue the warning order|issue a warning order', 'Make a Tentative Plan',
+        'Initiate Movement', 'Conduct Recon|conduct reconnaissance', 'Complete the Plan', 'Issue the Order|issue the opord|issue the operations order|issue the operation order',
+        'Supervise and Refine|rehearse supervise and inspect'] },
+
+    { id: 'patrol', week: 3, title: 'Principles of Patrolling', unit: 'principles', memo: 'Please Remember Smart Choices Count',
+      tips: ['In the order a patrol happens: plan it, recon it, secure it, control it, and use common sense the whole way.'],
+      items: ['Planning', 'Recon|reconnaissance', 'Security', 'Control', 'Common Sense'] },
+    { id: 'opord', week: 3, title: '5 Paragraph OPORD', unit: 'paragraphs', ordered: true, memo: 'See My Execution, Sustain Command',
+      tips: ['Five questions in order: What is going on? (Situation) What do we do? (Mission) How? (Execution) What do we need? (Sustainment) Who is in charge and how do we talk? (Command and Signal)'],
+      items: ['Situation', 'Mission', 'Execution', 'Sustainment', 'Command and Signal'] },
+    { id: 'mettc', week: 3, title: 'Mission Variables', tag: 'METT-TC',
+      tips: ['Spell it out: M-E-T-T-T-C. Mission and Enemy first, then three T’s (Terrain and weather, Troops, Time), and the C is Civil considerations.',
+        'Mission variables are for one mission; operational variables (PMESII-PT) describe the whole environment.'],
+      items: ['Mission', 'Enemy', 'Terrain and Weather', 'Troops|troops and support available|troops and support', 'Time|time available', 'Civil Considerations'] },
+    { id: 'off', week: 3, title: 'Characteristics of the Offense', tag: 'ACTS', items: ['Audacity', 'Concentration', 'Tempo', 'Surprise'],
+      tips: ['The offense ACTS.', 'Picture a raid: be bold (Audacity), mass at one point (Concentration), keep it fast (Tempo), hit when they do not expect it (Surprise).'] },
+    { id: 'def', week: 3, title: 'Characteristics of the Defense', note: 'From the cadre sheet.',
+      memo: 'Dug-in Forces Make Positions Safe', memoMap: ['Dug-in', 'Forces', 'Make', 'Positions', 'Safe'],
+      tips: ['As a story: disrupt their attack, stay flexible, mass and concentrate where it counts, prepare the ground, keep it secure.',
+        'Concentration is in both: alone in the offense (ACTS), as “Mass and Concentration” in the defense.'],
+      items: ['Disruption', 'Flexibility', 'Mass and Concentration', 'Preparation', 'Security'] },
+    { id: 'oe', week: 3, title: 'Operational Environment', type: 'text',
+      note: 'The study guide says “a composite … of that platoon or squad”; the cadre sheet says “the composite … of a platoon or squad”. Either is accepted.',
+      tips: ['Three nouns in a row, C, C, I: Conditions, Circumstances, and Influences.',
+        'Composite means everything mixed together. It ends with who it affects: the platoon or squad.'],
+      text: '{The/A} composite of conditions, circumstances, and influences | affecting the employment of {a/that} platoon or squad.' },
+
+    { id: 'opvar', week: 4, title: 'Operational Variables', tag: 'PMESII-PT',
+      tips: ['Say it as “P-MESS-II-PT”.', 'The two I’s go in alphabetical order: Information before Infrastructure.',
+        'The tail “PT” is the Physical environment and Time.'],
+      items: ['Political', 'Military', 'Economic', 'Social', 'Information', 'Infrastructure', 'Physical Environment', 'Time'] },
+
+    { id: 'pmc', week: 5, title: 'Principles of Mission Command', unit: 'principles', memo: 'Competent Soldiers Master Command, Discipline, and Risk',
+      memoMap: ['Competent', 'Soldiers', 'Master', 'Command', null, 'Discipline', 'Risk'],
+      note: 'Mission Orders has no word in the sentence: it comes right after Commander’s Intent (intent, then orders).',
+      tips: ['It builds like a team: be competent, share understanding, earn mutual trust. Then the commander gives intent and mission orders, subordinates take disciplined initiative, and leaders accept risk.',
+        'Intent first, orders second: Commander’s Intent (4), Mission Orders (5).'],
+      items: ['Competence', 'Shared Understanding', 'Mutual Trust', 'Commander’s Intent', 'Mission Orders', 'Disciplined Initiative|disciplined initiatives', 'Risk Acceptance'] },
+    { id: 'alrm', week: 5, title: 'Core Leader Competencies & Attributes', groups: [[0, 'Competencies'], [3, 'Attributes']], tag: 'LDA · CPI',
+      groupNoun: { Competencies: 'core leader competency', Attributes: 'core leader attribute' },
+      tips: ['Attributes are what a leader IS (Character, Presence, Intellect). Competencies are what a leader DOES: they are verbs (Leads, Develops, Achieves).',
+        'Competencies are a timeline: you lead, you develop people, you achieve the mission.'],
+      items: ['Leads', 'Develops', 'Achieves', 'Character', 'Presence', 'Intellect'] },
+
+    { id: 'oath', week: 6, title: 'Oath for Officers', type: 'text',
+      tips: ['Four promises: support and defend the Constitution, bear true faith and allegiance to it, take the obligation freely, and do the job well.',
+        'Enemies come in two kinds: foreign and domestic.', 'It ends: “on which I am about to enter, so help me God.”'],
+      text: 'I, ___, do solemnly swear (or affirm) | that I will support and defend the Constitution of the United States | against all enemies, foreign and domestic; | that I will bear true faith and allegiance to the same; || that I take this obligation freely, | without any mental reservation or purpose of evasion; | and that I will well and faithfully discharge the duties of the office | on which I am about to enter, | so help me God.' },
+    { id: 'preamble', week: 6, title: 'Preamble to the Constitution', type: 'text',
+      tips: ['After “in Order to” come six goals, each starting with a verb: form, establish, insure, provide, promote, secure.',
+        'The goals in order: a more perfect Union, Justice, domestic Tranquility, the common defense, the general Welfare, the Blessings of Liberty.'],
+      text: 'We the People of the United States, | in Order to form a more perfect Union, | establish Justice, | insure domestic Tranquility, | provide for the common defense, || promote the general Welfare, | and secure the Blessings of Liberty | to ourselves and our Posterity, | do ordain and establish this Constitution | for the United States of America.' },
+
+    { id: 'schofield', week: 7, title: 'Schofield’s Definition of Discipline', type: 'text',
+      tips: ['Two halves. First: harsh treatment destroys an army; the right tone makes soldiers want to obey.',
+        'Second: it all comes from the commander. Respect others and you get respect; show disrespect and you get hatred.',
+        'It opens: “The discipline which makes the soldiers of a free country reliable in battle …”'],
+      text: 'The discipline which makes the soldiers of a free country reliable in battle | is not to be gained by harsh or tyrannical treatment. | On the contrary, such treatment is far more likely to destroy than to make an army. || It is possible to impart instruction and give commands | in such a manner and such a tone of voice | as to inspire in the soldier no feeling but an intense desire to obey, | while the opposite manner and tone of voice | cannot fail to excite strong resentment and a desire to disobey. || The one mode or the other in dealing with subordinates | springs from a corresponding spirit in the breast of the commander. | He who feels the respect which is due to others | cannot fail to inspire in them respect for himself; || while he who feels, and hence manifests, disrespect toward others, | especially his subordinates, | cannot fail to inspire hatred against himself.' },
+    { id: 'eocmd', week: 7, title: 'Elements of Command', unit: 'elements', memo: 'Always Remember Decisive Leadership',
+      tips: ['Command is about who decides: the authority to decide, the responsibility for the result, the decision itself, and the leadership to carry it out.',
+        'Command = who decides (A R D L). Control = how it flows (D F I C).'],
+      items: ['Authority', 'Responsibility', 'Decision Making|decision-making|decisionmaking', 'Leadership'] },
+    { id: 'eoctl', week: 7, title: 'Elements of Control', unit: 'elements', memo: 'Don’t Forget Important Calls', memoMap: ['Don’t', 'Forget', 'Important', 'Calls'],
+      tips: ['Control is a loop: direction goes down, feedback comes back up, and information and communication tie it together.'],
+      items: ['Direction', 'Feedback', 'Information', 'Communication'] },
+    { id: 'ldd', week: 7, title: 'Leader Development Domains', unit: 'domains',
+      tips: ['Three places you grow: on the job (Operational), in school (Institutional), on your own (Self-Development).'],
+      items: ['Operational', 'Institutional', 'Self-Development|self development'] },
+    { id: 'oakoc', week: 7, title: 'Terrain Analysis', tag: 'OAKOC',
+      tips: ['Ask five questions about the ground: What blocks me? (Obstacles) How do I get there? (Avenues of Approach) What must I hold? (Key Terrain) What can I see and shoot? (Observation and Fields of Fire) Where can I hide? (Cover and Concealment)'],
+      items: ['Obstacles', 'Avenues of Approach', 'Key Terrain', 'Observation and Fields of Fire', 'Cover and Concealment'] }
+  ];
+  const WEEKS = [[1, 'Week 1'], [2, 'Week 2'], [3, 'Week 3'], [4, 'Week 4'], [5, 'Week 5'], [6, 'Week 6'], [7, 'Also on the cadre sheet']];
+  const KEY = 'phaseup-recall-v2';
+  const INT = [0, 10 * 60e3, 60 * 60e3, 5 * 3600e3, 24 * 3600e3, 72 * 3600e3];
+  const LEVELS = [['Learn', 'Meet it a few at a time, build it, type along'], ['Practice', 'Recall it with hints that fade'], ['Master', 'From memory, no hints. Spelling doesn’t count']];
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const split = s => String(s).split('|').map(x => x.trim());
+  const fine = matchMedia('(pointer: fine)').matches;
+  const mmss = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mix = a => { if (a.length < 2) return a.slice(); for (let t = 0; t < 12; t++) { const b = shuffle(a); if (b.some((x, i) => x !== a[i])) return b; } return a.slice().reverse(); };
+  function chunks(arr, size) {
+    const n = Math.max(1, Math.ceil(arr.length / size)), out = []; let s = 0;
+    for (let k = 0; k < n; k++) { const len = Math.round((arr.length - s) / (n - k)); out.push(arr.slice(s, s + len)); s += len; }
+    return out;
+  }
+
+  /* ---------- progress, kept in this browser ---------- */
+  // The old address (asip-trainer.github.io/phaseup/) forwards here with #carry=<progress>. Take it unless this browser
+  // already has as much XP here; only numbers and dates are copied, so a crafted link cannot put markup on the page.
+  try {
+    const m = location.hash.match(/^#carry=(.+)$/);
+    if (m) {
+      history.replaceState(null, '', location.pathname + location.search);
+      const v = JSON.parse(decodeURIComponent(m[1])), cur = JSON.parse(localStorage.getItem(KEY) || 'null');
+      const num = x => typeof x === 'number' && isFinite(x) ? x : 0, obj = x => x && typeof x === 'object' ? x : {};
+      if (v && v.items && !(cur && cur.items && (cur.xp || 0) >= num(v.xp))) {
+        const c = { items: {}, lv: {}, xp: num(v.xp), days: (Array.isArray(v.days) ? v.days : []).filter(d => /^\d{4}-\d\d-\d\d$/.test(d)), custom: {} };
+        Object.entries(obj(v.items)).forEach(([k, s]) => { c.items[k] = {}; ['b', 'd', 'n', 'c', 'm'].forEach(f => { if (f in obj(s)) c.items[k][f] = num(s[f]); }); });
+        Object.entries(obj(v.lv)).forEach(([k, n]) => { c.lv[k] = num(n); });
+        localStorage.setItem(KEY, JSON.stringify(c));
+      }
+    }
+  } catch (e) {}
+  let P = (() => { try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.items) return v; } catch (e) {} return { items: {}, lv: {}, xp: 0, days: [], custom: {} }; })();
+  ['lv', 'custom'].forEach(k => { P[k] = P[k] || {}; });
+  P.days = P.days || [];
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} };
+  const seen = k => { if (!P.items[k]) P.items[k] = { b: 0, d: Date.now(), n: 0, c: 0 }; };
+  // v: 1 = from memory, 0.5 = with help, 0 = missed. Boxes space the next review further out.
+  function grade(k, v) {
+    const s = P.items[k] || (P.items[k] = { b: 0, d: 0, n: 0, c: 0 });
+    s.n++;
+    if (v >= 1) { s.c++; s.b = Math.min(s.b + 1, INT.length - 1); } else if (v > 0) s.b = Math.max(s.b, 1); else { s.b = 0; s.m = (s.m || 0) + 1; }
+    s.d = Date.now() + INT[s.b];
+  }
+  const isDue = k => P.items[k] && P.items[k].d <= Date.now();
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function streak() {
+    const set = new Set(P.days), d = new Date(); let n = 0;
+    const key = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    if (!set.has(key(d))) d.setDate(d.getDate() - 1);
+    while (set.has(key(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  /* ---------- matching ---------- */
+  const norm = s => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/['’‘`]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const STOP = new Set(['the', 'a', 'an', 'of', 'and', 'to', 'for', 'in']);
+  const core = n => n.split(' ').filter(w => !STOP.has(w)).join('');
+  function lev(a, b) {
+    if (a === b) return 0;
+    if (!a.length || !b.length) return a.length || b.length;
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j), cur = new Array(b.length + 1);
+    for (let i = 1; i <= a.length; i++) {
+      cur[0] = i;
+      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      [prev, cur] = [cur, prev];
+    }
+    return prev[b.length];
+  }
+  // The board is oral, so spelling never counts: a typed word fits if it is near the word or starts it,
+  // and one word may be missing from answers of three words or more.
+  function wordFits(t, e) {
+    if (t === e) return true;
+    if (e.length <= 3) return t.startsWith(e) && t.length <= e.length + 1;
+    if (t.length >= 4 && (e.startsWith(t) || t.startsWith(e))) return true;
+    return lev(t, e) <= Math.max(1, Math.floor(e.length / 3));
+  }
+  function fit(v, a) {
+    const t = norm(v), n = norm(a); if (!t || !n) return 0;
+    if (t === n || core(t) === core(n)) return 1;
+    if (lev(core(t), core(n)) <= Math.floor(core(n).length / 4)) return 0.9;
+    const tw = t.split(' ').filter(w => !STOP.has(w)), ew = n.split(' ').filter(w => !STOP.has(w)), used = new Set();
+    let hit = 0;
+    ew.forEach(e => { const k = tw.findIndex((w, i) => !used.has(i) && wordFits(w, e)); if (k > -1) { used.add(k); hit++; } });
+    return ew.length && hit >= ew.length - (ew.length >= 3 ? 1 : 0) ? Math.max(0.05, 0.5 + 0.4 * hit / ew.length - 0.05 * (tw.length - used.size)) : 0;
+  }
+  // 'ok' = word for word, 'close' = near enough (counts the same), null = wrong, or it fits another item better.
+  function matchItem(v, accepts, others) {
+    const best = acc => Math.max(0, ...acc.map(a => fit(v, a))), mine = best(accepts);
+    if (!mine) return null;
+    if (mine === 1) return 'ok';
+    return others && others.some(o => best(o) >= mine) ? null : 'close';
+  }
+  const RANKS = [['sergeant major of the army', 'sma'], ['command sergeant major', 'csm'], ['sergeant major', 'sgm'], ['first sergeant', '1sg'], ['1st sergeant', '1sg'],
+    ['sergeant first class', 'sfc'], ['staff sergeant', 'ssg'], ['lieutenant general', 'ltg'], ['lt gen', 'ltg'], ['major general', 'mg'], ['maj gen', 'mg'],
+    ['brigadier general', 'bg'], ['brig gen', 'bg'], ['lieutenant colonel', 'ltc'], ['lt col', 'ltc'], ['first lieutenant', '1lt'], ['1st lieutenant', '1lt'],
+    ['the honorable', 'hon'], ['honorable', 'hon'], ['colonel', 'col'], ['captain', 'cpt'], ['capt', 'cpt'], ['general', 'gen'], ['potus', 'president']];
+  function normName(s) { let n = ' ' + norm(s) + ' '; for (const [f, a] of RANKS) n = n.split(' ' + f + ' ').join(' ' + a + ' '); return n.trim(); }
+  // Names: the last name decides, spelled roughly; rank and first name are optional.
+  function matchName(v, ans, others) {
+    const t = normName(v).split(' ').filter(Boolean); if (!t.length) return null;
+    const cands = t.concat(t.slice(1).map((w, i) => t[i] + w));
+    const dist = a => { const key = normName(a).split(' ').pop(); return Math.min(...cands.map(w => lev(w, key))); };
+    const d = dist(ans);
+    if (d > Math.max(1, Math.floor(normName(ans).split(' ').pop().length / 3))) return null;
+    if (others && others.some(o => dist(o) < d)) return null;
+    return { s: d ? 'close' : 'ok' };
+  }
+  const initials = t => t.split(/\s+/).map(w => w.replace(/^([^A-Za-z0-9]*)([A-Za-z0-9])([A-Za-z0-9’'\-]*)(.*)$/, (m, a, b, c, d) => a + b + '_'.repeat(Math.min(c.length, 9)) + d)).join(' ');
+  const nameHint = t => { const w = t.split(' '); return w[0] + ' ' + initials(w.slice(1).join(' ')); };
+  const firstUp = t => esc(t).replace(/(^|[\s(/“"-])([A-Za-z0-9])/g, '$1<span class="fl">$2</span>');
+
+  /* ---------- build the model ---------- */
+  function parseLine(raw) {
+    const toks = raw.split(/\s+/).filter(Boolean).map(w => {
+      const m = w.match(/^(.*?)\{([^}]+)\}(.*)$/);
+      const alts = m ? m[2].split('/') : [w], word = m ? m[1] + alts[0] + m[3] : w;
+      const ks = alts.map(a => norm(a).replace(/ /g, '')[0]).filter(Boolean);
+      return { w: word, k: ks };
+    });
+    return { toks, text: toks.map(t => t.w).join(' ') };
+  }
+  function prep(sec) {
+    sec.type = sec.type || 'list';
+    if (sec.type === 'custom') { const t = (P.custom[sec.id] || '').trim(); sec.ready = !!t; sec.text = t ? t.split(/\n+/).map(s => s.trim()).filter(Boolean).join(' | ') : ''; }
+    if (sec.type === 'list' && !sec.prepped) {
+      sec.items = sec.items.map(it => {
+        const [t, sub] = Array.isArray(it) ? it : [it, null], a = split(t);
+        return { text: a[0], accepts: a, sub: sub ? sub.map(s => { const b = split(s); return { text: b[0], accepts: b }; }) : null };
+      });
+      if (sec.memo) {
+        const words = sec.memo.split(/\s+/).map(w => w.replace(/[^A-Za-z]/g, '')).filter(w => w && w !== 'and');
+        sec.memoWords = sec.memoMap || (words.length === sec.items.length ? words : null);
+      }
+    }
+    if (sec.type === 'table' && !sec.prepped) sec.rows = sec.rows.map(r => { const a = split(r[0]); return { cue: a[0], accepts: a, cells: r.slice(1) }; });
+    sec.prepped = true;
+    // "||" splits a long passage into parts; "|" splits lines.
+    const partsRaw = (sec.type === 'text' || sec.ready) ? sec.text.split('||').map(p => split(p).filter(Boolean)) : [];
+    sec.lines = partsRaw.flat().map(parseLine);
+    let at = 0;
+    sec.parts = partsRaw.map(p => p.map(() => at++));
+    sec.keys = sec.type === 'list' ? sec.items.flatMap((it, i) => it.sub ? [`${sec.id}:${i}`, `${sec.id}:${i}s`] : [`${sec.id}:${i}`])
+      : sec.type === 'table' ? sec.rows.flatMap((r, ri) => r.cells.map((c, ci) => c ? `${sec.id}:${ri}.${ci}` : null).filter(Boolean))
+      : sec.lines.map((_, i) => `${sec.id}:${i}`);
+  }
+  SECTIONS.forEach(prep);
+  const BY = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
+  const usable = s => s.type !== 'custom' || s.ready;
+  const label = (sec, i) => sec.labels ? sec.labels[i] : String(i + 1);
+  // Lists may be said in any order, except the ones marked ordered (Classes of Supply, 5 Paragraph OPORD).
+  const ordered = sec => !!sec.ordered;
+  const acroOf = sec => { const l = (sec.tag || '').replace(/[^A-Z]/g, ''); return sec.items && l.length === sec.items.length ? l : ''; };
+  const groupOf = (sec, i) => sec.groups.filter(g => g[0] <= i).pop()[1];
+  const isText = s => s.type === 'text' || s.type === 'custom';
+  const countLabel = s => isText(s) ? `${s.lines.length} lines` : s.type === 'table' ? `${s.keys.length} names` : `${s.items.length} ${s.unit || 'items'}`;
+  const lvOf = s => P.lv[s.id] || 0;
+  // A passage split into parts gets one level per part plus "All together"; everything else has Learn / Practice / Master.
+  const multi = s => !!(s.parts && s.parts.length > 1);
+  const levelsOf = s => multi(s) ? s.parts.length + 1 : 3;
+  const levelNames = s => multi(s) ? s.parts.map((p, k) => [`Part ${k + 1}`, `Lines ${p[0] + 1}–${p[p.length - 1] + 1}, one line at a time`])
+    .concat([['All together', 'Every part in a row, each picking up where the last one ended']]) : LEVELS;
+  const levelTitle = (s, lv) => multi(s) ? levelNames(s)[lv - 1][0] : `Level ${lv} · ${LEVELS[lv - 1][0]}`;
+  const dueOf = s => s.keys.filter(isDue).length;
+  // Remembered now = got right before and not due again yet, so it shrinks as items come due.
+  const remembered = k => { const s = P.items[k]; return !!s && s.b >= 1 && s.d > Date.now(); };
+  const memOf = s => s.keys.length ? s.keys.filter(remembered).length / s.keys.length : 0;
+
+  /* ---------- content blocks (study + intro) ---------- */
+  function memoHTML(sec, idx) {
+    if (!sec.memo) return '';
+    const on = new Set((idx || []).map(i => sec.memoWords && sec.memoWords[i]).filter(Boolean).map(w => w.replace(/[^A-Za-z]/g, '')));
+    return `<div><p class="memo-l">Memory sentence</p><p class="memo">${sec.memo.split(/\s+/).map(w => {
+      const bare = w.replace(/[^A-Za-z]/g, '');
+      return `<span class="mw${on.has(bare) ? ' on' : ''}"><b>${esc(w[0])}</b>${esc(w.slice(1))}</span>`;
+    }).join(' ')}</p></div>`;
+  }
+  function rowsHTML(sec, idx) {
+    if (sec.type === 'table') return (idx || sec.rows.map((_, i) => i)).map(ri => {
+      const r = sec.rows[ri];
+      return `<div class="trow3"><div class="cue">${esc(r.cue)}</div>${r.cells.map((c, ci) => c ? `<div class="nm"><small>${esc(sec.head[ci + 1])}</small>${esc(c)}</div>` : '<div class="nm dash" aria-hidden="true">—</div>').join('')}</div>`;
+    }).join('');
+    if (isText(sec)) return `<p class="ptext">${(idx || sec.lines.map((_, i) => i)).map(i => `<span>${esc(sec.lines[i].text)}</span>`).join('')}</p>`;
+    return (idx || sec.items.map((_, i) => i)).map(i => {
+      const it = sec.items[i], g = sec.groups && sec.groups.find(x => x[0] === i), mw = sec.memoWords && sec.memoWords[i];
+      return (g ? `<div class="grp">${esc(g[1])}</div>` : '') + `<div class="irow"><span class="num">${ordered(sec) ? label(sec, i) : '•'}</span><div class="itx">${mw ? `<span class="mchip">${esc(mw)}</span>` : ''}<span>${firstUp(it.text)}</span>${it.sub ? `<ul class="subl">${it.sub.map(s => `<li>${esc(s.text)}</li>`).join('')}</ul>` : ''}</div></div>`;
+    }).join('');
+  }
+
+  const tipsHTML = sec => sec.tips ? `<div class="tips"><p class="memo-l">Memory tips</p><ul>${sec.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : '';
+  // Memory cue for the NO-GO bar: the item's word in the memory sentence, its acronym letter or group, and a tip that names it.
+  const CUE_SKIP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'which', 'will', 'your', 'their', 'there', 'other', 'into', 'are', 'not', 'all', 'one', 'who', 'his', 'him', 'them', 'such']);
+  function cueFor(ex) {
+    const s = ex.sec, out = [], ac = acroOf(s);
+    const one = s.type === 'list' && ex.key && !ex.key.endsWith('s') ? parseInt(ex.key.split(':')[1], 10) : -1;
+    if (s.memo) out.push(`Memory sentence: <b>${esc(s.memo)}</b>${one >= 0 && s.memoWords && s.memoWords[one] ? ` (“${esc(s.memoWords[one])}” = ${esc(s.items[one].text)})` : ''}`);
+    else if (ac) out.push(`<b>${esc(s.tag)}</b>${one >= 0 ? `: letter ${one + 1} is <b>${ac.charAt(one)}</b>` : ''}`);
+    if (s.groups && one >= 0) out.push(`${esc(s.items[one].text)} is <b>${esc(groupOf(s, one))}</b>.`);
+    const words = (exAnswer(ex) + ' ' + (s.groups && one >= 0 ? groupOf(s, one) : '')).toLowerCase().match(/[a-z]{3,}/g) || [];
+    const tip = (s.tips || []).find(t => words.some(w => !CUE_SKIP.has(w) && new RegExp(`\\b${w}`, 'i').test(t)));
+    if (tip) out.push(esc(tip));
+    return out.length ? `<div class="fcue"><span class="memo-l">Memory cue</span>${out.map(x => `<div>${x}</div>`).join('')}</div>` : '';
+  }
+
+  /* ---------- exercises ---------- */
+  const shape = (sec, t) => sec.names ? nameHint(t) : initials(t);
+  function hintFor(sec, i) { const mw = sec.memoWords && sec.memoWords[i]; return (mw ? `“${mw}” · ` : '') + shape(sec, sec.items[i].text); }
+  function askItem(sec, i, mode, show) {
+    const it = sec.items[i], key = `${sec.id}:${i}`;
+    const cls = j => [sec.labels[j], String(j + 1), 'class ' + sec.labels[j], 'class ' + (j + 1)];
+    if (mode === 'rev') return { t: 'ask', sec, key, q: `${it.text} is which class?`, accepts: cls(i), others: sec.labels.map((_, j) => j).filter(j => j !== i).map(cls), answer: `Class ${sec.labels[i]}`, hint: `It is #${i + 1} in the list` };
+    if (mode === 'memo' && !(sec.memoWords && sec.memoWords[i])) mode = 'num';
+    const base = { t: 'ask', sec, key, accepts: it.accepts, others: sec.items.filter((_, j) => j !== i).map(x => x.accepts), answer: it.text, hint: hintFor(sec, i), show };
+    if (mode === 'num') return { ...base, q: sec.labels ? `What is Class ${sec.labels[i]}?` : `What is #${i + 1}?` };
+    if (mode === 'memo') return { ...base, q: `“${sec.memoWords[i]}” stands for …`, memoIdx: i };
+    return { ...base, q: i ? 'What comes next?' : 'What comes first?', ctx: i ? `<b>${label(sec, i - 1)}.</b> ${esc(sec.items[i - 1].text)}  →` : '' };
+  }
+  function askCell(sec, r, c, show) {
+    const row = sec.rows[r], ans = row.cells[c];
+    const q = r < 4 ? (c ? `Who is the NCO alongside the ${row.cue}?` : `Who is the ${row.cue}?`) : !row.cells[0] ? `Who is the ${row.cue}?` : `Who is the ${c ? 'NCO' : 'commander'} of ${row.cue}?`;
+    return { t: 'ask', sec, key: `${sec.id}:${r}.${c}`, q, name: true, answer: ans, others: sec.rows.flatMap(x => x.cells).filter(x => x && x !== ans), hint: nameHint(ans), show };
+  }
+  function askPos(sec, r, c) {
+    const row = sec.rows[r], ans = row.cells[c];
+    return { t: 'ask', sec, key: `${sec.id}:${r}.${c}`, q: !row.cells[0] ? `${ans} is the …` : `${ans} is the ${c ? 'NCO' : 'commander'} of …`, accepts: row.accepts, others: sec.rows.filter((_, j) => j !== r).map(x => x.accepts), answer: row.cue, hint: initials(row.cue) };
+  }
+  const listRows = (sec, idx, show) => idx.map(i => ({ key: `${sec.id}:${i}`, text: sec.items[i].text, accepts: sec.items[i].accepts, label: label(sec, i), hint: show ? hintFor(sec, i) : initials(sec.items[i].text), shown: show }));
+  const subEx = (sec, i, show) => ({ t: 'recite', sec, key: `${sec.id}:${i}s`, title: `Under “${sec.items[i].text}”`,
+    rows: sec.items[i].sub.map((s, j) => ({ text: s.text, accepts: s.accepts, label: String(j + 1), hint: initials(s.text), shown: show })) });
+  const orderList = (sec, idx) => ({ t: 'order', sec, title: idx.length === sec.items.length ? 'Tap them in order' : `Tap ${label(sec, idx[0])}–${label(sec, idx[idx.length - 1])} in order`, items: idx.map(i => ({ text: sec.items[i].text, label: label(sec, i) })) });
+  const orderPos = (sec, idx) => ({ t: 'order', sec, title: 'Put the chain in order, top to bottom', items: idx.map(ri => ({ text: sec.rows[ri].cue, label: String(ri + 1) })) });
+
+  // Cues for one item that do not depend on its position: memory sentence word, group + first letter, acronym letter, word shape.
+  function askCue(sec, i, show) {
+    const it = sec.items[i], base = { t: 'ask', sec, key: `${sec.id}:${i}`, accepts: it.accepts, others: sec.items.filter((_, j) => j !== i).map(x => x.accepts), answer: it.text, hint: hintFor(sec, i), show };
+    if (sec.memoWords && sec.memoWords[i]) return { ...base, q: `“${sec.memoWords[i]}” stands for …`, memoIdx: i };
+    if (sec.groups) return { ...base, q: sec.names ? `Name the ${sec.groupNoun[groupOf(sec, i)]} whose last name starts with “${it.text.split(' ').pop()[0]}”`
+      : `Name the ${sec.groupNoun[groupOf(sec, i)]} that starts with “${it.text[0]}”` };
+    if (acroOf(sec)) return { ...base, q: 'What does the highlighted letter stand for?', acroIdx: i };
+    return { ...base, q: `Which one looks like “${initials(it.text)}”?` };
+  }
+  // Lists where order does not matter: learn them a few at a time (by group if they have groups), then name them in any order.
+  function genFree(sec, lv) {
+    const n = sec.items.length, all = sec.items.map((_, i) => i), out = [];
+    const sets = sec.groups ? sec.groups.map(g => all.filter(i => groupOf(sec, i) === g[1])) : [all];
+    const recallAll = show => sets.forEach(ix => out.push({ t: 'recall', sec, idx: ix, show,
+      title: sec.groups ? `${groupOf(sec, ix[0])}: name all ${ix.length}, any order` : `Name all ${n}, any order` }));
+    if (lv === 1) {
+      (sec.groups ? sets : chunks(all, n <= 4 ? n : n <= 6 ? 3 : 4)).forEach(c => { out.push({ t: 'intro', sec, idx: c }); c.forEach(i => out.push(askCue(sec, i, true))); });
+      if (sec.groups) out.push({ t: 'sort', sec });
+      recallAll(true);
+    } else if (lv === 2) {
+      shuffle(all).forEach(i => out.push(askCue(sec, i, false)));
+      if (sec.groups) out.push({ t: 'sort', sec });
+      recallAll(false);
+    } else {
+      recallAll(false);
+      if (sec.groups) out.push({ t: 'sort', sec });
+      shuffle(all).slice(0, Math.min(3, n)).forEach(i => out.push(askCue(sec, i, false)));
+    }
+    return out;
+  }
+  function genList(sec, lv) {
+    if (!ordered(sec)) return genFree(sec, lv);
+    const n = sec.items.length, all = sec.items.map((_, i) => i), subs = all.filter(i => sec.items[i].sub), out = [];
+    if (lv === 1) {
+      let learned = [];
+      chunks(all, n <= 4 ? n : n <= 6 ? 3 : 4).forEach(c => {
+        out.push({ t: 'intro', sec, idx: c });
+        learned = learned.concat(c);
+        if (learned.length > 1) out.push(orderList(sec, learned));
+        c.forEach(i => out.push(askItem(sec, i, 'next', true)));
+      });
+      if (sec.groups) out.push({ t: 'sort', sec });
+      subs.forEach(i => out.push(subEx(sec, i, true)));
+      out.push({ t: 'recite', sec, title: 'Now the whole list', rows: listRows(sec, all, true) });
+    } else if (lv === 2) {
+      out.push(orderList(sec, all));
+      shuffle(all).forEach((i, k) => out.push(askItem(sec, i, k % 3 === 0 ? 'memo' : k % 3 === 1 ? 'next' : 'num', false)));
+      if (sec.labels) shuffle(all).slice(0, 3).forEach(i => out.push(askItem(sec, i, 'rev')));
+      if (sec.groups) out.push({ t: 'sort', sec });
+      subs.forEach(i => out.push(subEx(sec, i, false)));
+      out.push({ t: 'recite', sec, title: 'The whole list, in order', rows: listRows(sec, all, false) });
+    } else {
+      out.push({ t: 'recite', sec, title: 'From memory, in order', rows: listRows(sec, all, false) });
+      subs.forEach(i => out.push(subEx(sec, i, false)));
+      shuffle(all).slice(0, Math.min(4, n)).forEach(i => out.push(askItem(sec, i, sec.labels ? 'rev' : 'num', false)));
+      if (sec.groups) out.push({ t: 'sort', sec });
+    }
+    return out;
+  }
+  function genTable(sec, lv) {
+    const all = sec.rows.map((_, i) => i), cells = [], out = [];
+    sec.rows.forEach((r, ri) => r.cells.forEach((c, ci) => { if (c) cells.push([ri, ci]); }));
+    if (lv === 1) {
+      let learned = [];
+      chunks(all, 4).forEach(c => {
+        out.push({ t: 'intro', sec, idx: c });
+        learned = learned.concat(c);
+        c.forEach(ri => sec.rows[ri].cells.forEach((cv, ci) => { if (cv) out.push(askCell(sec, ri, ci, true)); }));
+        if (learned.length > 1) out.push(orderPos(sec, learned));
+      });
+    } else if (lv === 2) {
+      out.push(orderPos(sec, all));
+      shuffle(cells).forEach(([r, c]) => out.push(askCell(sec, r, c, false)));
+    } else {
+      shuffle(cells).forEach(([r, c], k) => out.push(k % 4 === 3 && r >= 4 ? askPos(sec, r, c) : askCell(sec, r, c, false)));
+      out.push(orderPos(sec, all));
+    }
+    return out;
+  }
+  // Passages: a long one is learned one part per level, and inside a part one line at a time:
+  // read the line, build it, then type it after the lines before it (the new line half shown).
+  function genText(sec, lv) {
+    const out = [], all = sec.lines.map((_, i) => i), parts = multi(sec) ? sec.parts : [all];
+    const prev = li => li ? sec.lines[li - 1].text : '';
+    const cold = (lis, title) => out.push({ t: 'letters', sec, lis, title, ctx: prev(lis[0]) });
+    const nexts = lis => lis.forEach(li => cold([li], li ? 'What comes next?' : 'How does it start?'));
+    const learn = part => {
+      part.forEach((li, k) => {
+        out.push({ t: 'intro', sec, idx: [li], ctx: prev(li) });
+        out.push({ t: 'build', sec, li });
+        out.push({ t: 'letters', sec, lis: part.slice(0, k + 1), ctx: prev(part[0]), fade: part.slice(0, k + 1).map((_, j) => j === k ? 'half' : 'none'),
+          title: k ? 'From the top: the new line is half shown' : 'Type it: half the words are shown' });
+      });
+      if (part.length > 1) cold(part, 'The whole part, from memory');
+    };
+    if (multi(sec)) {
+      if (lv <= parts.length) { if (lv > 1) cold(parts[lv - 2], 'Warm up: the part before'); learn(parts[lv - 1]); }
+      else parts.forEach((part, k) => cold(part, `Part ${k + 1} of ${parts.length}, from memory`));
+    } else if (lv === 1) learn(all);
+    else if (lv === 2) { nexts(shuffle(all)); cold(all, 'The whole thing, from memory'); }
+    else { cold(all, 'The whole thing, from memory'); nexts(shuffle(all.slice(1)).slice(0, 2)); }
+    return out;
+  }
+  const gen = (sec, lv) => sec.type === 'table' ? genTable(sec, lv) : isText(sec) ? genText(sec, lv) : genList(sec, lv);
+
+  function exForKey(k) {
+    const [id, rest] = k.split(':'), sec = BY[id];
+    if (!sec || !usable(sec)) return null;
+    if (sec.type === 'table') { const [r, c] = rest.split('.').map(Number); if (!sec.rows[r] || !sec.rows[r].cells[c]) return null; return Math.random() < 0.25 && r >= 4 ? askPos(sec, r, c) : askCell(sec, r, c, false); }
+    const i = parseInt(rest, 10);
+    if (isText(sec)) { if (!sec.lines[i]) return null; return { t: 'letters', sec, lis: [i], ctx: i ? sec.lines[i - 1].text : '', title: i ? 'What comes next?' : 'How does it start?' }; }
+    if (!sec.items[i]) return null;
+    if (rest.endsWith('s')) return sec.items[i].sub ? subEx(sec, i, false) : null;
+    if (!ordered(sec)) return askCue(sec, i, false);
+    const modes = ['num', 'next'].concat(sec.memoWords && sec.memoWords[i] ? ['memo'] : [], sec.labels ? ['rev'] : []);
+    return askItem(sec, i, modes[Math.floor(Math.random() * modes.length)], false);
+  }
+  // Trouble spots: the 10 most-missed items (a miss = wrong, or the answer had to be shown).
+  const trouble = () => Object.keys(P.items).filter(k => (P.items[k].m || 0) > 0 && exForKey(k))
+    .sort((a, b) => P.items[b].m - P.items[a].m || P.items[a].b - P.items[b].b).slice(0, 10);
+  function genReview() {
+    const now = Date.now(), known = Object.keys(P.items).filter(k => exForKey(k));
+    let keys = known.filter(k => P.items[k].d <= now).sort((a, b) => P.items[a].b - P.items[b].b || P.items[a].d - P.items[b].d);
+    if (keys.length < 8) keys = keys.concat(shuffle(known.filter(k => !keys.includes(k))).sort((a, b) => P.items[a].b - P.items[b].b).slice(0, 8 - keys.length));
+    return shuffle(keys.slice(0, 12)).map(exForKey).filter(Boolean);
+  }
+
+  /* ---------- lesson engine ---------- */
+  const app = $('#app');
+  let L = null;
+  // keys = a trouble drill on exactly those items; no sec and no keys = spaced review.
+  function startLesson(sec, lv, keys) {
+    const queue = sec ? gen(sec, lv) : keys ? keys.map(exForKey).filter(Boolean) : genReview();
+    if (!queue.length) return;
+    L = { sec, lv, drill: !!keys, queue, done: 0, graded: 0, right: 0, t0: Date.now(), key: null, cont: null, misses: [] };
+    document.body.classList.add('lesson-on');
+    app.innerHTML = `<div class="lesson" id="lesson"><div class="ltop"><button class="lx" id="lx" aria-label="Quit lesson">×</button><span class="lbar"><i></i></span><span class="lcount mono"></span></div><div class="lbody" id="lbody"></div></div>
+      <div class="fbar" id="fbar" hidden><div class="wrap fin"><div class="fmsg" aria-live="polite"><span class="fgo"></span><div class="ftext"></div></div><button class="btn pri" id="fcont">Continue</button></div></div>`;
+    const lx = $('#lx');
+    lx.onclick = () => {
+      if (lx.dataset.arm || !L) { go(sec ? 'skill' : 'review', sec && sec.id); return; }
+      lx.dataset.arm = '1'; lx.textContent = 'Quit?'; lx.classList.add('arm');
+      setTimeout(() => { if (lx.isConnected) { delete lx.dataset.arm; lx.textContent = '×'; lx.classList.remove('arm'); } }, 2500);
+    };
+    $('#fcont').onclick = () => L && L.cont && L.cont();
+    window.scrollTo(0, 0);
+    nextEx();
+  }
+  function nextEx() {
+    if (!L) return;
+    $('#fbar').hidden = true;
+    L.key = null; L.cont = null;
+    const total = L.done + L.queue.length;
+    $('.lbar i').style.width = (L.done / total * 100) + '%';
+    $('.lcount').textContent = `${Math.min(L.done + 1, total)}/${total}`;
+    if (!L.queue.length) return complete();
+    const ex = L.queue[0], host = $('#lbody');
+    host.innerHTML = '';
+    $('#lesson').classList.toggle('typing', ex.t === 'letters');
+    RENDER[ex.t](ex, host, res => resolve(ex, res));
+    window.scrollTo(0, 0);
+  }
+  function resolve(ex, res) {
+    if (!L) return;
+    (res.keys || []).forEach(([k, v]) => grade(k, v));
+    save();
+    if (res.intro) { L.queue.shift(); L.done++; nextEx(); return; }
+    L.graded++; if (res.ok) L.right++; else L.misses.push(ex);
+    const fb = $('#fbar');
+    fb.hidden = false; fb.classList.toggle('no', !res.ok);
+    $('.fgo', fb).textContent = res.ok ? 'GO' : 'NO-GO';
+    $('.ftext', fb).innerHTML = (res.msg || '') + (res.ok ? '' : cueFor(ex));
+    L.cont = () => {
+      L.queue.shift(); L.done++;
+      // A miss comes back two questions later, not at the very end.
+      if (!res.ok && !ex.again) L.queue.splice(Math.min(2, L.queue.length), 0, { ...ex, again: true });
+      nextEx();
+    };
+    L.key = e => { if (e.key === 'Enter') { e.preventDefault(); L.cont(); } };
+    $('#fcont').focus({ preventScroll: true });
+  }
+  function complete() {
+    const sec = L.sec, lv = L.lv, drill = L.drill, acc = L.graded ? Math.round(L.right / L.graded * 100) : 100, low = acc < 60;
+    const xp = 10 + (acc === 100 ? 5 : 0);
+    P.xp = (P.xp || 0) + xp;
+    if (!P.days.includes(today())) P.days.push(today());
+    if (sec && lv > lvOf(sec)) P.lv[sec.id] = lv;
+    save();
+    const t = mmss(Date.now() - L.t0), weak = [...new Set(L.misses.map(m => m.sec.title + ' · ' + exQ(m) + '|' + exAnswer(m)))].slice(0, 8);
+    const nextLv = sec && lv < levelsOf(sec) ? lv + 1 : 0;
+    L = null;
+    document.body.classList.remove('lesson-on');
+    $('#lesson').classList.remove('typing');
+    $('#lbody').innerHTML = `<div class="done"><div class="stamp${low ? ' retrain' : ''}">${low ? 'RETRAIN' : 'GO'}</div>
+      <h2 class="lq">${sec ? `${levelTitle(sec, lv)} complete` : drill ? 'Trouble drill done' : 'Review done'}</h2><p class="sub">${sec ? esc(sec.title) : drill ? 'Your most-missed items' : 'Mixed review across the whole sheet'}</p>
+      <div class="dstats"><div><b class="mono">${acc}%</b><span>right first time</span></div><div><b class="mono">+${xp}</b><span>XP</span></div><div><b class="mono">${t}</b><span>time</span></div></div>
+      ${low ? '<p class="sub">Lots of misses. Run this level once more before moving on.</p>' : ''}
+      ${weak.length ? `<ul class="weak">${weak.map(w => { const [q, a] = w.split('|'); return `<li><small>${esc(q)}</small>${esc(a)}</li>`; }).join('')}</ul>` : ''}
+      <div class="lact dact">${!sec ? `<button class="btn gold" id="again">${drill ? 'Drill again' : 'Review again'}</button>` : low ? '<button class="btn gold" id="again">Run it again</button>' : nextLv ? `<button class="btn gold" id="nextlv">Next: ${levelTitle(sec, nextLv)}</button>` : ''}
+      <button class="btn${!sec || low || nextLv ? '' : ' gold'}" data-go="path">Back to path</button></div></div>`;
+    $('.lcount').textContent = ''; $('.lbar i').style.width = '100%'; $('#fbar').hidden = true;
+    const a = $('#again'), n = $('#nextlv');
+    if (a) a.onclick = () => sec ? startLesson(sec, lv) : !drill ? startLesson(null, 0) : trouble().length ? startLesson(null, 0, trouble()) : go('review');
+    if (n) n.onclick = () => startLesson(sec, nextLv);
+    const f = a || n || $('.done [data-go]'); if (f) f.focus({ preventScroll: true });
+  }
+  const exQ = ex => ex.q || ex.title || (ex.t === 'build' ? 'Build the line' : 'Sort them');
+  const exAnswer = ex => ex.answer || (ex.t === 'build' ? ex.sec.lines[ex.li].text : ex.t === 'letters' ? ex.lis.map(li => ex.sec.lines[li].text).join(' ')
+    : ex.t === 'order' ? ex.items.map(x => x.text).join(' → ') : ex.t === 'recite' ? ex.rows.map(r => r.text).join(', ')
+    : ex.t === 'recall' ? ex.idx.map(i => ex.sec.items[i].text).join(', ')
+    : ex.sec.groups.map(g => `${g[1]}: ${ex.sec.items.filter((_, i) => groupOf(ex.sec, i) === g[1]).map(it => it.text).join(', ')}`).join(' · '));
+  document.addEventListener('keydown', e => { if (L && L.key) L.key(e); });
+  window.PUR = { get L() { return L; }, BY, matchItem, matchName, levels: id => levelsOf(BY[id]) };
+
+  const head = (ex, q, plain) => `<p class="eyebrow">${esc(ex.sec.title)}</p><h2 class="lq${plain ? ' plain' : ''}">${q}</h2>`;
+  const RENDER = {
+    intro(ex, host, done) {
+      const s = ex.sec, idx = ex.idx, whole = s.type === 'list' ? idx.length === s.items.length : false;
+      const title = isText(s) ? (idx.length === 1 ? 'New line: read it out loud' : 'Read it out loud') : s.type === 'table' ? `Meet the chain: ${esc(s.rows[idx[0]].cue)} to ${esc(s.rows[idx[idx.length - 1]].cue)}`
+        : !ordered(s) && s.groups ? `Learn: ${groupOf(s, idx[0])} (${idx.length})`
+        : whole ? `Learn all ${idx.length}` : ordered(s) ? `Learn ${label(s, idx[0])}–${label(s, idx[idx.length - 1])}` : `Learn ${idx.length} of ${s.items.length}`;
+      const hook = idx[0] === 0 ? tipsHTML(s) : '';
+      const acro = !s.memo && s.type === 'list' && !s.tag ? `<p class="hint">First letters: ${idx.map(i => s.items[i].text[0]).join(' · ')}</p>` : s.tag ? `<p class="hint">${esc(s.tag)}</p>` : '';
+      host.innerHTML = `<p class="eyebrow">New · ${esc(s.title)}</p><h2 class="lq">${title}</h2>${memoHTML(s, idx)}${acro}${hook}
+        ${ex.ctx ? `<p class="ctx">After: ${esc(ex.ctx)}</p>` : ''}<div class="card"><div class="irows">${rowsHTML(s, idx)}</div>${s.note && !s.memo ? `<p class="note">${esc(s.note)}</p>` : ''}</div>
+        <div class="lact"><button class="btn pri" data-a="ok">Got it</button></div>`;
+      if (s.type === 'list') idx.forEach(i => { seen(`${s.id}:${i}`); if (s.items[i].sub) seen(`${s.id}:${i}s`); });
+      else if (s.type === 'table') idx.forEach(ri => s.rows[ri].cells.forEach((c, ci) => { if (c) seen(`${s.id}:${ri}.${ci}`); }));
+      else idx.forEach(i => seen(`${s.id}:${i}`));
+      host.onclick = e => { if (e.target.closest('[data-a="ok"]')) done({ intro: true }); };
+      L.key = e => { if (e.key === 'Enter') { e.preventDefault(); done({ intro: true }); } };
+      if (fine) $('[data-a="ok"]', host).focus({ preventScroll: true });
+    },
+
+    order(ex, host, done) {
+      const items = ex.items, pool = mix(items.map((it, i) => i));
+      let pos = 0, miss = 0;
+      host.innerHTML = head(ex, esc(ex.title)) + `<ol class="slots">${items.map((it, i) => `<li${i ? '' : ' class="on"'}><span class="num">${esc(it.label)}</span><span class="sv"></span></li>`).join('')}</ol>
+        <div class="pool">${pool.map(i => `<button class="chip" data-i="${i}">${esc(items[i].text)}</button>`).join('')}</div>`;
+      const slots = host.querySelectorAll('.slots li');
+      host.onclick = e => {
+        const c = e.target.closest('.chip'); if (!c || c.classList.contains('used') || pos >= items.length) return;
+        if (items[+c.dataset.i].text === items[pos].text) {
+          c.classList.add('used'); slots[pos].classList.remove('on'); slots[pos].classList.add('ok'); $('.sv', slots[pos]).textContent = items[pos].text;
+          pos++;
+          if (pos < items.length) slots[pos].classList.add('on');
+          else done({ ok: miss <= 1, msg: miss ? `${miss} wrong tap${miss > 1 ? 's' : ''}. The order is above.` : 'All in order.' });
+        } else { miss++; c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+      };
+    },
+
+    build(ex, host, done) {
+      const s = ex.sec, line = s.lines[ex.li], toks = line.toks, pool = mix(toks.map((_, i) => i).filter(i => toks[i].k.length));
+      let pos = 0, miss = 0;
+      const wn = t => norm(t.w).replace(/ /g, '');
+      const skip = () => { while (pos < toks.length && !toks[pos].k.length) pos++; };  // blanks like "___," place themselves
+      host.innerHTML = head(ex, 'Build the line') + (ex.li ? `<p class="ctx">${esc(s.lines[ex.li - 1].text)}</p>` : '') +
+        `<p class="built" aria-live="polite"></p><div class="pool">${pool.map(i => `<button class="chip" data-i="${i}">${esc(toks[i].w)}</button>`).join('')}</div>`;
+      const built = $('.built', host);
+      const paint = () => { built.innerHTML = toks.map((t, i) => i < pos ? esc(t.w) : '<span class="gap"></span>').join(' '); };
+      skip(); paint();
+      host.onclick = e => {
+        const c = e.target.closest('.chip'); if (!c || c.classList.contains('used') || pos >= toks.length) return;
+        if (wn(toks[+c.dataset.i]) === wn(toks[pos])) {
+          c.classList.add('used'); pos++; skip(); paint();
+          if (pos === toks.length) done({ ok: miss <= 1, msg: `<b>${esc(line.text)}</b>${miss ? `<br>${miss} wrong tap${miss > 1 ? 's' : ''}.` : ''}` });
+        } else { miss++; c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+      };
+    },
+
+    sort(ex, host, done) {
+      const s = ex.sec, order = shuffle(s.items.map((_, i) => i)), names = s.groups.map(g => g[1]);
+      let k = 0, miss = 0;
+      const draw = () => {
+        const i = order[k];
+        host.innerHTML = head(ex, `${esc(names.join(', ').replace(/, ([^,]*)$/, ' or $1'))}?`) +
+          `<div class="sortcard"><small>${k + 1} of ${order.length}</small>${esc(s.items[i].text)}</div><div class="buckets">${names.map(n => `<button class="btn" data-g="${esc(n)}">${esc(n)}</button>`).join('')}</div>`;
+      };
+      draw();
+      let busy = false;
+      host.onclick = e => {
+        const b = e.target.closest('[data-g]'); if (!b || busy) return;
+        const want = groupOf(s, order[k]);
+        if (b.dataset.g === want) b.classList.add('right'); else { miss++; b.classList.add('wrong'); host.querySelector(`[data-g="${want}"]`).classList.add('right'); }
+        busy = true;
+        setTimeout(() => {
+          busy = false; k++;
+          if (k < order.length) draw();
+          else done({ ok: miss === 0, msg: miss ? `${miss} in the wrong group. ${names.map(n => `<br><b>${esc(n)}:</b> ${s.items.filter((_, i) => groupOf(s, i) === n).map(it => esc(it.text)).join(', ')}`).join('')}` : 'Every one in the right group.' });
+        }, b.dataset.g === want ? 380 : 1100);
+      };
+    },
+
+    ask(ex, host, done) {
+      let hinted = !!ex.show, fin = false;
+      let li = -1;
+      const memo = ex.memoIdx !== undefined ? memoHTML(ex.sec, [ex.memoIdx])
+        : ex.acroIdx !== undefined ? `<p class="acro">${[...ex.sec.tag].map(c => /[A-Z]/.test(c) && ++li === ex.acroIdx ? `<b class="on">${c}</b>` : esc(c)).join('')}</p>` : '';
+      host.innerHTML = head(ex, esc(ex.q), true) + (ex.ctx ? `<p class="ctx">${ex.ctx}</p>` : '') + memo +
+        `<p class="hint"${hinted ? '' : ' hidden'}>${esc(ex.hint)}</p>
+        <input class="ain" id="ain" aria-label="Your answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+        <div class="lact"><button class="btn ghost" data-a="hint"${hinted ? ' hidden' : ''}>Hint</button><button class="btn ghost" data-a="skip">I don’t know</button><button class="btn pri" data-a="check">Check</button></div>`;
+      const inp = $('#ain', host), hintEl = $('.hint', host);
+      const test = v => ex.name ? matchName(v, ex.answer, ex.others) : (m => m ? { s: m } : null)(matchItem(v, ex.accepts, ex.others));
+      const finish = (ok, msg) => { if (fin) return; fin = true; inp.readOnly = true; inp.blur(); done({ ok, msg, keys: [[ex.key, ok ? (hinted ? 0.5 : 1) : 0]] }); };
+      const check = () => {
+        const v = inp.value; if (!v.trim()) { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); return; }
+        const m = test(v);
+        if (m) finish(true, `<b>${esc(ex.answer)}</b>`);
+        else finish(false, `Answer: <b>${esc(ex.answer)}</b>`);
+      };
+      inp.addEventListener('input', () => { const m = test(inp.value); if (m && m.s === 'ok' && !ex.name) finish(true, `<b>${esc(ex.answer)}</b>`); });
+      host.onclick = e => {
+        const b = e.target.closest('[data-a]'); if (!b) return;
+        if (b.dataset.a === 'hint') { hinted = true; hintEl.hidden = false; b.hidden = true; inp.focus(); }
+        else if (b.dataset.a === 'skip') finish(false, `Answer: <b>${esc(ex.answer)}</b>`);
+        else check();
+      };
+      L.key = e => { if (e.key === 'Enter' && document.activeElement === inp) { e.preventDefault(); check(); } };
+      inp.focus({ preventScroll: true });
+    },
+
+    // Name every item in any order; each one you get drops into the next empty slot.
+    recall(ex, host, done) {
+      const s = ex.sec, idx = ex.idx, n = idx.length, state = new Map();
+      let hinted = !!ex.show, miss = 0, fin = false;
+      const others = i => s.items.filter((_, j) => j !== i).map(x => x.accepts);
+      host.innerHTML = head(ex, esc(ex.title)) + `<p class="say mono" id="rcount"></p><ol class="rlist">${idx.map((_, k) => `<li><span class="num">${k + 1}</span><span class="sv"></span></li>`).join('')}</ol>
+        <input class="ain" id="ain" aria-label="Type one" placeholder="Type one, any order" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next">
+        <p class="say" aria-live="polite" id="rsay"></p><p class="hint" id="rleft"${hinted ? '' : ' hidden'}></p>
+        <div class="lact"><button class="btn ghost" data-a="hint"${hinted ? ' hidden' : ''}>Hint</button><button class="btn ghost" data-a="show">Show the rest</button><button class="btn pri" data-a="enter">Enter</button></div>`;
+      const lis = host.querySelectorAll('.rlist li'), inp = $('#ain', host), say = $('#rsay', host), left = $('#rleft', host);
+      const rest = () => idx.filter(i => !state.has(i));
+      const paint = () => { const r = rest(); $('#rcount', host).textContent = r.length ? `${r.length} to go` : `All ${n}`; left.textContent = r.length ? 'Still missing: ' + r.map(i => shape(s, s.items[i].text)).join('  ·  ') : ''; };
+      const place = (i, st) => { const li = lis[state.size]; state.set(i, st); li.classList.add(st === 'bad' ? 'bad' : st === 'help' && !ex.show ? 'close' : 'ok'); $('.sv', li).textContent = s.items[i].text; };
+      const finish = () => {
+        fin = true; inp.blur(); paint();
+        const shown = idx.filter(i => state.get(i) === 'bad');
+        done({ ok: !shown.length, msg: shown.length ? `You had to see: <b>${shown.map(i => esc(s.items[i].text)).join(', ')}</b>.` : `All ${n}${miss ? `, ${miss} wrong guess${miss > 1 ? 'es' : ''}` : ''}.`,
+          keys: idx.map(i => [`${s.id}:${i}`, state.get(i) === 'bad' ? 0 : state.get(i) === 'help' ? 0.5 : 1]) });
+      };
+      const got = i => { place(i, hinted ? 'help' : 'ok'); inp.value = ''; say.textContent = ''; paint(); if (!rest().length) finish(); };
+      const shake = () => { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); };
+      const enter = () => {
+        if (fin) return;
+        const v = inp.value; if (!v.trim()) { shake(); return; }
+        const i = rest().find(k => matchItem(v, s.items[k].accepts, others(k)));
+        if (i !== undefined) { got(i); return; }
+        shake();
+        const j = s.items.findIndex((it, k) => matchItem(v, it.accepts, others(k)));
+        if (j > -1 && state.has(j)) say.textContent = 'You already have that one.';
+        else { miss++; say.textContent = j > -1 && s.groups ? `That one is ${groupOf(s, j)}, not ${groupOf(s, idx[0])}.` : 'Not on this list.'; }
+      };
+      inp.addEventListener('input', () => { if (fin) return; const i = rest().find(k => matchItem(inp.value, s.items[k].accepts, others(k)) === 'ok'); if (i !== undefined) got(i); });
+      host.onclick = e => {
+        const b = e.target.closest('[data-a]'); if (!b || fin) return;
+        if (b.dataset.a === 'hint') { hinted = true; left.hidden = false; b.hidden = true; inp.focus(); }
+        else if (b.dataset.a === 'show') { rest().forEach(i => place(i, 'bad')); finish(); }
+        else enter();
+      };
+      L.key = e => { if (e.key === 'Enter' && document.activeElement === inp) { e.preventDefault(); enter(); } };
+      paint(); inp.focus({ preventScroll: true });
+    },
+
+    recite(ex, host, done) {
+      const rows = ex.rows; let i = 0, rowMiss = 0, rowHint = false, fin = false;
+      const res = rows.map(() => null);
+      host.innerHTML = head(ex, esc(ex.title)) + `<ol class="rlist">${rows.map((r, k) => `<li${k ? '' : ' class="cur"'}><span class="num">${esc(r.label)}</span><span class="sv"></span></li>`).join('')}</ol>
+        <div class="rin"><span class="num mono" id="rnum">${esc(rows[0].label)}</span><input class="ain" id="ain" aria-label="Next item" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next"></div>
+        <p class="say" aria-live="polite"></p>
+        <div class="lact"><button class="btn ghost" data-a="hint">Hint</button><button class="btn ghost" data-a="show">Show it</button><button class="btn pri" data-a="enter">Enter</button></div>`;
+      const lis = host.querySelectorAll('.rlist li'), inp = $('#ain', host), say = $('.say', host);
+      const setRow = () => { inp.value = ''; rowMiss = 0; rowHint = !!rows[i].shown; inp.placeholder = rowHint ? rows[i].hint : ''; $('#rnum', host).textContent = rows[i].label; lis.forEach((li, k) => li.classList.toggle('cur', k === i)); };
+      const help = rows.map(() => false), shown = rows.some(r => r.shown);
+      const accept = st => {
+        res[i] = st; help[i] = rowHint; lis[i].classList.remove('cur'); lis[i].classList.add(st); $('.sv', lis[i]).textContent = rows[i].text;
+        i++;
+        if (i < rows.length) { setRow(); say.textContent = ''; return; }
+        fin = true; inp.blur();
+        const bad = res.filter(x => x === 'bad').length, good = res.filter(x => x === 'ok').length;
+        const val = k => res[k] === 'bad' ? 0 : res[k] === 'close' || help[k] ? 0.5 : 1;
+        const keys = ex.key ? [[ex.key, bad ? 0 : rows.every((_, k) => val(k) === 1) ? 1 : 0.5]] : rows.map((r, k) => [r.key, val(k)]);
+        done({ ok: bad === 0, msg: bad ? `${bad} you had to see. Read the list above once more.` : `${good === rows.length ? 'All' : good + ' of ' + rows.length} ${shown ? 'right first time' : 'from memory'}.`, keys });
+      };
+      // Amber only for a miss, or a hint the level did not already give.
+      const mark = () => rowMiss || (rowHint && !rows[i].shown) ? 'close' : 'ok';
+      const shake = () => { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); };
+      const enter = () => {
+        if (fin) return;
+        const v = inp.value; if (!v.trim()) { shake(); return; }
+        const m = matchItem(v, rows[i].accepts, rows.filter((_, k) => k !== i).map(r => r.accepts));
+        if (m) { accept(mark()); return; }
+        const j = rows.findIndex((r, k) => k > i && matchItem(v, r.accepts));
+        rowMiss++; shake();
+        say.textContent = j > -1 ? `That one is #${rows[j].label}. What is #${rows[i].label}?` : rowMiss >= 2 ? '' : 'Not that one. Try again.';
+        if (rowMiss >= 2 && j < 0) { say.textContent = ''; accept('bad'); }
+      };
+      inp.addEventListener('input', () => { if (!fin && matchItem(inp.value, rows[i].accepts) === 'ok') accept(mark()); });
+      host.onclick = e => {
+        const b = e.target.closest('[data-a]'); if (!b || fin) return;
+        if (b.dataset.a === 'hint') { rowHint = true; inp.placeholder = rows[i].hint; inp.focus(); }
+        else if (b.dataset.a === 'show') accept('bad');
+        else enter();
+      };
+      L.key = e => { if (e.key === 'Enter' && document.activeElement === inp) { e.preventDefault(); enter(); } };
+      setRow(); inp.focus({ preventScroll: true });
+    },
+
+    letters(ex, host, done) {
+      const s = ex.sec, slots = [];
+      // fade per line: 'half' shows every other word faintly, 'none' shows only the blanks.
+      const mode = j => ex.fade ? ex.fade[j] : 'none';
+      const html = ex.lis.map((li, j) => { let w = 0; return `<p>${s.lines[li].toks.map(t => {
+        if (!t.k.length) return `<span class="wd free">${esc(t.w)}</span>`;
+        const show = mode(j) === 'half' && w++ % 2 === 0;
+        slots.push({ li, t }); return `<span class="wd${show ? ' ghost' : ''}" data-s="${slots.length - 1}">${esc(t.w)}</span>`;
+      }).join(' ')}</p>`; }).join('');
+      host.innerHTML = head(ex, esc(ex.title)) + (ex.ctx ? `<p class="ctx">${esc(ex.ctx)}</p>` : '') + `<div class="ltext">${html}</div>
+        <div class="kbd" aria-hidden="true">${['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].map(r => `<div>${[...r].map(c => `<button data-k="${c}" tabindex="-1">${c}</button>`).join('')}</div>`).join('')}</div>
+        <div class="lact"><button class="btn ghost" data-a="skip">Show this word</button></div>`;
+      const els = host.querySelectorAll('[data-s]'); let i = 0, tries = 0, fin = false;
+      const stat = slots.map(() => 'ok');
+      const mark = () => { els.forEach((e, k) => e.classList.toggle('cur', k === i)); if (els[i]) els[i].scrollIntoView({ block: 'nearest' }); };
+      const next = st => {
+        stat[i] = st; els[i].classList.remove('cur', 'ghost', 'flash'); els[i].classList.add(st);
+        i++; tries = 0;
+        if (i < slots.length) { mark(); return; }
+        fin = true;
+        const bad = stat.filter(x => x === 'bad').length, slip = stat.filter(x => x === 'slip').length, first = stat.filter(x => x === 'ok').length;
+        const keys = ex.lis.map((li, j) => { const st = stat.filter((_, k) => slots[k].li === li); return [`${s.id}:${li}`, st.includes('bad') ? 0 : st.includes('slip') || mode(j) !== 'none' ? 0.5 : 1]; });
+        const ok = bad === 0 && slip <= Math.max(1, Math.round(slots.length * 0.1));
+        done({ ok, msg: `${first} of ${slots.length} words right first time${bad ? `, ${bad} shown` : ''}.`, keys });
+      };
+      const press = c => {
+        if (fin || !slots[i]) return;
+        if (slots[i].t.k.includes(c)) { next(tries ? 'slip' : 'ok'); return; }
+        tries++; els[i].classList.remove('flash'); void els[i].offsetWidth; els[i].classList.add('flash');
+        if (tries >= 2) next('bad');
+      };
+      host.onclick = e => { const k = e.target.closest('[data-k]'); if (k) { press(k.dataset.k); return; } if (e.target.closest('[data-a="skip"]') && !fin) next('bad'); };
+      L.key = e => { if (e.metaKey || e.ctrlKey || e.altKey) return; if (/^[a-z0-9]$/i.test(e.key)) { e.preventDefault(); press(e.key.toLowerCase()); } };
+      mark();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+  };
+
+  /* ---------- views ---------- */
+  function setTab(v) {
+    const tab = v === 'skill' ? 'path' : v;
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.go === tab ? 'page' : 'false'));
+    const n = SECTIONS.filter(usable).reduce((a, s) => a + dueOf(s), 0);
+    $('#due-badge').textContent = n ? String(n) : '';
+  }
+  function go(v, arg) {
+    L = null;
+    document.body.classList.remove('lesson-on');
+    setTab(v);
+    if (v === 'skill' && BY[arg]) viewSkill(BY[arg]);
+    else if (v === 'review') viewReview();
+    else if (v === 'sheet') viewSheet();
+    else viewPath();
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]'); if (g) { go(g.dataset.go, g.dataset.arg); return; }
+    const s = e.target.closest('[data-skill]'); if (s) go('skill', s.dataset.skill);
+  });
+  const nextUp = () => SECTIONS.find(s => usable(s) && lvOf(s) < levelsOf(s));
+
+  function viewPath() {
+    const up = nextUp(), due = SECTIONS.filter(usable).reduce((a, s) => a + dueOf(s), 0);
+    const all = SECTIONS.filter(usable).flatMap(s => s.keys), memAll = all.length ? Math.round(all.filter(remembered).length / all.length * 100) : 0, tr = trouble();
+    app.innerHTML = `<section class="phead"><div><p class="eyebrow">Phase up · cadre knowledge sheet</p><h1>Learn it a few pieces at a time</h1>
+      <p class="sub">Short levels per skill: learn, practice, master. Long passages go one part and one line at a time. Spelling never counts.</p></div>
+      <div class="stats"><div><b class="mono">${streak()}</b><span>day streak</span></div><div><b class="mono">${P.xp || 0}</b><span>XP</span></div><div><b class="mono">${memAll}%</b><span>remembered now</span></div></div></section>
+      <div class="cta">${up ? `<button class="btn gold" id="go-next">Continue: ${esc(up.title)} · ${esc(levelTitle(up, lvOf(up) + 1))}</button>` : ''}${due ? `<button class="btn" data-go="review">Review · ${due} due</button>` : ''}${tr.length >= 3 ? `<button class="btn" id="go-trouble">Trouble spots · ${tr.length}</button>` : ''}</div>
+      <div class="weeks">${WEEKS.map(([w, wname]) => `<section class="week"><h3>${esc(wname)}</h3><ol class="path">${SECTIONS.filter(s => s.week === w).map(s => {
+        // The ring shows how much is remembered right now, so it shrinks as items come due.
+        const lv = lvOf(s), d = dueOf(s), ready = usable(s), max = levelsOf(s), done = lv >= max, mem = memOf(s), fresh = done && mem >= 0.9;
+        const state = !ready ? 'Add the words to start' : done ? (fresh ? 'Mastered' : 'Mastered, fading') : lv ? `Next: ${levelNames(s)[lv][0]}` : `${countLabel(s)} · new`;
+        return `<li><button class="node${up === s ? ' next' : ''}" data-skill="${s.id}"><span class="ring${fresh ? ' full' : ''}" style="--p:${mem.toFixed(3)}"><span class="core">${!ready ? '+' : done ? '✓' : lv + 1}</span></span>
+          <span class="nt"><b>${esc(s.title)}</b><small>${state}${lv && ready ? ` · ${Math.round(mem * 100)}% remembered` : ''}${d && ready ? ` · <span class="due">${d} due</span>` : ''}</small></span></button></li>`;
+      }).join('')}</ol></section>`).join('')}</div>
+      <footer class="foot"><span>Progress is saved in this browser only.</span><button class="link" id="reset">Reset progress</button>${/\/phaseup\/(index\.html)?$/.test(location.pathname) ? '<a class="link" href="../">All Bravo study tools</a>' : ''}</footer>`;
+    const n = $('#go-next'); if (n) n.onclick = () => startLesson(up, lvOf(up) + 1);
+    const gt = $('#go-trouble'); if (gt) gt.onclick = () => startLesson(null, 0, tr);
+    const r = $('#reset');
+    r.onclick = () => {
+      if (r.dataset.arm) { P = { items: {}, lv: {}, xp: 0, days: [], custom: P.custom }; save(); go('path'); return; }
+      r.dataset.arm = '1'; r.textContent = 'Tap again to erase your progress (pasted texts stay)';
+      setTimeout(() => { if (r.isConnected) { delete r.dataset.arm; r.textContent = 'Reset progress'; } }, 4000);
+    };
+  }
+
+  function viewSkill(sec) {
+    const lv = lvOf(sec), ready = usable(sec);
+    const custom = sec.type === 'custom' ? `<div class="custom"><label for="cust-${sec.id}">${ready ? 'The words' : 'Add the words'}</label>
+      <textarea id="cust-${sec.id}" rows="${ready ? 6 : 8}" placeholder="${esc(sec.ask)}">${esc(P.custom[sec.id] || '')}</textarea>
+      <small>${esc(sec.ask)} It stays in this browser.</small><div class="row2"><button class="btn pri" id="cust-save">Save the words</button></div></div>` : '';
+    app.innerHTML = `<div class="skill"><div><button class="btn ghost" data-go="path">‹ Path</button></div>
+      <div><p class="eyebrow">Week ${sec.week}${ready ? ' · ' + countLabel(sec) : ''}</p><h1>${esc(sec.title)}</h1>${sec.tag ? `<p class="hint">${esc(sec.tag)}</p>` : ''}</div>
+      ${memoHTML(sec)}
+      ${ready ? `<div class="levels">${levelNames(sec).map(([n, d], k) => `<button class="lvl${k < lv ? ' done' : k === lv ? ' next' : ''}" data-lv="${k + 1}"><span class="ln">${multi(sec) ? (k < lv ? 'DONE' : '&nbsp;') : `LEVEL ${k + 1}${k < lv ? ' · DONE' : ''}`}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+      <div class="row2"><button class="btn gold" data-lv="${Math.min(lv + 1, levelsOf(sec))}">${lv >= levelsOf(sec) ? `Run ${levelNames(sec)[levelsOf(sec) - 1][0]} again` : `Start ${multi(sec) ? levelNames(sec)[lv][0] : `level ${lv + 1}: ${LEVELS[lv][0]}`}`}</button></div>
+      ${tipsHTML(sec)}
+      <div class="card"><header class="chead"><h2>The content</h2><span class="cnt">${countLabel(sec)}</span></header><div class="irows">${rowsHTML(sec)}</div>${sec.note ? `<p class="note">${esc(sec.note)}</p>` : ''}</div>` : ''}
+      ${custom}</div>`;
+    app.querySelectorAll('[data-lv]').forEach(b => { b.onclick = () => startLesson(sec, +b.dataset.lv); });
+    const cs = $('#cust-save');
+    if (cs) cs.onclick = () => { const v = $(`#cust-${sec.id}`).value.trim(); if (v) P.custom[sec.id] = v; else delete P.custom[sec.id]; prep(sec); save(); viewSkill(sec); setTab('skill'); };
+  }
+
+  function viewReview() {
+    const live = SECTIONS.filter(usable), due = live.reduce((a, s) => a + dueOf(s), 0), seenN = Object.keys(P.items).filter(k => exForKey(k)).length;
+    const tr = trouble();
+    const name = k => { const [id, rest] = k.split(':'), s = BY[id];
+      if (s.type === 'table') { const [r, c] = rest.split('.').map(Number); return [s.title, `${s.rows[r].cue}: ${s.rows[r].cells[c]}`]; }
+      if (isText(s)) return [s.title, s.lines[parseInt(rest, 10)].text];
+      const it = s.items[parseInt(rest, 10)]; return [s.title, rest.endsWith('s') ? `${it.text}: ${it.sub.map(x => x.text).join(', ')}` : `${ordered(s) ? label(s, parseInt(rest, 10)) + '. ' : ''}${it.text}`]; };
+    app.innerHTML = `<div class="skill"><div><p class="eyebrow">Spaced review</p><h1>${due ? `${due} due now` : 'Review'}</h1>
+      <p class="sub">Everything you have started comes back here on a schedule: missed items right away, then after 10 minutes, an hour, 5 hours, a day and 3 days as you keep getting them right.</p></div>
+      ${seenN ? `<div class="row2"><button class="btn gold" id="rv">Start review · ${Math.min(12, Math.max(due, Math.min(8, seenN)))} questions</button></div>` : `<p class="ctx">Nothing to review yet. Finish a Learn level on the path first.</p><div class="row2"><button class="btn gold" data-go="path">Go to the path</button></div>`}
+      ${tr.length ? `<div class="card"><header class="chead"><h2>Trouble spots</h2><span class="cnt">most missed first</span></header><ul class="weak" style="border:0;max-width:none">${tr.map(k => { const [t, x] = name(k); return `<li><small>${esc(t)} · missed ${P.items[k].m}×</small>${esc(x)}</li>`; }).join('')}</ul>
+        <div class="row2" style="padding:0 12px 12px"><button class="btn gold" id="drill">Drill these ${tr.length}</button></div></div>` : ''}</div>`;
+    const b = $('#rv'); if (b) b.onclick = () => startLesson(null, 0);
+    const dr = $('#drill'); if (dr) dr.onclick = () => startLesson(null, 0, tr);
+  }
+
+  function viewSheet() {
+    app.innerHTML = `<section class="phead" style="grid-template-columns:1fr"><div><p class="eyebrow">Cadre knowledge sheet</p><h1>The whole sheet</h1><p class="sub">Read it through, then learn it on the path. Memory sentences and first letters are marked.</p></div></section>
+      <div class="sheetgrid">${WEEKS.map(([w, wname]) => `<h3 class="wk">${esc(wname)}</h3>` + SECTIONS.filter(s => s.week === w).map(s => `<article class="card"><header class="chead"><h2>${esc(s.title)}</h2>${s.tag ? `<span class="tag">${esc(s.tag)}</span>` : ''}<span class="cnt">${usable(s) ? countLabel(s) : 'not added'}</span></header>
+        ${s.memo ? `<div style="padding:10px 12px 0">${memoHTML(s)}</div>` : ''}<div class="irows">${usable(s) ? rowsHTML(s) : `<p class="ptext" style="color:var(--muted);font-size:15px">${esc(s.ask)} <button class="link" data-skill="${s.id}">Add it</button></p>`}</div>${s.note ? `<p class="note">${esc(s.note)}</p>` : ''}</article>`).join('')).join('')}</div>`;
+  }
+
+  go('path');
+})();
+</script>
+
+</html>

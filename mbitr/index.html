@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>MBITR Radio Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: the AN/PRC-148 sits on the bench (left on desktop, under the task card on phones), drawn unfolded:
+   antenna, the top panel seen from above (knobs and connectors), then the front face, battery and hand mic. */
+:root {
+  --bg: #e2e4d9;
+  --surface: #f2f3ec;
+  --ink: #1b2016;
+  --muted: #586050;
+  --line: #c4c8b6;
+  --accent: #9a5a0c;
+  --accent-soft: #f1e2c4;
+  --go: #2b6a2e;
+  --go-soft: #d6e8d0;
+  --nogo: #a8291d;
+  --nogo-soft: #f3d7d1;
+  --scrim: rgba(16, 20, 12, .5);
+  --hint: #ffc53d;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+    --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+    --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+  --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+  --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--ui); }
+body.locked { overflow: hidden; }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.lbl { display: block; font: 600 10.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { margin-right: auto; color: inherit; text-decoration: none; font: 700 19px/1 var(--stencil); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.brand small { display: block; margin-top: 3px; font: 500 11px/1.1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.seg button { padding: 6px 11px; border: 0; border-radius: 999px; background: none; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.clock { min-width: 2.9em; text-align: right; font: 700 15px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.clock.warn { color: var(--nogo); }
+.ibtn { display: inline-grid; place-items: center; height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; font-weight: 650; cursor: pointer; }
+.ibtn svg { width: 18px; height: 18px; }
+.ibtn:disabled { opacity: .4; cursor: default; }
+@media (max-width: 440px) { .brand .bt, .brand small { display: none; } .seg button { padding: 6px 9px; } }
+@media (max-width: 350px) { .brand { display: none; } .seg { margin-right: auto; } }
+
+/* page layout */
+.wrap { display: grid; gap: 12px; max-width: 1100px; margin: 0 auto; padding-block: 12px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); grid-template-columns: minmax(0, 1fr); grid-template-areas: "task" "coach" "radio" "score"; }
+#task { grid-area: task; }
+#coach { grid-area: coach; }
+.rcol { grid-area: radio; min-width: 0; }
+#scoreCard { grid-area: score; }
+@media (min-width: 960px) {
+  .wrap { grid-template-columns: 430px minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "radio task" "radio coach" "radio score"; column-gap: 22px; align-items: start; }
+  .wrap .rcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 64px); max-width: calc((100vh - 76px) / 1.5); }
+}
+/* phone held sideways: the radio is too tall to fit, so its column scrolls on its own and the coach stays in view */
+@media (min-width: 640px) and (max-width: 959px) and (max-height: 520px) {
+  .wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "radio task" "radio coach" "radio score"; column-gap: 16px; align-items: start; }
+  .wrap .rcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 60px); max-height: calc(100vh - 72px); overflow-y: auto; overscroll-behavior: contain; }
+}
+.card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+
+/* task card */
+.taskh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.taskh h2 { margin: 0 auto 0 0; }
+.linkbtn { padding: 4px 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; }
+.set { min-width: 0; padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.set b { display: block; font: 700 18px/1.25 var(--mono); font-variant-numeric: tabular-nums; }
+.set.ok b { color: var(--go); }
+.setline { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+
+/* coach */
+.coach { min-width: 0; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); }
+.coach .lbl { color: var(--accent); }
+.coach .do { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 1.3; }
+.coach .how { margin-top: 2px; font-size: 13.5px; color: var(--muted); }
+.coach .warn { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--nogo); font-size: 13.5px; font-weight: 600; }
+
+/* radio: everything sits on a stage measured in container units (cqw), so the parts keep their places at any width */
+.rcol { container-type: inline-size; width: 100%; max-width: 460px; margin-inline: auto; }
+.stage { position: relative; height: 149cqw; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.ptop { position: absolute; left: 4cqw; top: 26cqw; z-index: 1; width: 66cqw; height: 27cqw; border-radius: 3cqw 3cqw 0.8cqw 0.8cqw; background: linear-gradient(180deg, #474b50, #2b2e32); box-shadow: inset 0 0.4cqw 0 rgba(255,255,255,.12), inset 0 -0.5cqw 0 rgba(0,0,0,.35); }
+.clab { position: absolute; font: 700 max(7px, 1.9cqw)/1 var(--stencil); letter-spacing: .08em; color: #cfd3d7; white-space: nowrap; }
+.tnc { position: absolute; left: 2cqw; top: 4cqw; width: 9cqw; height: 9cqw; border-radius: 50%; background: radial-gradient(circle, #ece6cc 0 0.7cqw, #26272a 0.8cqw 2.2cqw, #c2bba2 2.3cqw 3.2cqw, #8c8672 3.3cqw); box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,.5); }
+.aud { position: absolute; left: 57.5cqw; top: 4cqw; width: 8cqw; height: 8cqw; border-radius: 50%; background: repeating-conic-gradient(#25272a 0deg 10deg, #4a4e53 10deg 20deg); box-shadow: 0 0.4cqw 0.8cqw rgba(0,0,0,.5); }
+.aud::before { content: ""; position: absolute; inset: 1.3cqw; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #5a5e63, #1d1f22 70%); }
+.aud.plugged::before { inset: 0.6cqw; background: radial-gradient(circle at 42% 38%, #3b3e42, #0d0e0f 62%); box-shadow: 0 0 0 0.35cqw #121314; }
+.dial { position: absolute; }
+.dial.vol { left: 12cqw; top: 3.5cqw; width: 20cqw; height: 20cqw; --r: 7.6cqw; }
+.dial.ch { left: 33cqw; top: 1.5cqw; width: 24cqw; height: 24cqw; --r: 9.8cqw; }
+.knob { position: absolute; left: 50%; top: 50%; padding: 0; border: 0; border-radius: 50%; cursor: grab; touch-action: none; background: repeating-conic-gradient(#141517 0deg 7deg, #303337 7deg 14deg); box-shadow: 0 0.7cqw 1.3cqw rgba(0,0,0,.6); transition: transform .2s ease; }
+.knob::before { content: ""; position: absolute; inset: 1.1cqw; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #50545a, #222428 70%); }
+.knob::after { content: ""; position: absolute; left: 50%; top: 0.7cqw; width: 0.8cqw; height: 38%; margin-left: -0.4cqw; border-radius: 0.4cqw; background: #f1f1ee; }
+.vol .knob { width: 9.5cqw; height: 9.5cqw; margin: -4.75cqw 0 0 -4.75cqw; }
+.ch .knob { width: 12cqw; height: 12cqw; margin: -6cqw 0 0 -6cqw; }
+.pos { position: absolute; left: 50%; top: 50%; padding: 0.7cqw 0.5cqw; border: 0; border-radius: 0.7cqw; background: none; color: #e4e6e8; cursor: pointer; font: 700 max(8px, 2.3cqw)/1 var(--stencil); transform: translate(-50%, -50%) rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1)); }
+.pos span { display: block; }
+.pos.dot span { width: 1.1cqw; height: 1.1cqw; border-radius: 50%; background: currentColor; }
+.pos.on { color: #fff; background: rgba(255,255,255,.2); }
+.pos.z { color: #ff7b6b; }
+.dname { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); font: 700 max(7px, 1.9cqw)/1 var(--stencil); letter-spacing: .1em; color: #cfd3d7; }
+.vol .dname { left: 78%; bottom: 1cqw; }
+.face { position: absolute; left: 4cqw; top: 53cqw; width: 66cqw; height: 84cqw; border-radius: 0.8cqw 0.8cqw 2.6cqw 2.6cqw; background: linear-gradient(165deg, #36393d, #24272a 55%, #1b1d1f); box-shadow: inset 0 0.35cqw 0 rgba(255,255,255,.08), 0 2cqw 4cqw -1.5cqw rgba(0,0,0,.55); }
+.screw { position: absolute; width: 1.8cqw; height: 1.8cqw; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #6d7176, #1b1d1f 80%); box-shadow: inset 0 0 0 0.2cqw rgba(0,0,0,.4); }
+.grille { position: absolute; left: 9cqw; top: 2.8cqw; width: 48cqw; height: 6.4cqw; border-radius: 1cqw; background: repeating-linear-gradient(180deg, #0c0d0e 0 0.8cqw, #2a2d30 0.8cqw 1.7cqw); }
+.lcd { position: absolute; left: 6cqw; top: 11.5cqw; width: 54cqw; height: 22.6cqw; padding: 1.3cqw 2cqw; overflow: hidden; border-radius: 1cqw; background: linear-gradient(180deg, #bcc5b6, #a5af9f); color: #1b2019; box-shadow: inset 0 0.5cqw 1.2cqw rgba(0,0,0,.35), 0 0 0 0.6cqw #0e0f10; font: 700 max(10px, 4.1cqw)/1 var(--mono); }
+.lcd .ln { height: 5cqw; line-height: 5cqw; white-space: pre; }
+.lcd .sel { outline: 0.3cqw solid currentColor; outline-offset: 0.15cqw; }
+.lcd .inv { background: #1b2019; color: #bcc5b6; }
+.lcd .blk { animation: blinkA 1.1s steps(1, end) infinite; }
+@keyframes blinkA { 50% { opacity: 0; } }
+.lcd .bt { position: absolute; right: 2.4cqw; top: 1.9cqw; width: 5.4cqw; height: 2.7cqw; border: 0.35cqw solid currentColor; border-radius: 0.4cqw; background: linear-gradient(90deg, currentColor 70%, transparent 70%) 0.4cqw 0.4cqw / calc(100% - 0.8cqw) calc(100% - 0.8cqw) no-repeat; }
+.lcd .bt::after { content: ""; position: absolute; right: -1.1cqw; top: 0.5cqw; width: 0.6cqw; height: 1cqw; background: currentColor; }
+.lcd .sc { position: absolute; right: 1.6cqw; font-style: normal; font-size: max(8px, 2.8cqw); }
+.lcd .sc.u { top: 1.6cqw; }
+.lcd .sc.d { bottom: 1.6cqw; }
+.lcd .ic { position: absolute; right: 2.2cqw; bottom: 1.3cqw; display: flex; align-items: center; gap: 1.4cqw; font-style: normal; }
+.lcd .ic svg { display: block; width: 4.4cqw; height: 4.4cqw; }
+.lcd.off { background: linear-gradient(180deg, #70766e, #5f655d); }
+.lcd.lamp { background: linear-gradient(180deg, #cbe9a8, #a8d084); box-shadow: inset 0 0.5cqw 1.2cqw rgba(0,0,0,.25), 0 0 0 0.6cqw #0e0f10, 0 0 3cqw rgba(160,230,110,.5); }
+.lcd.lamp .inv { color: #cbe9a8; }
+.kp { position: absolute; left: 4cqw; top: 36.4cqw; width: 58cqw; touch-action: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 3.4cqw 12cqw 2.4cqw 12cqw 3.6cqw 12cqw; column-gap: 3.6cqw; }
+.leg { display: grid; place-items: end center; padding-bottom: 0.5cqw; font: 700 max(7.5px, 2.3cqw)/1 var(--stencil); letter-spacing: .07em; color: #f0f1f2; }
+.leg.lo { place-items: start center; padding: 0.7cqw 0 0; }
+.key { display: grid; place-items: center; padding: 0; border: 0; border-radius: 2.4cqw; cursor: pointer; touch-action: none; color: #f2f3f4; background: linear-gradient(180deg, #4a4e53, #2d3034); box-shadow: 0 0.6cqw 0 #0d0e0f, inset 0 0.3cqw 0 rgba(255,255,255,.14); font: 700 max(10px, 3.1cqw)/1 var(--stencil); letter-spacing: .05em; }
+.key.ar { font-size: max(12px, 4cqw); }
+.key:active, .key.down { transform: translateY(0.4cqw); box-shadow: 0 0.2cqw 0 #0d0e0f, inset 0 0.3cqw 0 rgba(255,255,255,.1); }
+.key.on { background: linear-gradient(180deg, #f3c65c, #d39a2a); color: #1b1d16; }
+/* hardware: a part that is not on yet is drawn dashed with a "+" tag; tap it to put it on */
+.hw { padding: 0; border: 0; background: none; color: var(--accent); cursor: pointer; }
+.hw .tag { position: absolute; z-index: 4; display: none; padding: 0.7cqw 1.8cqw; border: 1px dashed var(--accent); border-radius: 999px; background: var(--surface); white-space: nowrap; font: 700 max(10px, 2.7cqw)/1.2 var(--ui); }
+.hw .tag small { font-weight: 500; color: var(--muted); }
+.hw.miss .tag { display: block; }
+.ant { position: absolute; left: 7.5cqw; top: 0; z-index: 3; width: 6cqw; height: 35cqw; }
+.ant::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 5.5cqw; width: 2.6cqw; margin-left: -1.3cqw; border-radius: 1.3cqw 1.3cqw 0.4cqw 0.4cqw; background: linear-gradient(90deg, #0d0e0f, #3d4044 45%, #0a0b0c); clip-path: polygon(25% 0, 75% 0, 100% 100%, 0 100%); }
+.ant::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 5cqw; height: 6.4cqw; margin-left: -2.5cqw; border-radius: 1cqw 1cqw 0.5cqw 0.5cqw; background: linear-gradient(90deg, #151618, #4c5055 45%, #111214); box-shadow: 0 0.5cqw 0.9cqw rgba(0,0,0,.55); }
+.ant.miss::before { bottom: 9cqw; border: 0.45cqw dashed var(--accent); background: none; clip-path: none; }
+.ant.miss::after { display: none; }
+.ant .tag { left: 100%; top: 10cqw; margin-left: 1cqw; }
+.bat { position: absolute; left: 7cqw; top: 137cqw; width: 60cqw; height: 12cqw; border-radius: 0 0 2.6cqw 2.6cqw; background: linear-gradient(180deg, #2c2f33, #1a1c1e); box-shadow: inset 0 -0.6cqw 0 rgba(0,0,0,.3), 0 2cqw 3cqw -1.5cqw rgba(0,0,0,.5); }
+.bat .plate { position: absolute; left: 50%; top: 50%; padding: 0.8cqw 1.8cqw; border-radius: 0.6cqw; background: #c9cdd0; color: #1d2023; white-space: nowrap; transform: translate(-50%, -50%); font: 700 max(8px, 2.4cqw)/1.15 var(--stencil); letter-spacing: .06em; }
+.bat .tag { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.bat.miss { border: 2px dashed var(--accent); background: none; box-shadow: none; }
+.bat.miss .plate { display: none; }
+@container (max-width: 340px) { .bat .tag small { display: none; } }
+.mic { position: absolute; left: 75cqw; top: 59cqw; z-index: 3; width: 22cqw; height: 42cqw; }
+.mic svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mic .body { fill: #1f2124; }
+.mic .grl { fill: #0b0c0d; }
+.mic .ptt { fill: #3b3f44; }
+.mic.miss .body { fill: var(--surface); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; }
+.mic.miss .grl, .mic.miss .ptt { display: none; }
+.mic .tag { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.cord { position: absolute; left: 0; top: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.cord path { fill: none; stroke-linecap: round; }
+.cord .c1 { stroke: #0e0f10; stroke-width: 1.9; }
+.cord .c2 { stroke: #3e4247; stroke-width: 1.3; stroke-dasharray: 0.5 0.75; }
+.stage:not(.micOn) .cord { display: none; }
+.hint { outline: 3px solid var(--hint) !important; outline-offset: 2px; animation: pulse 1.1s ease-in-out infinite; }
+.hint2 { outline: 2px dashed var(--hint); outline-offset: 2px; }
+@keyframes pulse { 50% { outline-color: transparent; } }
+.readybar { display: flex; margin-top: 12px; }
+.readybar .btn { flex: 1; margin: 0; padding: 14px; font-size: 16px; }
+
+/* score sheet */
+.score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.m { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.num { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--line); border-radius: 50%; font: 700 12px/1 var(--mono); }
+.m.cur .num { border-color: var(--accent); color: var(--accent); }
+.m.done .num { border-color: var(--go); background: var(--go); color: var(--surface); }
+.mt { padding-top: 3px; font-weight: 650; }
+.subs { display: grid; gap: 3px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.subs li { position: relative; padding-left: 18px; }
+.subs li::before { content: "○"; position: absolute; left: 0; top: 0; font-size: 11px; line-height: 1.75; }
+.subs li.ok { color: var(--ink); }
+.subs li.ok::before { content: "✓"; color: var(--go); font-size: 13px; font-weight: 700; line-height: 1.45; }
+.subs li.now { color: var(--ink); font-weight: 650; }
+.subs li.now::before { content: "▸"; color: var(--accent); font-size: 13px; line-height: 1.45; }
+.subs li.sh { margin-top: 6px; padding-left: 0; color: var(--ink); font-weight: 650; }
+.subs li.sh::before, .subs li.na::before { content: "–"; }
+.subs li.sh::before { content: none; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 5px; vertical-align: middle; }
+.chip { padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font: 600 11.5px/1.5 var(--mono); }
+.chip.ok { border-color: transparent; background: var(--go-soft); color: var(--go); }
+.scnote { margin: 12px 0 0; font-size: 13px; }
+
+/* buttons and modals */
+.txrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); font-weight: 650; cursor: pointer; }
+.btn.primary { margin-left: auto; border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); background: var(--scrim); }
+.mcard { position: relative; width: 100%; max-width: 760px; margin: auto 0; padding: 18px; border-radius: 16px; background: var(--surface); }
+.mcard h2 { padding-right: 48px; }
+.mcard h3 { margin: 18px 0 6px; font-size: 15px; }
+.mcard .x { position: absolute; right: 12px; top: 12px; }
+.mcard p, .mcard li { font-size: 14px; }
+.mcard ol, .mcard ul { margin: 6px 0; padding-left: 20px; }
+code { padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); font: 600 12.5px var(--mono); white-space: nowrap; }
+.tbl { overflow-x: auto; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.go { color: var(--go); font-weight: 700; }
+td.nogo { color: var(--nogo); font-weight: 700; }
+.fb { margin: 6px 0 0; padding-left: 18px; color: var(--nogo); font-size: 13.5px; }
+.verdict { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 15px var(--mono); }
+.verdict.go { background: var(--go-soft); color: var(--go); }
+.verdict.nogo { background: var(--nogo-soft); color: var(--nogo); }
+fieldset { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+legend { padding: 0 4px; font-weight: 650; }
+.opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+.cust { display: grid; grid-template-columns: minmax(0, 160px); gap: 8px; margin: 4px 0 0 26px; }
+.cust input { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: 600 15px var(--mono); }
+.err { color: var(--nogo); font-size: 13px; }
+/* Guided: wrong press. The pressed control shakes red; the right one bounces; a note says what to do. */
+.key.want, .knob.want, .hw.want { outline: 4px solid var(--hint) !important; outline-offset: 3px; z-index: 3; }
+.key.want, .ant.want, .mic.want { animation: want .8s ease-in-out 2; }
+.knob.want { animation: wantG .8s ease-in-out 2; }
+.bat.want { animation: wantS .8s ease-in-out 2; }
+@keyframes want { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,197,61,.8); } 40% { transform: scale(1.14); box-shadow: 0 0 0 12px rgba(255,197,61,0); } }
+@keyframes wantG { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,197,61,.85); } 40% { box-shadow: 0 0 0 12px rgba(255,197,61,0); } }
+@keyframes wantS { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.04); } }
+.key.nope, .knob.nope { outline: 3px solid #e2432f !important; outline-offset: 2px; }
+.key.nope, .knob.nope, .coach.shake { animation: nope .4s ease-in-out; }
+@keyframes nope { 20%, 60% { translate: -4px 0; } 40%, 80% { translate: 4px 0; } }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 45; pointer-events: none; width: max-content; max-width: min(92vw, 520px); padding: 12px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); font-size: 15px; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.35); transform: translateX(-50%); }
+.toast b { color: var(--hint); }
+.toast.top { top: calc(env(safe-area-inset-top, 0px) + 64px); bottom: auto; }
+.toast.pop { animation: pop .25s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* NO-GO: recycled to Charlie Company */
+.modal.charlie { align-items: center; background: rgba(12, 14, 8, .82); }
+.ccard { position: relative; width: 100%; max-width: 460px; margin: auto 0; padding: 20px 18px 18px; overflow: hidden; border-radius: 18px; text-align: center; color: #f1efe0; background: radial-gradient(120% 90% at 50% 0%, #3d4628, #1c2112 70%); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.ccard .eyebrow { font: 700 11px/1 var(--ui); letter-spacing: .16em; text-transform: uppercase; color: #c9c7a4; }
+.guidon { display: block; width: 180px; max-width: 60%; height: auto; margin: 10px auto 0; overflow: visible; }
+.guidon .flag { transform-origin: 14px 56px; animation: wave 2.4s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-4deg) scaleX(.96); } }
+.ccard h2.ct { margin: 6px 0 2px; font: 800 30px/1.05 var(--stencil); letter-spacing: .04em; text-transform: uppercase; color: #fff; text-wrap: balance; }
+.ccard p { margin: 6px 0 0; font-size: 14.5px; color: #dcdac6; }
+.ccard .orders { margin: 12px auto 0; max-width: 34ch; padding: 10px 12px; border: 1px dashed rgba(241,239,224,.35); border-radius: 10px; font: 600 12.5px/1.5 var(--mono); color: #e9e7d4; text-align: left; }
+.stamp { position: absolute; right: 12px; top: 52px; padding: 4px 10px; border: 4px solid #e2432f; border-radius: 8px; color: #e2432f; font: 900 28px/1 var(--stencil); letter-spacing: .08em; transform: rotate(-14deg); opacity: .92; animation: slam .5s cubic-bezier(.2, 1.6, .4, 1) .25s both; }
+@keyframes slam { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: .92; } }
+.ccard .txrow { justify-content: center; margin-top: 16px; }
+.ccard .btn { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #f1efe0; }
+.ccard .btn.primary { margin-left: 0; border-color: #e2432f; background: #e2432f; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .knob { transition: none; } .hint, .guidon .flag, .stamp, .key.want, .knob.want, .hw.want, .key.nope, .knob.nope, .coach.shake, .toast.pop, .lcd .blk { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="top-bar">
+  <a class="brand" href="../" title="All Bravo study tools">‹ MBITR<span class="bt"> Trainer</span><small>AN/PRC-148 · load a SINCGARS SC frequency</small></a>
+  <div class="seg" role="group" aria-label="Practice mode">
+    <button id="mGuided" aria-pressed="true">Guided</button>
+    <button id="mExam" aria-pressed="false">Exam</button>
+  </div>
+  <div class="clock" id="clock">0:00</div>
+  <button class="ibtn" id="btnRef" aria-label="Cheat sheet">Ref</button>
+  <button class="ibtn" id="btnSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</header>
+
+<main class="wrap">
+  <section class="card" id="task" aria-label="Task card">
+    <div class="taskh"><h2>Task card</h2><button class="linkbtn" id="newCard">New card</button></div>
+    <div id="sets"></div>
+  </section>
+
+  <section class="coach" id="coach" aria-live="polite">
+    <span class="lbl" id="cStep"></span>
+    <div class="do" id="cDo"></div>
+    <div class="how" id="cHow"></div>
+    <div class="warn" id="cWarn" hidden></div>
+  </section>
+
+  <section class="rcol" aria-label="AN/PRC-148 MBITR radio: top panel, front panel, battery and hand mic">
+    <div class="stage" id="stage">
+      <svg class="cord" viewBox="0 0 100 149" preserveAspectRatio="none" aria-hidden="true"><path class="c1" d="M65.5 34 C 74 23, 95 37, 86 61"/><path class="c2" d="M65.5 34 C 74 23, 95 37, 86 61"/></svg>
+      <button class="hw ant miss" data-hw="ant"><span class="tag"><b>+ Antenna</b></span></button>
+      <div class="ptop">
+        <span class="tnc" aria-hidden="true"></span><span class="clab" style="left:4cqw;top:14.5cqw">ANT</span>
+        <div class="dial vol" id="volDial">
+          <button class="knob" id="volKnob" aria-label="ON/OFF/volume knob: drag to turn, or tap its right half to turn clockwise and its left half counterclockwise"></button>
+          <span class="dname">VOL</span>
+        </div>
+        <div class="dial ch" id="chDial">
+          <button class="knob" id="chKnob" aria-label="Channel switch: drag to turn, or tap its right half to turn clockwise and its left half counterclockwise"></button>
+          <span class="dname">CHAN</span>
+        </div>
+        <span class="aud" id="aud" aria-hidden="true"></span><span class="clab" style="left:57cqw;top:14.5cqw">AUDIO</span>
+      </div>
+      <div class="face">
+        <i class="screw" style="left:1.2cqw;top:1.2cqw"></i><i class="screw" style="right:1.2cqw;top:1.2cqw"></i>
+        <i class="screw" style="left:1.2cqw;bottom:1.6cqw"></i><i class="screw" style="right:1.2cqw;bottom:1.6cqw"></i>
+        <div class="grille" aria-hidden="true"></div>
+        <div class="lcd" id="lcd" aria-live="polite"></div>
+        <div class="kp" id="kp"></div>
+      </div>
+      <button class="hw bat miss" data-hw="bat"><span class="plate">LI-ION BATTERY</span><span class="tag"><b>+ Battery</b> <small>tap to twist on</small></span></button>
+      <button class="hw mic miss" data-hw="mic"><svg viewBox="0 0 60 115" aria-hidden="true"><path class="body" d="M14 6h32c6 0 10 4 10 10v86c0 6-4 10-10 10H14c-6 0-10-4-10-10V16c0-6 4-10 10-10z"/><rect class="ptt" x="0" y="36" width="6" height="30" rx="2"/><g class="grl"><circle cx="18" cy="26" r="2.2"/><circle cx="30" cy="26" r="2.2"/><circle cx="42" cy="26" r="2.2"/><circle cx="18" cy="36" r="2.2"/><circle cx="30" cy="36" r="2.2"/><circle cx="42" cy="36" r="2.2"/><circle cx="18" cy="46" r="2.2"/><circle cx="30" cy="46" r="2.2"/><circle cx="42" cy="46" r="2.2"/><circle cx="18" cy="56" r="2.2"/><circle cx="30" cy="56" r="2.2"/><circle cx="42" cy="56" r="2.2"/><rect x="16" y="78" width="28" height="18" rx="3"/></g></svg><span class="tag"><b>+ Hand mic</b></span></button>
+    </div>
+    <div class="readybar" id="endBar" hidden><button class="btn" id="endExam">End exam and grade now</button></div>
+  </section>
+
+  <section class="card" id="scoreCard" aria-label="Score sheet">
+    <h2>Score sheet · Operate an MBITR Radio</h2>
+    <ol class="score" id="score"></ol>
+    <p class="scnote muted">The voice part (radio check in the net) and the stopping procedures are not part of this key drill.</p>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="assertive" hidden></div>
+
+<div class="modal" id="mIntro" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exT">
+    <h2 id="exT">Exam mode</h2>
+    <ul>
+      <li>One clock for the whole drill: <b>2:00</b>. It starts when you press Start.</li>
+      <li>No coach, no key highlights, no ✓ marks until the end.</li>
+      <li>Assemble the radio yourself: tap the battery, the antenna and the hand mic to put them on. No battery, no power. A part still missing at the end is a NO-GO.</li>
+      <li>The radio comes as in the test: off, with the battery, antenna and hand mic beside it, and the channel switch on 1, and every setting at the factory default (BASIC, PLAIN, 5 W, internal audio).</li>
+      <li>Volume knob clockwise → wait for the self-test → channel switch to the channel on your card → ALT + MENU → PROGRAM → CHANNEL → check PLAIN and PWR 5.0W → SINCGARS (ENT jumps to FX) → FX: ENT, ▲/▼ per digit, ALT + ▲ to the next slot on the right, ENT → ESC 3 times → MENU → TOP AUDIO → ENT → ESC. The antenna and hand mic can go on at any point. Any order works and slips can be fixed; only the final settings count. ALT counts only while held, as on the radio.</li>
+      <li>The exam ends when the channel on your card is set, the audio is TOP AUDIO and you are back at the main display, or at 2:00. A NO-GO sends you to Charlie Company.</li>
+    </ul>
+    <div class="txrow"><button class="btn" id="exBack">Back to Guided</button><button class="btn primary" id="exStart">Start exam</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRes" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="resT">
+    <h2 id="resT">Exam result</h2>
+    <div id="resBody"></div>
+    <div class="txrow" style="margin-top:14px"><button class="btn" data-close="mRes">Review radio</button><button class="btn" id="resGuided">Guided mode</button><button class="btn" id="resSame">Retry same card</button><button class="btn primary" id="resNew">New card</button></div>
+  </div>
+</div>
+
+<div class="modal charlie" id="mCharlie" hidden>
+  <div class="ccard" role="dialog" aria-modal="true" aria-labelledby="chT">
+    <div class="eyebrow">NO-GO · Recycle orders</div>
+    <svg class="guidon" viewBox="0 0 200 112" aria-hidden="true">
+      <rect x="8" y="4" width="6" height="106" rx="3" fill="#8a6a3c"/>
+      <circle cx="11" cy="6" r="6" fill="#d4b13c"/>
+      <g class="flag">
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="#b3261e"/>
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="none" stroke="#ffffff" stroke-opacity=".2" stroke-width="2"/>
+        <text x="84" y="74" text-anchor="middle" font-family="DIN Condensed, Arial Narrow, Arial, sans-serif" font-weight="800" font-size="56" fill="#ffffff">C</text>
+      </g>
+    </svg>
+    <div class="stamp" aria-hidden="true">NO-GO</div>
+    <h2 class="ct" id="chT">Welcome to Charlie Company!</h2>
+    <p id="chStats"></p>
+    <div class="orders">REPORT TO: C Co, 3rd Platoon<br>TIME: 0430 tomorrow<br>BRING: ruck, MBITR, and ENT before ESC</div>
+    <div class="txrow"><button class="btn" id="chWhy">See what went wrong</button><button class="btn primary" id="chRetry">Recycle: try again</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mSet" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="setT">
+    <h2 id="setT">Settings</h2>
+    <button class="btn x" data-close="mSet" aria-label="Close">✕</button>
+    <fieldset>
+      <legend>Setting on the task card</legend>
+      <label class="opt"><input type="radio" name="fm" id="fmS" value="sheet"> Score sheet: one of its 3 settings each card</label>
+      <label class="opt"><input type="radio" name="fm" id="fmR" value="any"> Any frequency, on channel 1</label>
+      <label class="opt"><input type="radio" name="fm" id="fmC" value="custom"> My own, on channel 1 (5 digits, e.g. 81000):</label>
+      <div class="cust"><input id="cf1" inputmode="numeric" maxlength="5" aria-label="Channel 1 frequency"></div>
+      <p class="err" id="setErr" hidden></p>
+    </fieldset>
+    <p class="muted" id="bestTxt"></p>
+    <div class="txrow"><button class="btn primary" id="setSave">Save · new card</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRef" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="refT">
+    <h2 id="refT">Cheat sheet · AN/PRC-148 MBITR (JEM)</h2>
+    <button class="btn x" data-close="mRef" aria-label="Close">✕</button>
+    <h3>The keypad</h3>
+    <p>Seven keys. Top row <code>MODE</code> <code>GR</code> <code>ESC</code>, with <code>MENU</code> <code>SCAN</code> <code>LOCK</code> printed above them: those are their ALT functions. Then <code>▼</code> <code>▲</code> <code>ENT</code> (<code>LAMP</code> printed below ENT), and <code>ALT</code>. As on the radio, ALT works only while it is held: on a phone keep one finger on ALT and tap the other key with a second finger; on a computer hold the <code>A</code> key (or Alt/Option) and click or press the other key. ALT on its own does nothing.</p>
+    <h3>Score-sheet steps and the keys for each (one setting per card)</h3>
+    <ol>
+      <li><b>Place MBITR Radio into operation.</b>
+        <ul>
+          <li>Install battery: twist it onto the bottom until the latch locks.</li>
+          <li>Turn the volume knob (top panel, left) clockwise out of OFF. The radio turns on.</li>
+          <li>Wait for the self-test: <code>TESTING</code>, then the main screen (<code>G01</code> / <code>CHAN001</code> / <code>PT FM</code>). Keys do nothing until then.</li>
+          <li>Attach the antenna (thread it on, hand tight) and plug the hand mic into the audio connector on top. This can be done at any point, even at the end.</li>
+        </ul></li>
+      <li><b>Load a frequency and properly enter the net.</b>
+        <ul>
+          <li><b>Start up:</b> the channel switch (top panel, middle) comes on <code>1</code>. Turn it to the channel on your card: Setting 1 is CH 1 (81.000), Setting 2 is CH 2 (55.000), Setting 3 is CH 3 (57.900). With group G01, position 2 is CHAN002. On the CHANNEL screen, turning it picks the channel being programmed, even while you are entering a frequency (a change not yet confirmed with ENT is dropped).</li>
+          <li><b>Programming:</b> <code>ALT</code> + <code>MODE</code> (MENU) opens the main menu → <code>▼</code> twice to PROGRAM → <code>ENT</code> → <code>▼</code> once to CHANNEL → <code>ENT</code>. The screen opens on the channel the switch selects, for example <code>CH = 002</code>.</li>
+          <li><b>Operating system:</b> <code>▼</code> to the bottom line (BASIC) → <code>ENT</code> → <code>▼</code> to <code>SINCGARS</code> → <code>ENT</code>. The radio jumps straight to FX on screen 2.</li>
+          <li><b>Net information:</b> check <code>PLAIN</code> (line 1, right) and <code>PWR=5.0W</code> (line 3); both are the factory defaults, so they are usually right already. For any field: move the outline with ▲/▼, <code>ENT</code> to change it (it turns dark), ▲/▼ to pick, <code>ENT</code> to confirm.</li>
+          <li><b>Frequency:</b> the outline is already on <code>FX = ##.###</code> (screen 2, under <code>SINCGAR = MAN</code> and <code>ECCM = SC</code>) → <code>ENT</code>: the first digit turns dark. <code>▲</code>/<code>▼</code> change that digit; <code>ALT</code> + <code>▲</code> moves to the next slot on the right, <code>ALT</code> + <code>▼</code> back to the left. <code>ENT</code> to confirm. 81.000 from 67.500: 6 → 8, ALT + ▲, 7 → 1, ALT + ▲, 5 → 0; the last two digits are already 0, so ENT.</li>
+          <li><b>Return:</b> <code>ESC</code> 3 times: CHANNEL → PROGRAM → main menu → main display, which now shows <code>PT SG SC</code>.</li>
+          <li><b>Audio for the hand mic:</b> <code>MODE</code> (MENU, no ALT) → <code>INTERNAL AUDIO</code> is outlined → <code>ENT</code> → <code>▼</code> → <code>TOP AUDIO</code> → <code>ENT</code> → <code>ESC</code>. A headset icon appears. With INTERNAL AUDIO the hand mic stays silent.</li>
+        </ul></li>
+    </ol>
+    <h3>Notes</h3>
+    <ul>
+      <li>Your notes say "SCAN 3 times". SCAN is printed above <code>GR</code> (ALT + GR opens scan). The key that backs out is <code>ESC</code>, the one under LOCK.</li>
+      <li><code>ESC</code> while a field is dark throws the change away. Always confirm with <code>ENT</code> first.</li>
+      <li><code>ALT</code> + <code>ESC</code> locks the keypad (box with an X); the same again unlocks it. <code>ALT</code> + <code>ENT</code> turns the backlight on and off.</li>
+      <li><code>GR</code> picks the channel group. Stay on G01, or the switch selects a different channel.</li>
+      <li>Knobs: drag them, tap their right half to turn clockwise and their left half counterclockwise, or tap a number. Z (panic zeroize) needs the side interlock and is never used here.</li>
+      <li>On a computer: arrow keys = ▲/▼, Enter = ENT, Esc = ESC, <code>M</code> = MODE, <code>G</code> = GR. Hold <code>A</code> (or Alt/Option) for ALT, for example A + ↑ = ALT + ▲.</li>
+    </ul>
+    <h3>Sources and limits</h3>
+    <p class="muted">Steps and settings: the "Operate an MBITR Radio" score sheet (Ranger testing station "Communicate by MBITR": 4 minutes; this trainer's Exam clock is 2:00). Keys, menus and screens: AN/PRC-148 (JEM) Student Guide v10 and the Thales AN/PRC-148 Operation and Maintenance manual, corrected by hands-on feedback from the class radio (FX is entered left to right; ENT on SINCGARS jumps to FX). Display text is simplified, the self-test is shortened, and menu items not used here show ACCESS DENIED.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const pad = (n, w) => String(n).padStart(w, '0');
+const fmt = f => f.slice(0, 2) + '.' + f.slice(2);
+const mmss = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60), 2)}`;
+const times = n => n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const cycle = (list, v, d) => list[(Math.max(0, list.indexOf(v)) + d + list.length) % list.length];
+
+/* ---------- radio data (AN/PRC-148 JEM student guide, Thales O&M manual) ---------- */
+const KEYS = [ // [id, key top, grid area]; the ALT legends (MENU, SCAN, LOCK, LAMP) are printed on the case
+  ['MODE', 'MODE', '2/1'], ['GR', 'GR', '2/2'], ['ESC', 'ESC', '2/3'],
+  ['DN', '▼', '4/1'], ['UP', '▲', '4/2'], ['ENT', 'ENT', '4/3'], ['ALT', 'ALT', '6/1'],
+];
+const KEYNAME = { MODE: 'MODE', GR: 'GR', ESC: 'ESC', DN: '▼', UP: '▲', ENT: 'ENT', ALT: 'ALT' };
+const KEYLABEL = { MODE: 'MODE (ALT: MENU)', GR: 'GR (ALT: SCAN)', ESC: 'ESC (ALT: LOCK)', DN: 'Down arrow', UP: 'Up arrow', ENT: 'ENT (ALT: LAMP)', ALT: 'ALT' };
+const MAIN_MENU = ['ZEROIZE', 'KEYFILL', 'PROGRAM', 'STATUS', 'MAINTENANCE'];
+const PROG_MENU = ['GLOBAL', 'CHANNEL', 'EMERGENCY', 'GROUP'];
+const MODE_MENU = [
+  ['audio', ['INTERNAL AUDIO', 'TOP AUDIO', 'TOP AUDIO+ST', 'SIDE AUDIO', 'SIDE AUDIO+ST']],
+  ['beacon', ['BEACON OFF', 'BEACON ON']],
+  ['traffic', ['VOICE', 'DATA', 'RETRANSMIT']],
+  ['clone', ['CLONING OFF', 'CLONING TX', 'CLONING RX']],
+  ['txsa', ['TX SA OFF', 'TX SA ON']],
+  ['rxsa', ['RX SA OFF', 'RX SA ON']],
+  ['swu', ['SW UPDTE OFF', 'SW UPDTE ON']],
+];
+/* channel programming: list fields change with ▲/▼, digit fields one slot at a time, the rest are shown only */
+const LISTS = {
+  enc: () => ['PLAIN', 'SECURE'],
+  pwr: c => c.op === 'SINCGARS' ? ['1.0W', '3.0W', '5.0W'] : ['0.1W', '0.5W', '1.0W', '3.0W', '5.0W'],
+  op: () => ['BASIC', 'SINCGARS'],
+  sg: () => ['1', '2', '3', '4', '5', '6', 'MAN', 'CUE'],
+  eccm: c => c.sg === 'CUE' ? ['SC'] : ['SC', 'FH'],
+  rptr: () => ['NONE', '0.2', '0.4', '0.6', '0.8', '1.0'],
+  offset: () => ['-10', '-5', '0', '+5', '+10'],
+  fade: () => ['0.0S', '1.0S', '2.0S', '3.0S', '4.0S'],
+  phase: () => ['.256S', '.384S', '1.06S', 'OFF'],
+  sql: () => ['0', '1', '2', '3', '4', '5', '6', '7'],
+};
+const DIGITS = { ch: 1, fx: 1 };
+const FNAME = { enc: 'PLAIN/SECURE', pwr: 'PWR', op: 'the operation mode', sg: 'SINCGAR', eccm: 'ECCM', fx: 'FX', offset: 'OFFSET', ch: 'CH', rptr: 'RPTR', fade: 'FADE', phase: 'PHASE', sql: 'SQLCH', audio: 'the audio path' };
+/* three screens: 0-4 screen 1, 5-8 screen 2, 9-12 screen 3 */
+const fieldsOf = c => c.op === 'SINCGARS'
+  ? ['ch', 'enc', 'name', 'pwr', 'op', 'sg', 'eccm', 'fx', 'data', c.eccm === 'SC' ? 'rptr' : 'net', 'offset', 'fade', 'sql']
+  : ['ch', 'enc', 'name', 'pwr', 'op', 'rx', 'tx', 'tones', 'bdata', 'rptr', 'fade', 'phase', 'sql'];
+const screenOf = i => i < 5 ? 0 : i < 9 ? 1 : 2;
+/* top panel knobs: volume OFF then 8 clicks clockwise (Z sits behind the interlock); channel switch 1-16 */
+const VOL = [{ v: 'Z', a: 195, t: 'Z', z: true }, { v: 0, a: 225, t: 'OFF' }, ...[1, 2, 3, 4, 5, 6, 7, 8].map(v => ({ v, a: (225 + v * 30) % 360, dot: true }))];
+const CHS = Array.from({ length: 16 }, (_, i) => ({ v: i + 1, a: (210 + i * 20) % 360, t: String(i + 1) }));
+const HW = [
+  { id: 'bat', name: 'Battery', how: 'Tap the battery to twist it onto the bottom of the radio. Without it the radio is dead.' },
+  { id: 'ant', name: 'Antenna', how: 'Tap the antenna to screw it onto the antenna connector on the top panel.' },
+  { id: 'mic', name: 'Hand mic', how: 'Tap the hand mic to plug it into the audio connector on the top panel.' },
+];
+/* SINCGARS SC range: 30.000-87.975 MHz in 25 kHz steps */
+const KHZ = ['000', '000', '000', '025', '050', '075', '100', '125', '250', '300', '350', '400', '500', '550', '600', '650', '700', '750', '800', '850', '900', '950', '975'];
+const randFreq = () => pad(30 + rnd(58), 2) + pick(KHZ);
+const validFreq = f => /^\d{5}$/.test(f) && +f >= 30000 && +f <= 87975 && +f % 25 === 0;
+/* the score sheet's settings: all Single Channel, Plain Text, 5 watts */
+const SETTINGS = [{ ch: 1, freq: '81000' }, { ch: 2, freq: '55000' }, { ch: 3, freq: '57900' }];
+const HEADSET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2" fill="none" stroke="currentColor" stroke-width="2.4"/><rect x="2" y="13" width="5" height="8" rx="1.5" fill="currentColor"/><rect x="17" y="13" width="5" height="8" rx="1.5" fill="currentColor"/></svg>';
+
+/* ---------- settings (this browser only) ---------- */
+const STORE = 'mbitr-trainer-v1';
+const S = { freqMode: 'sheet', custom: ['81000'], best: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* storage blocked */ }
+if (typeof S.best !== 'number') S.best = null;
+if (S.freqMode === 'random') S.freqMode = 'sheet'; // saved by an earlier version
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* storage blocked */ } };
+
+/* ---------- run state ---------- */
+let MODE = 'guided', SC, R, W, NOTES, T0 = null, endAt = 0, ended = false;
+let postT = [], fHandle, altHold = null;
+const rot = {};
+const LIMIT = 120; // Exam clock in seconds (the score sheet allows 4 minutes)
+const POST_TEST = 2600, POST_SPLASH = 1400;
+
+function makeCard() {
+  if (S.freqMode === 'any') return { ch: 1, freq: randFreq() };
+  if (S.freqMode === 'custom' && validFreq(S.custom[0])) return { ch: 1, freq: S.custom[0] };
+  return pick(SETTINGS.filter(x => x !== SC)); // a new card is always a different setting
+}
+/* a channel as the factory leaves it: BASIC FM, plain text, 5 W; FX keeps whatever SINCGARS frequency was there before */
+function ch(n) {
+  if (!R.ch[n]) {
+    let fx;
+    do { fx = randFreq(); } while (fx === SC.freq);
+    R.ch[n] = { enc: 'PLAIN', pwr: '5.0W', op: 'BASIC', sg: 'MAN', eccm: 'SC', fx, offset: '0', rptr: 'NONE', fade: '0.0S', phase: '.256S', sql: '3', net: '000' };
+  }
+  return R.ch[n];
+}
+/* Radio as handed over in the test: battery, antenna and hand mic off, volume at OFF, channel switch on 1,
+   every setting at the factory default (BASIC, PLAIN, 5 W, internal audio). */
+function freshRadio() {
+  R = {
+    hw: { bat: false, ant: false, mic: false }, vol: 0, sw: 1, group: 1, st: 'off', disp: 'off',
+    menuI: 0, progI: 0, modeI: 0, fieldI: 0, grpSel: 1, deny: null, edit: null, progCh: 1, ch: {},
+    audio: 'INTERNAL AUDIO', mv: { beacon: 'BEACON OFF', traffic: 'VOICE', clone: 'CLONING OFF', txsa: 'TX SA OFF', rxsa: 'RX SA OFF', swu: 'SW UPDTE OFF' },
+    lock: false, lamp: false, alt: false, flash: '', seen: false, partsLater: false,
+  };
+}
+
+/* ---------- radio behaviour ---------- */
+const curCh = () => (R.group - 1) * 16 + R.sw;
+const chanName = n => 'CHAN' + pad(n, 3);
+const isOn = () => R.st === 'on';
+const hwOK = () => HW.every(h => R.hw[h.id]);
+const atMain = () => isOn() && (R.disp === 'main' || R.disp === 'alt');
+const modeVal = k => k === 'audio' ? R.audio : R.mv[k];
+function clearPost() { postT.forEach(clearTimeout); postT = []; }
+function powerUp() {
+  clearPost();
+  R.st = 'test'; R.disp = 'test';
+  postT.push(setTimeout(() => { R.st = 'splash'; R.disp = 'splash'; renderAll(); }, POST_TEST));
+  postT.push(setTimeout(() => { R.st = 'on'; R.disp = 'main'; event({ type: 'posted' }); }, POST_TEST + POST_SPLASH));
+}
+function powerDown() {
+  clearPost(); clearTimeout(fHandle);
+  Object.assign(R, { st: 'off', disp: 'off', edit: null, flash: '' });
+}
+function flashLine(text) {
+  clearTimeout(fHandle);
+  R.flash = text;
+  fHandle = setTimeout(() => { R.flash = ''; renderAll(); }, 1300);
+}
+/* Guided mode: a press that is not the highlighted control is ignored and the right one is shown. */
+let nudgeAt = 0, nudgeWas = '', toastT, nudgeT;
+const ctl = t => !t ? null : t.startsWith('hw:') ? $(`.hw[data-hw="${t.slice(3)}"]`) : t === 'vol' ? $('#volKnob') : t === 'ch' ? $('#chKnob') : $(`.key[data-k="${t}"]`);
+function guided(want, el) {
+  if (MODE !== 'guided' || ended) return true;
+  const c = coachData();
+  /* parts may go on at any time, and the antenna and hand mic may also wait until the end */
+  const skip = (c.target === 'hw:ant' || c.target === 'hw:mic') && !R.partsLater ? coachData(true) : null;
+  const ahead = !!skip && skip.target === want;
+  if (ahead) R.partsLater = true;
+  if (!c.target || c.target === want || want.startsWith('hw:') || ahead) {
+    clearTimeout(toastT); clearTimeout(nudgeT);
+    $('#toast').hidden = true;
+    $$('.want, .nope, .shake').forEach(e => e.classList.remove('want', 'nope', 'shake'));
+    return true;
+  }
+  /* a knob drag or a double tap repeats the same wrong press; show the cue once */
+  const now = Date.now();
+  if (now - nudgeAt < 500 && nudgeWas === want) return false;
+  nudgeAt = now; nudgeWas = want;
+  const right = ctl(c.target);
+  const els = [right, el, $('#coach')].filter(Boolean);
+  $$('.want, .nope, .shake').forEach(e => e.classList.remove('want', 'nope', 'shake'));
+  els.forEach(e => { void e.offsetWidth; });
+  if (el) el.classList.add('nope');
+  right.classList.add('want');
+  $('#coach').classList.add('shake');
+  const r = right.getBoundingClientRect(), off = r.top < 70 || r.bottom > innerHeight - 90;
+  if (off) right.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const toast = $('#toast');
+  /* keep the note away from the control it points to */
+  toast.classList.toggle('top', off || (r.top + r.bottom) / 2 > innerHeight / 2);
+  toast.innerHTML = `<b>Not that one.</b> ${esc(c.do)} ${esc(c.how)}`;
+  toast.hidden = false;
+  toast.classList.remove('pop'); void toast.offsetWidth; toast.classList.add('pop');
+  clearTimeout(toastT); toastT = setTimeout(() => { toast.hidden = true; }, 3200);
+  clearTimeout(nudgeT); nudgeT = setTimeout(() => els.forEach(e => e.classList.remove('want', 'nope', 'shake')), 1800);
+  return false;
+}
+function setVol(v) {
+  touch();
+  if (v === R.vol || !guided('vol', $('#volKnob'))) return;
+  const was = R.vol;
+  R.vol = v;
+  if (!was && R.hw.bat) powerUp();
+  if (!v) powerDown();
+  event({ type: 'vol', v, was });
+}
+function setSw(n) {
+  touch();
+  if (n === R.sw || !guided('ch', $('#chKnob'))) return;
+  const was = R.sw;
+  R.sw = n;
+  /* on the CHANNEL screen the switch picks the channel being programmed, even mid-edit (the unsaved change is dropped) */
+  if (isOn() && R.disp === 'chan' && curCh() !== R.progCh) {
+    R.edit = null; R.flash = ''; R.progCh = curCh();
+    if (R.progCh === SC.ch) R.seen = true;
+  }
+  event({ type: 'sw', v: n, was });
+}
+function install(id) {
+  touch();
+  if (R.hw[id] || !guided('hw:' + id, $(`.hw[data-hw="${id}"]`))) return;
+  R.hw[id] = true;
+  if (id === 'bat' && R.vol) powerUp();
+  event({ type: 'hw', v: id });
+}
+/* ALT works like the radio's: it counts only while it is held (a finger on ALT, or the A / Alt key on a keyboard) */
+function altDown(src) {
+  touch();
+  if (altHold !== null || !guided('ALT', $('.key[data-k="ALT"]'))) return;
+  altHold = src; R.alt = true;
+  event({ type: 'alt' });
+}
+function altUp(src) {
+  if (altHold !== src) return;
+  altHold = null; R.alt = false;
+  event({ type: 'alt' });
+}
+function press(id) {
+  if (id === 'ALT') return;
+  touch();
+  if (!guided(id, $(`.key[data-k="${id}"]`))) return;
+  if (!R.hw.bat || !R.vol) return event({ type: 'dead' });
+  if (!isOn()) return event({ type: 'post' });
+  const alt = R.alt;
+  if (R.flash) { clearTimeout(fHandle); R.flash = ''; }
+  if (alt && id === 'ENT') { R.lamp = !R.lamp; return event({ type: 'lamp' }); }
+  if (R.lock) {
+    if (alt && id === 'ESC') { R.lock = false; return event({ type: 'unlock' }); }
+    return event({ type: 'locked' });
+  }
+  return { main: onMain, alt: onMain, menu: onMenu, prog: onProg, chan: onChan, mode: onMode, group: onGroup, deny: onDeny }[R.disp](id, alt);
+}
+function deny(title, back) {
+  R.deny = { title, back }; R.disp = 'deny';
+  return event({ type: 'denied', v: title });
+}
+const noop = (id, alt) => event({ type: id === 'GR' && !alt && !['main', 'alt'].includes(R.disp) ? 'grMenu' : 'noop', id, alt });
+function onMain(id, alt) {
+  if (alt) {
+    if (id === 'MODE') { R.disp = 'menu'; R.menuI = 0; return event({ type: 'menu' }); }
+    if (id === 'GR') return deny('SCAN', R.disp);
+    if (id === 'ESC') { R.lock = true; return event({ type: 'lock' }); }
+    return noop(id, alt);
+  }
+  if (id === 'MODE') { R.disp = 'mode'; R.modeI = 0; R.edit = null; return event({ type: 'mode' }); }
+  if (id === 'GR') { R.disp = 'group'; R.grpSel = R.group; return event({ type: 'group' }); }
+  if (id === 'ENT') { R.disp = R.disp === 'main' ? 'alt' : 'main'; return event({ type: 'view' }); }
+  if (id === 'ESC') { R.disp = 'main'; return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function onMenu(id, alt) {
+  if (alt) return noop(id, alt);
+  if (id === 'DN' || id === 'UP') { R.menuI = clamp(R.menuI + (id === 'DN' ? 1 : -1), 0, MAIN_MENU.length - 1); return event({ type: 'nav' }); }
+  if (id === 'ENT') {
+    if (MAIN_MENU[R.menuI] !== 'PROGRAM') return deny(MAIN_MENU[R.menuI], 'menu');
+    R.disp = 'prog'; R.progI = 0;
+    return event({ type: 'prog' });
+  }
+  if (id === 'ESC') { R.disp = 'main'; return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function onProg(id, alt) {
+  if (alt) return noop(id, alt);
+  if (id === 'DN' || id === 'UP') { R.progI = clamp(R.progI + (id === 'DN' ? 1 : -1), 0, PROG_MENU.length - 1); return event({ type: 'nav' }); }
+  if (id === 'ENT') {
+    if (PROG_MENU[R.progI] !== 'CHANNEL') return deny(PROG_MENU[R.progI], 'prog');
+    R.disp = 'chan'; R.progCh = curCh(); R.fieldI = 0; R.edit = null;
+    if (R.progCh === SC.ch) R.seen = true;
+    return event({ type: 'chan' });
+  }
+  if (id === 'ESC') { R.disp = 'menu'; R.menuI = MAIN_MENU.indexOf('PROGRAM'); return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function onDeny(id, alt) {
+  if (id === 'ESC' && !alt) { R.disp = R.deny.back; return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function onGroup(id, alt) {
+  if (alt) return noop(id, alt);
+  if (id === 'DN' || id === 'UP') { R.grpSel = (R.grpSel - 1 + (id === 'DN' ? 1 : 15)) % 16 + 1; return event({ type: 'nav' }); }
+  if (id === 'ENT') { R.group = R.grpSel; R.disp = 'main'; return event({ type: 'grp', v: R.group }); }
+  if (id === 'ESC') { R.disp = 'main'; return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function onMode(id, alt) {
+  const [k, vals] = MODE_MENU[R.modeI];
+  if (alt) return noop(id, alt);
+  if (R.edit) {
+    if (id === 'DN' || id === 'UP') { R.edit.v = cycle(vals, R.edit.v, id === 'DN' ? 1 : -1); return event({ type: 'edit' }); }
+    if (id === 'ENT') {
+      if (k === 'audio') R.audio = R.edit.v; else R.mv[k] = R.edit.v;
+      R.edit = null;
+      return event({ type: 'mv', k, v: modeVal(k) });
+    }
+    if (id === 'ESC') { const changed = R.edit.v !== modeVal(k); R.edit = null; return event({ type: 'cancel', f: k, changed }); }
+    return noop(id, alt);
+  }
+  if (id === 'DN' || id === 'UP') { R.modeI = clamp(R.modeI + (id === 'DN' ? 1 : -1), 0, MODE_MENU.length - 1); return event({ type: 'nav' }); }
+  if (id === 'ENT') { R.edit = { f: k, v: modeVal(k) }; return event({ type: 'edit' }); }
+  if (id === 'ESC') { R.disp = 'main'; return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+/* after ENT confirms a field the outline moves to the next line of the same screen */
+function nextField(F) { if (R.fieldI + 1 < F.length && screenOf(R.fieldI + 1) === screenOf(R.fieldI)) R.fieldI++; }
+function onChan(id, alt) {
+  const c = ch(R.progCh), F = fieldsOf(c), f = F[R.fieldI];
+  if (R.edit) return editKey(id, alt, c);
+  if (alt) return noop(id, alt);
+  if (id === 'DN' || id === 'UP') { R.fieldI = clamp(R.fieldI + (id === 'DN' ? 1 : -1), 0, F.length - 1); return event({ type: 'nav' }); }
+  if (id === 'ENT') {
+    if (LISTS[f]) R.edit = { f, v: c[f] };
+    else if (DIGITS[f]) R.edit = { f, s: f === 'ch' ? pad(R.progCh, 3) : c.fx, i: 0 };
+    else { nextField(F); return event({ type: 'nav' }); }
+    return event({ type: 'edit' });
+  }
+  if (id === 'ESC') { R.disp = 'prog'; R.progI = PROG_MENU.indexOf('CHANNEL'); return event({ type: 'view' }); }
+  return noop(id, alt);
+}
+function editKey(id, alt, c) {
+  const e = R.edit;
+  if (LISTS[e.f]) {
+    if (alt) return noop(id, alt);
+    if (id === 'DN' || id === 'UP') { e.v = cycle(LISTS[e.f](c), e.v, id === 'DN' ? 1 : -1); return event({ type: 'edit' }); }
+    if (id === 'ENT') {
+      c[e.f] = e.v;
+      if (e.f === 'op' && !LISTS.pwr(c).includes(c.pwr)) c.pwr = '1.0W';
+      if (e.f === 'sg' && e.v === 'CUE') c.eccm = 'SC';
+      R.edit = null;
+      /* confirming SINCGARS takes the outline straight to FX on screen 2 */
+      if (e.f === 'op' && e.v === 'SINCGARS') R.fieldI = fieldsOf(c).indexOf('fx');
+      else nextField(fieldsOf(c));
+      return event({ type: 'set', f: e.f, v: c[e.f], ch: R.progCh });
+    }
+  } else {
+    if (id === 'UP' || id === 'DN') {
+      /* editing runs left to right: ALT + ▲ moves to the next slot (right), ALT + ▼ back (left); ▲/▼ alone roll the dark digit */
+      if (alt) { e.i = clamp(e.i + (id === 'UP' ? 1 : -1), 0, e.s.length - 1); return event({ type: 'slot' }); }
+      const s = e.s.split('');
+      s[e.i] = String((+s[e.i] + (id === 'UP' ? 1 : 9)) % 10);
+      e.s = s.join('');
+      return event({ type: 'digit' });
+    }
+    if (alt) return noop(id, alt);
+    if (id === 'ENT') {
+      if (e.f === 'fx') {
+        if (!validFreq(e.s)) { flashLine('INVALID FREQ'); return event({ type: 'invalid', v: e.s }); }
+        c.fx = e.s;
+      } else {
+        if (+e.s < 1 || +e.s > 256) { flashLine('INVALID CH'); return event({ type: 'invalid', v: e.s, f: 'ch' }); }
+        R.progCh = +e.s;
+        if (R.progCh === SC.ch) R.seen = true;
+      }
+      R.edit = null;
+      nextField(fieldsOf(ch(R.progCh)));
+      return event({ type: 'set', f: e.f, v: e.f === 'fx' ? c.fx : R.progCh, ch: R.progCh });
+    }
+  }
+  if (id === 'ESC') {
+    const changed = LISTS[e.f] ? e.v !== c[e.f] : e.s !== (e.f === 'ch' ? pad(R.progCh, 3) : c.fx);
+    R.edit = null;
+    return event({ type: 'cancel', f: e.f, changed });
+  }
+  return noop(id, alt);
+}
+
+/* ---------- display ---------- */
+function listView(items, sel, edit) {
+  const top = clamp(sel - 3, 0, Math.max(0, items.length - 4));
+  const l = items.slice(top, top + 4).map((t, j) => top + j === sel ? `<span class="${edit ? 'inv' : 'sel'}">${esc(edit ? edit.v : t)}</span>` : esc(t));
+  return { l, up: top > 0, dn: top + 4 < items.length };
+}
+function chanView() {
+  const c = ch(R.progCh), F = fieldsOf(c), e = R.edit;
+  const val = f => e && e.f === f && LISTS[f] ? e.v : c[f];
+  const fs = (f, text) => {
+    if (F.indexOf(f) !== R.fieldI) return esc(text);
+    if (!e || e.f !== f) return `<span class="sel">${esc(text)}</span>`;
+    if (LISTS[f]) return `<span class="inv">${esc(text)}</span>`;
+    const shown = f === 'fx' ? fmt(e.s) : e.s, at = f === 'fx' && e.i >= 2 ? e.i + 1 : e.i;
+    return `<span class="sel">${[...shown].map((d, k) => k === at ? `<span class="inv">${d}</span>` : d).join('')}</span>`;
+  };
+  const sg = c.op === 'SINCGARS', sc = screenOf(R.fieldI);
+  let l;
+  if (sc === 0) l = [`CH = ${fs('ch', pad(R.progCh, 3))} ${fs('enc', val('enc'))}`, fs('name', chanName(R.progCh)), `PWR=${fs('pwr', val('pwr'))}`, fs('op', val('op'))];
+  else if (sc === 1) l = sg
+    ? [`SINCGAR = ${fs('sg', val('sg'))}`, `ECCM = ${fs('eccm', val('eccm'))}`, `FX = ${fs('fx', fmt(c.fx))}`, fs('data', 'FM 600 TEK01')]
+    : [`RX=${fs('rx', '167.56250')}`, `TX=${fs('tx', '167.56250')}`, fs('tones', 'R= OFF T= OFF'), fs('bdata', 'FM 16K TEK01')];
+  else l = sg
+    ? [c.eccm === 'SC' ? `RPTR ${fs('rptr', val('rptr'))}` : `NET ID ${fs('net', c.net)}`, `OFFSET ${fs('offset', val('offset'))}`, `FADE ${fs('fade', val('fade'))}`, `SQLCH ${fs('sql', val('sql'))}`]
+    : [`RPTR ${fs('rptr', val('rptr'))}`, `FADE ${fs('fade', val('fade'))}`, `PHASE ${fs('phase', val('phase'))}`, `SQLCH ${fs('sql', val('sql'))}`];
+  if (R.flash && e) l[e.f === 'fx' ? 2 : 0] = esc(R.flash);
+  return { l, up: sc > 0, dn: sc < 2 };
+}
+function lcdView() {
+  switch (R.disp) {
+    case 'test': return { l: ['', '   TESTING', '', ''] };
+    case 'splash': return { l: ['', '  AN/PRC-148', '     JEM', ''] };
+    case 'menu': return listView(MAIN_MENU, R.menuI);
+    case 'prog': return listView(PROG_MENU, R.progI);
+    case 'mode': return listView(MODE_MENU.map(([k]) => modeVal(k)), R.modeI, R.edit);
+    case 'chan': return chanView();
+    case 'deny': return { l: [esc(R.deny.title), 'ACCESS DENIED', 'PRESS ESC TO EXIT', ''] };
+    case 'group': return { l: [`GROUP = <span class="inv">G${pad(R.grpSel, 2)}</span>`, `G${pad(R.grpSel, 2)}`, chanName((R.grpSel - 1) * 16 + R.sw), ''] };
+    case 'alt': {
+      const c = ch(curCh());
+      if (c.op !== 'SINCGARS') return { l: ['RX= 167.56250', 'TX= 167.56250', 'R= OFF T= OFF', 'FM 16K TEK01'] };
+      return { l: c.eccm === 'SC' ? [`SINCGAR = ${c.sg}`, `FX = ${fmt(c.fx)}`, `OFFSET = ${c.offset}`, 'FM 600 TEK01'] : [`SINCGAR = ${c.sg}`, `NET ID = ${c.net}`, '00:00:00:00', 'FM 600 TEK01'] };
+    }
+    default: {
+      /* main operational screen: group, channel name, crypto mode and operating mode; alerts flash on line 1 */
+      const c = ch(curCh()), alert = c.enc === 'SECURE' ? 'NOKEY' : c.op === 'SINCGARS' && c.eccm === 'FH' ? 'TRSEC' : '';
+      const icons = (R.audio !== 'INTERNAL AUDIO' ? HEADSET : '') + (R.lock ? '<span>⊠</span>' : '');
+      return {
+        l: [`G${pad(R.group, 2)}${alert ? `  <span class="blk">${alert}</span>` : ''}`, chanName(curCh()), `${c.enc === 'PLAIN' ? 'PT' : 'CT'} ${c.op === 'SINCGARS' ? 'SG ' + c.eccm : 'FM'}`, ''],
+        bat: true, icons,
+      };
+    }
+  }
+}
+
+/* ---------- score sheet: what must be true at the end ---------- */
+/* One channel (CH 1, group G01). No order rules beyond what the radio itself enforces;
+   everything may be done in any order and fixed later. Only the final settings count. */
+const chOK = () => { const c = ch(SC.ch); return c.op === 'SINCGARS' && c.eccm === 'SC' && c.fx === SC.freq && c.enc === 'PLAIN' && c.pwr === '5.0W' && c.offset === '0'; };
+const isReady = () => hwOK() && atMain() && R.group === 1 && R.sw === SC.ch && chOK() && R.audio === 'TOP AUDIO';
+const inMenus = () => isOn() && ['menu', 'prog', 'chan', 'deny', 'group'].includes(R.disp);
+function event(ev) {
+  if (!ended && ev.type !== 'alt') W = react(ev);
+  renderAll();
+  if (!ended && isReady() && (MODE === 'guided' || T0)) finish('done');
+}
+function react(ev) {
+  const f = SC.freq;
+  switch (ev.type) {
+    case 'dead': return R.hw.bat ? 'The radio is off. Turn the volume knob clockwise.' : 'No battery: the radio has no power. Install the battery first.';
+    case 'vol': return ev.v && !R.hw.bat ? 'No battery: the radio has no power. Install the battery first.' : null;
+    case 'post': return 'Wait for the self-test. Keys do nothing until the main screen shows.';
+    case 'locked': return 'The keypad is locked (box with an X). Hold ALT and press ESC to unlock it.';
+    case 'lock': return 'ALT + ESC locked the keypad (box with an X). ALT + ESC again unlocks it.';
+    case 'denied': return `${ev.v} shows ACCESS DENIED on this radio. Press ESC.`;
+    case 'grMenu': return 'GR does nothing here. To go back, press ESC (the key under LOCK). SCAN is printed above GR.';
+    case 'invalid': return ev.f === 'ch' ? 'Channels run from 001 to 256.' : `${fmt(ev.v)} is not a SINCGARS frequency (30.000–87.975, 25 kHz steps). Fix the digits, then ENT.`;
+    case 'cancel':
+      if (!ev.changed) return null;
+      if (ev.f === 'fx') NOTES.push('An FX edit was left with ESC, so the new frequency was not saved.');
+      return `ESC threw away the change to ${FNAME[ev.f]}. Change it again and confirm with ENT.`;
+    case 'grp': return ev.v === 1 ? null : `Group G${pad(ev.v, 2)}: the channel switch now picks ${chanName(curCh())}, not ${chanName(SC.ch)}. The card uses G01.`;
+    case 'sw': return ev.was === SC.ch && ev.v !== SC.ch ? `The channel switch is on ${ev.v} now. The card uses channel ${SC.ch}.` : null;
+    case 'z': return 'Z is panic zeroize. It needs the interlock on the side and wipes the keys. It is never used here.';
+    case 'set': {
+      if (ev.f === 'ch') return ev.v === SC.ch ? null : `Now programming CH ${pad(ev.v, 3)}. The card uses channel ${pad(SC.ch, 3)}.`;
+      if (ev.ch !== SC.ch) {
+        if (ev.f === 'fx') NOTES.push(`Set FX ${fmt(ev.v)} in CH ${pad(ev.ch, 3)} instead of CH ${pad(SC.ch, 3)}.`);
+        return `That changed CH ${pad(ev.ch, 3)}. The card uses channel ${pad(SC.ch, 3)}: set the channel switch to ${SC.ch} and open CHANNEL again.`;
+      }
+      if (ev.f === 'fx' && ev.v !== f) { NOTES.push(`Set FX ${fmt(ev.v)} in channel ${SC.ch} (card: ${fmt(f)}).`); return `FX now holds ${fmt(ev.v)}, but the card says ${fmt(f)}. Edit it again.`; }
+      if (ev.f === 'enc' && ev.v !== 'PLAIN') return 'The card says Plain Text: set PLAIN.';
+      if (ev.f === 'pwr' && ev.v !== '5.0W') return 'The card says 5 watts: set PWR=5.0W.';
+      if (ev.f === 'op' && ev.v !== 'SINCGARS') return 'The card is a SINCGARS single channel frequency: select SINCGARS.';
+      if (ev.f === 'eccm' && ev.v !== 'SC') return 'FH is frequency hopping. The card is single channel: set ECCM = SC.';
+      if (ev.f === 'offset' && ev.v !== '0') return 'OFFSET shifts the frequency off the card. Keep OFFSET 0.';
+      return null;
+    }
+    case 'mv': return ev.k === 'audio' && ev.v !== 'TOP AUDIO' ? `${ev.v}: the hand mic on the top connector needs TOP AUDIO.` : null;
+  }
+  return null;
+}
+
+/* ---------- coach (Guided mode): your class steps, one press at a time ---------- */
+const G = (step, d, how, target, next) => ({ step, do: d, how, target, next });
+const arrowsTxt = n => `${n > 0 ? '▼' : '▲'} ${times(Math.abs(n))}`;
+function listDist(list, from, to) {
+  const n = list.length, i = list.indexOf(from), j = list.indexOf(to), dn = (j - i + n) % n, up = (i - j + n) % n;
+  return dn <= up ? { key: 'DN', txt: '▼ ' + times(dn) } : { key: 'UP', txt: '▲ ' + times(up) };
+}
+/* ALT combinations: the coach points at ALT first, then (while it is held) at the other key */
+const holdHow = id => matchMedia('(pointer: fine)').matches
+  ? `Hold the A key (or Alt/Option) and press ${KEYNAME[id]}.`
+  : `Keep one finger on ALT and tap ${KEYNAME[id]} with another.`;
+function keyG(step, d, how, id, needAlt) {
+  if (needAlt) return R.alt ? G(step, d, `${how} ALT is held: now press ${KEYNAME[id]}.`, id) : G(step, d, `${how} ${holdHow(id)}`, 'ALT', id);
+  if (R.alt) return G(step, d, 'Let go of ALT first.', 'ALT');
+  return G(step, d, how, id);
+}
+const backG = (step, d) => keyG(step, d, 'Press ESC to go back to the main display.', 'ESC');
+function fxGoal() {
+  const t = SC.freq, e = R.edit, s = e.s, i = e.i;
+  if (s === t) return keyG('Channel setup', 'Confirm with ENT.', `FX reads ${fmt(t)}. ENT saves it; ESC would throw it away.`, 'ENT');
+  if (s[i] !== t[i]) {
+    const up = (+t[i] - +s[i] + 10) % 10, k = up <= 5 ? 'UP' : 'DN', n = up <= 5 ? up : 10 - up, seq = [s[i]];
+    for (let j = 0; j < n; j++) seq.push(String((+seq[j] + (k === 'UP' ? 1 : 9)) % 10));
+    return keyG('Channel setup', `Edit the frequency: ${s[i]} → ${t[i]}.`, `Press ${KEYNAME[k]} ${times(n)}${n > 1 ? ` (${seq.join(' → ')})` : ''}. The dark digit is the slot you are editing.`, k);
+  }
+  if ([...t].some((d, j) => j > i && s[j] !== d)) return keyG('Channel setup', 'Move to the next slot.', 'ALT + ▲ moves the dark digit one slot to the right.', 'UP', true);
+  return keyG('Channel setup', 'Move back one slot.', 'ALT + ▼ moves the dark digit one slot to the left.', 'DN', true);
+}
+function chanGoal(c) {
+  if (R.progCh !== SC.ch) return keyG('Channel setup', 'Press ESC, then open CHANNEL again.', `This screen is programming CH ${pad(R.progCh, 3)}. With the switch on ${SC.ch}, CHANNEL opens on CH = ${pad(SC.ch, 3)}.`, 'ESC');
+  const [f, v, d, why] = [
+    ['enc', 'PLAIN', 'Set PLAIN.', 'The card says Plain Text. PLAIN/SECURE is on line 1, right of CH.'],
+    ['pwr', '5.0W', 'Set PWR=5.0W.', 'The card says 5 watts.'],
+    ['op', 'SINCGARS', 'Select SINCGARS.', `${c.enc === 'PLAIN' && c.pwr === '5.0W' ? 'PLAIN and 5.0W already match the card. ' : ''}The operation mode is the bottom line of screen 1.`],
+    ['eccm', 'SC', 'Set ECCM = SC.', 'SC is single channel; FH is frequency hopping.'],
+    ['fx', SC.freq, 'Locate FX, hit ENT.', `FX is the single channel frequency on screen 2. The card says ${fmt(SC.freq)}.`],
+    ['offset', '0', 'Set OFFSET 0.', 'OFFSET is on screen 3. It shifts the frequency; the card needs 0.'],
+  ].find(([k, val]) => c[k] !== val);
+  if (R.edit && R.edit.f !== f) return keyG('Channel setup', 'Press ESC.', `That drops the change to ${FNAME[R.edit.f]}. Then go to ${FNAME[f]}.`, 'ESC');
+  if (R.edit) {
+    if (f === 'fx') return fxGoal();
+    if (R.edit.v === v) return keyG('Channel setup', 'Press ENT.', `Confirms ${v}.`, 'ENT');
+    const dist = listDist(LISTS[f](c), R.edit.v, v);
+    return keyG('Channel setup', d, `Press ${dist.txt} to show ${v}, then ENT.`, dist.key);
+  }
+  const idx = fieldsOf(c).indexOf(f), n = idx - R.fieldI;
+  if (n) return keyG('Channel setup', d, `${why} Press ${arrowsTxt(n)} to move the outline there${screenOf(idx) !== screenOf(R.fieldI) ? ' (past the bottom line is the next screen)' : ''}.`, n > 0 ? 'DN' : 'UP');
+  return keyG('Channel setup', d, f === 'fx' ? 'Press ENT: the first digit turns dark. That is the slot you are editing.' : `${why} Press ENT to change it.`, 'ENT');
+}
+function progGoal(c) {
+  const PI = MAIN_MENU.indexOf('PROGRAM'), CI = PROG_MENU.indexOf('CHANNEL');
+  switch (R.disp) {
+    case 'main': case 'alt': return keyG('Programming', 'ALT + MENU → PROGRAM → ENT → CHANNEL.', 'MENU is printed above MODE.', 'MODE', true);
+    case 'menu': return R.menuI !== PI ? keyG('Programming', 'Select PROGRAM.', `Press ${arrowsTxt(PI - R.menuI)}.`, PI > R.menuI ? 'DN' : 'UP') : keyG('Programming', 'Press ENT.', 'Opens PROGRAM.', 'ENT');
+    case 'prog': return R.progI !== CI ? keyG('Programming', 'Select CHANNEL.', `Press ${arrowsTxt(CI - R.progI)}.`, CI > R.progI ? 'DN' : 'UP') : keyG('Programming', 'Press ENT.', `Opens CHANNEL on the channel the switch selects: CH = ${pad(SC.ch, 3)}.`, 'ENT');
+    case 'chan': return chanGoal(c);
+    case 'deny': return keyG('Programming', 'Press ESC.', 'That item is locked out. ESC goes back.', 'ESC');
+    default: return backG('Programming', 'Back to the main display first.');
+  }
+}
+function audioGoal() {
+  if (atMain()) return keyG('Audio', 'MENU → INTERNAL AUDIO.', 'Press MODE (MENU is printed above it; no ALT this time). The first line is the audio path.', 'MODE');
+  if (R.disp !== 'mode') return backG('Audio', 'Back to the main display first.');
+  if (!R.edit) return R.modeI ? keyG('Audio', 'Go to the audio line.', `Press ${arrowsTxt(-R.modeI)}.`, 'UP') : keyG('Audio', 'Press ENT.', `The audio line (${R.audio}) turns dark: now you can change it.`, 'ENT');
+  if (R.edit.f !== 'audio') return keyG('Audio', 'Press ESC.', 'Drop this change, then go to the audio line.', 'ESC');
+  if (R.edit.v === 'TOP AUDIO') return keyG('Audio', 'Press ENT.', 'Confirms TOP AUDIO: sound and mic go to the hand mic on the top connector.', 'ENT');
+  const dist = listDist(MODE_MENU[0][1], R.edit.v, 'TOP AUDIO');
+  return keyG('Audio', 'Select TOP AUDIO.', `Press ${dist.txt}.`, dist.key);
+}
+function coachData(later) {
+  if (ended) return G('Done', 'Radio set to enter the net.', `Done in ${mmss(endAt)}: assembled and on, channel ${SC.ch} is SINCGARS SC on ${fmt(SC.freq)}, plain text, 5 W, audio to the hand mic. Try Exam mode next.`, null);
+  if (!R.hw.bat) return G('Start up', 'Install battery.', HW[0].how, 'hw:bat');
+  if (!R.vol) return G('Start up', 'Turn volume knob clockwise.', 'The volume knob is on the left of the top panel. Tap its right half (or drag it) to turn it out of OFF. The radio turns on.', 'vol');
+  if (!isOn()) return G('Start up', 'Wait for self-test.', 'The display shows TESTING, then the main screen. Keys do nothing until then.', null);
+  /* the antenna and hand mic come here in the class order, but may also go on at the end */
+  const early = !later && !R.partsLater, any = ' Now or at the end: the order does not matter.';
+  if (early && !R.hw.ant) return G('Start up', 'Attach antenna.', HW[1].how + any, 'hw:ant');
+  if (early && !R.hw.mic) return G('Start up', 'Attach the hand mic.', HW[2].how + any, 'hw:mic');
+  if (R.lock) return keyG('Start up', 'Unlock the keypad.', 'The box with an X means the keypad is locked. LOCK is printed above ESC.', 'ESC', true);
+  if (R.sw !== SC.ch) return G('Start up', `Set the channel switch to ${SC.ch}.`, `The card uses channel ${SC.ch}. The channel switch is in the middle of the top panel, now on ${R.sw}. Tap the ${SC.ch}, or tap the knob's ${R.sw > SC.ch ? 'left half to turn it counterclockwise' : 'right half to turn it clockwise'}.`, 'ch');
+  if (R.group !== 1) {
+    if (R.disp === 'group') {
+      if (R.grpSel === 1) return keyG('Start up', 'Press ENT.', 'Selects G01 and goes back to the main screen.', 'ENT');
+      const dist = listDist(Array.from({ length: 16 }, (_, i) => i + 1), R.grpSel, 1);
+      return keyG('Start up', 'Select group G01.', `Press ${dist.txt}.`, dist.key);
+    }
+    if (atMain()) return keyG('Start up', 'Select group G01.', `G${pad(R.group, 2)} is selected, so the switch picks ${chanName(curCh())}. Press GR to open the groups.`, 'GR');
+    return backG('Start up', 'Select group G01.');
+  }
+  if (!chOK()) return progGoal(ch(SC.ch));
+  if (['menu', 'prog', 'chan', 'deny'].includes(R.disp)) {
+    const n = { chan: 3, prog: 2, menu: 1, deny: { prog: 3, menu: 2 }[R.deny && R.deny.back] || 1 }[R.disp] + (R.edit ? 1 : 0);
+    return keyG('Return', `Press ESC ${times(n)} to the main display.`, 'ESC backs out one screen at a time: CHANNEL → PROGRAM → main menu → main display. It is the key under LOCK (SCAN is printed above GR).', 'ESC');
+  }
+  if (R.audio !== 'TOP AUDIO') return audioGoal();
+  if (R.disp === 'mode') return keyG('Audio', 'Press ESC.', 'Back to the main display. The headset icon shows the audio goes to the top connector.', 'ESC');
+  if (!R.hw.ant) return G('Assemble', 'Attach antenna.', HW[1].how, 'hw:ant');
+  if (!R.hw.mic) return G('Assemble', 'Attach the hand mic.', HW[2].how, 'hw:mic');
+  return backG('Audio', 'Back to the main display.');
+}
+
+/* ---------- rendering ---------- */
+function renderAll() {
+  renderRadio(); renderCoach(); renderTask(); renderScore();
+  const running = MODE === 'exam' && !!T0 && !ended;
+  $('#endBar').hidden = !running;
+  $('#btnRef').disabled = $('#btnSet').disabled = running;
+}
+function turn(id, a) {
+  if (rot[id] === undefined) rot[id] = a;
+  else { const cur = ((rot[id] % 360) + 360) % 360; rot[id] += ((a - cur + 540) % 360) - 180; }
+  $('#' + id).style.transform = `rotate(${rot[id]}deg)`;
+}
+function renderRadio() {
+  const lcd = $('#lcd'), dead = !R.hw.bat || R.st === 'off';
+  lcd.classList.toggle('off', dead);
+  lcd.classList.toggle('lamp', R.lamp && !dead);
+  if (dead) lcd.innerHTML = '';
+  else {
+    const v = lcdView();
+    lcd.innerHTML = v.l.map(x => `<div class="ln">${x}</div>`).join('') + (v.bat ? '<i class="bt"></i>' : '') + (v.up ? '<i class="sc u">▲</i>' : '') + (v.dn ? '<i class="sc d">▼</i>' : '') + (v.icons ? `<i class="ic">${v.icons}</i>` : '');
+  }
+  HW.forEach(h => {
+    const b = $(`.hw[data-hw="${h.id}"]`);
+    b.classList.toggle('miss', !R.hw[h.id]);
+    b.setAttribute('aria-label', R.hw[h.id] ? `${h.name} on` : `${h.name} not on: tap to put it on`);
+  });
+  $('#aud').classList.toggle('plugged', R.hw.mic);
+  $('#stage').classList.toggle('micOn', R.hw.mic);
+  $$('#volDial .pos').forEach(b => b.classList.toggle('on', b.dataset.v === String(R.vol)));
+  $$('#chDial .pos').forEach(b => b.classList.toggle('on', b.dataset.v === String(R.sw)));
+  turn('volKnob', VOL.find(p => p.v === R.vol).a);
+  turn('chKnob', CHS[R.sw - 1].a);
+  $('.key[data-k="ALT"]').classList.toggle('on', R.alt);
+}
+function renderCoach() {
+  const box = $('#coach');
+  box.hidden = MODE !== 'guided';
+  $$('.hint, .hint2').forEach(el => el.classList.remove('hint', 'hint2'));
+  if (box.hidden) return;
+  const c = coachData();
+  $('#cStep').textContent = c.step;
+  $('#cDo').textContent = c.do;
+  $('#cHow').textContent = c.how;
+  const w = $('#cWarn');
+  w.hidden = !W || ended;
+  w.textContent = W || '';
+  const el = ctl(c.target), el2 = ctl(c.next);
+  if (el) el.classList.add('hint');
+  /* an ALT combination: the second key is marked too */
+  if (el2) el2.classList.add('hint2');
+}
+function renderTask() {
+  const c = ch(SC.ch), ok = (MODE === 'guided' || ended) && c.fx === SC.freq && c.op === 'SINCGARS';
+  $('#sets').innerHTML = `<div class="set${ok ? ' ok' : ''}"><span class="lbl">Setting ${SC.ch} · Channel ${SC.ch}</span><b>${fmt(SC.freq)}</b><span class="setline">Single Channel · Plain Text · Power 5 watts</span></div>`;
+}
+function renderScore() {
+  const card = $('#scoreCard');
+  card.hidden = MODE === 'exam' && !ended;
+  if (card.hidden) return;
+  const c = ch(SC.ch), on = R.hw.bat && R.vol > 0, posted = isOn(), parts = R.hw.ant && R.hw.mic, m1 = hwOK() && posted;
+  const swOK = R.sw === SC.ch && R.group === 1, opened = R.seen || chOK(), inChan = R.disp === 'chan' && R.progCh === SC.ch;
+  /* the channel's settings get a ✓ only once it has been opened and checked */
+  const ptp = opened && c.enc === 'PLAIN' && c.pwr === '5.0W', sys = opened && c.op === 'SINCGARS' && c.eccm === 'SC', fx = opened && c.fx === SC.freq && c.offset === '0';
+  const editFx = inChan && R.edit && R.edit.f === 'fx', prog = chOK(), back = prog && isOn() && !inMenus(), audio = R.audio === 'TOP AUDIO' && atMain();
+  const li = (t, done, now, cls = '') => `<li class="${done ? 'ok' : now ? 'now' : cls}">${t}</li>`;
+  const m = (n, title, done, subs) => `<li class="m${done ? ' done' : (n === 1) === !m1 ? ' cur' : ''}"><span class="num">${n}</span><div><div class="mt">${title}</div><ul class="subs">${subs}</ul></div></li>`;
+  $('#score').innerHTML =
+    m(1, 'Place MBITR Radio into operation.', m1,
+      li('Install battery.', R.hw.bat, !R.hw.bat) +
+      li('Turn volume knob clockwise.', on, R.hw.bat && !on) +
+      li('Wait for self-test.', posted, on && !posted) +
+      li(`Attach antenna and hand mic. <span class="chips">${HW.slice(1).map(h => `<span class="chip${R.hw[h.id] ? ' ok' : ''}">${R.hw[h.id] ? '✓ ' : '+ '}${h.name}</span>`).join('')}</span>`, parts, posted && !parts)) +
+    m(2, 'Load a frequency and properly enter the net.', isReady(),
+      li('1. Performed start up procedures.', false, false, 'sh') +
+      li(`Set the channel switch to ${SC.ch} (group G01).`, swOK, m1 && !swOK) +
+      li('ALT + MENU → PROGRAM → ENT → CHANNEL.', opened, m1 && swOK && !opened) +
+      li('2. Selected desired operating system to be used.', false, false, 'sh') +
+      li('Select SINCGARS (ECCM SC).', sys, inChan && ptp && !sys) +
+      li('3. Manually programmed radio net information.', false, false, 'sh') +
+      li('PLAIN and PWR=5.0W.', ptp, inChan && !ptp) +
+      li(`Locate FX, hit ENT, edit ${fmt(SC.freq)}: ▲/▼ change a digit, ALT + ▲ next slot.`, fx, inChan && ptp && sys && !fx && !(editFx && R.edit.s === SC.freq)) +
+      li('Confirm with ENT.', fx, editFx && R.edit.s === SC.freq) +
+      li('ESC 3 times to the main display.', back, prog && !back && inMenus()) +
+      li('4. Communicated within radio net.', false, false, 'sh') +
+      li('Audio: MENU → INTERNAL AUDIO → ENT → TOP AUDIO → ENT → ESC.', audio, back && !audio) +
+      li('Radio check in the net (voice): not drilled.', false, false, 'na') +
+      li('5. Performed stopping procedures.', false, false, 'sh') +
+      li('Not drilled.', false, false, 'na'));
+}
+
+/* ---------- clock, finish and exam result ---------- */
+function touch() { if (!T0 && MODE === 'guided' && !ended) T0 = Date.now(); }
+const elapsed = () => T0 ? (Date.now() - T0) / 1000 : 0;
+function tick() {
+  const el = $('#clock');
+  if (MODE === 'exam') {
+    const left = Math.max(0, LIMIT - (ended ? endAt : elapsed()));
+    el.textContent = mmss(T0 ? left : LIMIT);
+    el.classList.toggle('warn', !!T0 && left < 30);
+    if (T0 && !ended && left <= 0) finish('time');
+  } else {
+    el.textContent = mmss(ended ? endAt : elapsed());
+    el.classList.remove('warn');
+  }
+}
+function finish(why) {
+  if (ended) return;
+  ended = true; endAt = elapsed();
+  if (MODE === 'exam') results(why);
+  renderAll(); tick();
+}
+function results(why) {
+  const c = ch(SC.ch), f = SC.freq, r1 = [], r21 = [], r22 = [], r23 = [], r24 = [];
+  const miss = HW.filter(h => !R.hw[h.id]).map(h => h.name.toLowerCase());
+  if (miss.length) r1.push(`Not assembled: ${miss.join(', ')}.`);
+  if (!R.hw.bat || !R.vol) r1.push('The radio is not on.');
+  else if (!isOn()) r1.push('The self-test had not finished.');
+  if (R.sw !== SC.ch) r21.push(`Channel switch on ${R.sw}, not ${SC.ch}.`);
+  if (R.group !== 1) r21.push(`Group G${pad(R.group, 2)} selected, not G01.`);
+  if (c.op !== 'SINCGARS') r22.push(`Channel ${SC.ch} is in ${c.op} mode, not SINCGARS.`);
+  else if (c.eccm !== 'SC') r22.push(`ECCM is ${c.eccm}, not SC.`);
+  if (c.enc !== 'PLAIN') r23.push(`Channel ${SC.ch} is SECURE, not PLAIN (plain text).`);
+  if (c.pwr !== '5.0W') r23.push(`PWR is ${c.pwr}, not 5.0W.`);
+  if (c.op !== 'SINCGARS') r23.push(`Channel ${SC.ch} is not SINCGARS, so FX ${fmt(f)} is not in use.`);
+  else if (c.fx !== f) r23.push(`FX holds ${fmt(c.fx)}; the card says ${fmt(f)}.`);
+  if (c.offset !== '0') r23.push(`OFFSET is ${c.offset}, not 0.`);
+  if (inMenus()) r23.push('Not back at the main display: press ESC until the main screen shows.');
+  if (R.audio !== 'TOP AUDIO') r24.push(`Audio is ${R.audio}, not TOP AUDIO: the hand mic would stay silent.`);
+  if (isOn() && R.disp === 'mode') r24.push('Still in the MODE menu: press ESC.');
+  const rows = [
+    ['1', 'Place MBITR Radio into operation.', 'Install battery → turn volume knob clockwise → wait for self-test → attach antenna and hand mic', r1],
+    ['2.1', 'Performed start up procedures.', `Channel switch on ${SC.ch} (group G01) → ALT + MENU → PROGRAM → ENT → CHANNEL`, r21],
+    ['2.2', 'Selected desired operating system to be used.', 'SINCGARS, ECCM SC', r22],
+    ['2.3', 'Manually programmed radio net information.', `PLAIN, PWR=5.0W, FX ${fmt(f)} confirmed with ENT, OFFSET 0 → ESC 3 times to the main display`, r23],
+    ['2.4', 'Communicated within radio net (audio only).', 'MENU → INTERNAL AUDIO → ENT → TOP AUDIO → ENT → ESC', r24],
+  ];
+  const timeOk = why === 'done' && endAt <= LIMIT, go = rows.every(r => !r[3].length) && timeOk;
+  if (go && (!S.best || endAt < S.best)) { S.best = endAt; save(); }
+  $('#resBody').innerHTML = `<p><span class="verdict ${go ? 'go' : 'nogo'}">${go ? 'GO' : 'NO-GO'}</span>&nbsp; Time ${mmss(endAt)} <span class="muted">(limit ${mmss(LIMIT)}${S.best ? ` · your best GO ${mmss(S.best)}` : ''})</span></p>
+    <div class="tbl"><table><tr><th>#</th><th>Performance measure</th><th>Result</th></tr>
+    ${rows.map(r => `<tr><td>${r[0]}</td><td><b>${esc(r[1])}</b><div class="muted">${esc(r[2])}</div>${r[3].length ? `<ul class="fb">${r[3].map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</td><td class="${r[3].length ? 'nogo' : 'go'}">${r[3].length ? 'NO-GO' : 'GO'}</td></tr>`).join('')}
+    <tr><td>⏱</td><td><b>Performed within ${mmss(LIMIT)}.</b>${why === 'time' ? '<ul class="fb"><li>Time ran out.</li></ul>' : ''}</td><td class="${timeOk ? 'go' : 'nogo'}">${timeOk ? 'GO' : 'NO-GO'}</td></tr></table></div>
+    ${NOTES.length ? `<h3>Notes (not scored)</h3><ul>${NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}`;
+  if (go) return openModal('mRes');
+  const gos = rows.filter(r => !r[3].length).length + (timeOk ? 1 : 0);
+  $('#chStats').textContent = (why === 'time' ? `Time ran out at ${mmss(LIMIT)}` : `Time ${mmss(endAt)} (limit ${mmss(LIMIT)})`) + ` · ${gos} of ${rows.length + 1} GO`;
+  openModal('mCharlie');
+}
+
+/* ---------- runs, modes, settings ---------- */
+function openModal(id) { $('#' + id).hidden = false; document.body.classList.add('locked'); }
+function closeModal(id) {
+  $('#' + id).hidden = true;
+  if (!$$('.modal').some(m => !m.hidden)) document.body.classList.remove('locked');
+}
+function newRun(card) {
+  clearPost(); clearTimeout(fHandle); altHold = null;
+  SC = card || makeCard();
+  freshRadio(); W = null; NOTES = []; T0 = null; endAt = 0; ended = false;
+  $('#toast').hidden = true;
+  renderAll(); tick();
+}
+function setMode(m) {
+  MODE = m;
+  $('#mGuided').setAttribute('aria-pressed', String(m === 'guided'));
+  $('#mExam').setAttribute('aria-pressed', String(m === 'exam'));
+  newRun();
+  if (m === 'exam') openModal('mIntro');
+}
+function startExam(card) { newRun(card); T0 = Date.now(); renderAll(); tick(); }
+function openSettings() {
+  $('#fm' + { any: 'R', sheet: 'S', custom: 'C' }[S.freqMode]).checked = true;
+  $('#cf1').value = S.custom[0] || '';
+  $('#setErr').hidden = true;
+  $('#bestTxt').textContent = S.best ? `Best Exam GO time on this device: ${mmss(S.best)}` : 'No Exam GO recorded on this device yet.';
+  openModal('mSet');
+}
+function saveSettings() {
+  const fm = $('input[name="fm"]:checked').value;
+  const cust = [$('#cf1').value.replace(/\D/g, '')];
+  if (fm === 'custom' && !validFreq(cust[0])) {
+    const e = $('#setErr');
+    e.hidden = false;
+    e.textContent = 'Enter a 5-digit SINCGARS frequency from 30000 to 87975, in steps of 25 (e.g. 81000).';
+    return;
+  }
+  S.freqMode = fm;
+  if (fm === 'custom') S.custom = cust;
+  save(); closeModal('mSet');
+  newRun();
+  if (MODE === 'exam') openModal('mIntro');
+}
+
+/* ---------- build and bind ---------- */
+/* a rotary switch with stops: drag it, tap its right/left half for one click CW/CCW, or tap a position */
+function buildDial(dial, knob, list, get, set, name) {
+  list.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'pos' + (p.dot ? ' dot' : '') + (p.z ? ' z' : '');
+    b.dataset.v = p.v;
+    b.style.setProperty('--a', p.a + 'deg');
+    b.setAttribute('aria-label', p.z ? 'Z: panic zeroize (needs the side interlock)' : `${name} ${p.t || p.v}`);
+    b.innerHTML = `<span>${p.t || ''}</span>`;
+    b.addEventListener('click', () => p.z ? event({ type: 'z' }) : set(p.v));
+    dial.insertBefore(b, knob);
+  });
+  const stops = list.filter(p => !p.z);
+  const step = d => set(stops[clamp(stops.findIndex(p => p.v === get()) + d, 0, stops.length - 1)].v);
+  const angleAt = e => { const r = knob.getBoundingClientRect(); return (Math.atan2(e.clientX - r.left - r.width / 2, r.top + r.height / 2 - e.clientY) * 180 / Math.PI + 360) % 360; };
+  const nearest = a => stops.reduce((b, p) => { const d = Math.abs(((a - p.a + 540) % 360) - 180); return d < b.d ? { v: p.v, d } : b; }, { v: get(), d: 999 }).v;
+  let drag = null;
+  knob.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: false }; try { knob.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ } });
+  knob.addEventListener('pointermove', e => {
+    if (!drag || (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6)) return;
+    drag.moved = true;
+    const v = nearest(angleAt(e));
+    if (v !== get()) set(v);
+  });
+  knob.addEventListener('pointerup', e => {
+    if (drag && !drag.moved) { const r = knob.getBoundingClientRect(); step(e.clientX >= r.left + r.width / 2 ? 1 : -1); }
+    drag = null;
+  });
+  knob.addEventListener('pointercancel', () => { drag = null; });
+  knob.addEventListener('click', e => { if (e.detail === 0) step(1); });
+  knob.addEventListener('keydown', e => {
+    const dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (dir) { e.preventDefault(); e.stopPropagation(); step(dir); }
+  });
+}
+function buildRadio() {
+  buildDial($('#volDial'), $('#volKnob'), VOL, () => R.vol, setVol, 'Volume');
+  buildDial($('#chDial'), $('#chKnob'), CHS, () => R.sw, setSw, 'Channel');
+  $('#kp').innerHTML = '<span class="leg" style="grid-area:1/1">MENU</span><span class="leg" style="grid-area:1/2">SCAN</span><span class="leg" style="grid-area:1/3">LOCK</span><span class="leg lo" style="grid-area:5/3">LAMP</span>' +
+    KEYS.map(([id, t, area]) => `<button class="key${id === 'UP' || id === 'DN' ? ' ar' : ''}" data-k="${id}" style="grid-area:${area}" aria-label="${esc(KEYLABEL[id])}">${t}</button>`).join('');
+  /* keys act when the finger lifts and ALT while it is held, so one finger can rest on ALT while another taps a key */
+  const kp = $('#kp'), downs = new Map();
+  kp.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.key');
+    if (!b) return;
+    try { b.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ }
+    b.classList.add('down');
+    downs.set(e.pointerId, b);
+    if (b.dataset.k === 'ALT') altDown(e.pointerId);
+  });
+  const lift = (e, ok) => {
+    const b = downs.get(e.pointerId);
+    if (!b) return;
+    downs.delete(e.pointerId);
+    b.classList.remove('down');
+    if (b.dataset.k === 'ALT') return altUp(e.pointerId);
+    const r = b.getBoundingClientRect();
+    if (!ok || e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    /* Alt/Option held during a click works like holding ALT */
+    if (e.altKey && altHold === null) { altDown('opt'); press(b.dataset.k); altUp('opt'); } else press(b.dataset.k);
+  };
+  kp.addEventListener('pointerup', e => lift(e, true));
+  kp.addEventListener('pointercancel', e => lift(e, false));
+  kp.addEventListener('click', e => { const b = e.target.closest('.key'); if (b && e.detail === 0) press(b.dataset.k); });
+  kp.addEventListener('contextmenu', e => e.preventDefault());
+  $$('.hw').forEach(b => b.addEventListener('click', () => install(b.dataset.hw)));
+}
+function pressKey(id) {
+  const b = $(`.key[data-k="${id}"]`);
+  b.classList.add('down');
+  setTimeout(() => b.classList.remove('down'), 120);
+  press(id);
+}
+function onKey(e) {
+  if (e.metaKey || e.ctrlKey) return;
+  const open = $$('.modal').some(m => !m.hidden);
+  if (e.key === 'Escape' && open) { $$('.modal').forEach(m => { if (!m.hidden && !['mIntro', 'mCharlie'].includes(m.id)) closeModal(m.id); }); return; }
+  if (open || e.target.closest('input')) return;
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) return;
+  /* the A key is ALT: held down, it works like holding ALT on the radio */
+  if (e.code === 'KeyA') { e.preventDefault(); if (!e.repeat) { $('.key[data-k="ALT"]').classList.add('down'); altDown('kbd'); } return; }
+  const id = { ArrowUp: 'UP', ArrowDown: 'DN', Enter: 'ENT', Escape: 'ESC' }[e.key] || { KeyM: 'MODE', KeyG: 'GR', KeyE: 'ESC' }[e.code];
+  if (!id) return;
+  e.preventDefault();
+  /* so does Alt/Option held with a key */
+  if (e.altKey && altHold === null) { altDown('opt'); pressKey(id); altUp('opt'); } else pressKey(id);
+}
+function onKeyUp(e) {
+  if (e.code !== 'KeyA') return;
+  $('.key[data-k="ALT"]').classList.remove('down');
+  altUp('kbd');
+}
+function bind() {
+  $('#mGuided').addEventListener('click', () => { if (MODE !== 'guided') setMode('guided'); });
+  $('#mExam').addEventListener('click', () => { if (MODE !== 'exam') setMode('exam'); else if (ended) { newRun(); openModal('mIntro'); } });
+  $('#exStart').addEventListener('click', () => { closeModal('mIntro'); startExam(SC); });
+  $('#exBack').addEventListener('click', () => { closeModal('mIntro'); setMode('guided'); });
+  $('#endExam').addEventListener('click', () => finish('done'));
+  $('#newCard').addEventListener('click', () => { newRun(); if (MODE === 'exam') openModal('mIntro'); });
+  $('#resSame').addEventListener('click', () => { closeModal('mRes'); startExam(SC); });
+  $('#resNew').addEventListener('click', () => { closeModal('mRes'); startExam(); });
+  $('#resGuided').addEventListener('click', () => { closeModal('mRes'); setMode('guided'); });
+  $('#btnRef').addEventListener('click', () => openModal('mRef'));
+  $('#btnSet').addEventListener('click', openSettings);
+  $('#setSave').addEventListener('click', saveSettings);
+  $('#cf1').addEventListener('focus', () => { $('#fmC').checked = true; });
+  $$('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+  $$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m && !['mIntro', 'mCharlie'].includes(m.id)) closeModal(m.id); }));
+  $('#chWhy').addEventListener('click', () => { closeModal('mCharlie'); openModal('mRes'); });
+  $('#chRetry').addEventListener('click', () => { closeModal('mCharlie'); startExam(SC); });
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('keyup', onKeyUp);
+  /* a key still held when the window loses focus never sends keyup */
+  addEventListener('blur', () => { $$('.key.down').forEach(b => b.classList.remove('down')); if (altHold !== null) altUp(altHold); });
+  document.addEventListener('touchstart', () => {}, { passive: true });
+}
+
+buildRadio();
+bind();
+newRun();
+setInterval(tick, 250);
+})();
+</script>
+
+</body>
+</html>

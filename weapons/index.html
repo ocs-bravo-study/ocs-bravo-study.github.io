@@ -1,0 +1,1979 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Weapons 3D Trainer</title>
+<style>
+/* M249 and M240 take-apart / put-together in 3D. Steps and labels follow the class score sheets
+   ("Warrior Task: Maintain a M249" and "Maintain an M240"); how each part comes off follows FM 3-22.68. */
+:root {
+  --bg: #e2e4d9; --surface: #f2f3ec; --ink: #1b2016; --muted: #586050; --line: #c4c8b6;
+  --accent: #9a5a0c; --accent-soft: #f1e2c4; --go: #2b6a2e; --go-soft: #d6e8d0; --nogo: #a8291d; --nogo-soft: #f3d7d1;
+  --scrim: rgba(16, 20, 12, .5); --hint: #ffc53d;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528; --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b; --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528; --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b; --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6); color-scheme: dark; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--ui); }
+body.locked { overflow: hidden; }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.lbl { display: block; font: 600 10.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+.top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { margin-right: auto; color: inherit; text-decoration: none; font: 700 19px/1 var(--stencil); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.brand small { display: block; margin-top: 3px; font: 500 11px/1.1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.seg button { padding: 6px 11px; border: 0; border-radius: 999px; background: none; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.clock { min-width: 2.9em; text-align: right; font: 700 15px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.clock.warn { color: var(--nogo); }
+.ibtn { display: inline-grid; place-items: center; height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; font-weight: 650; cursor: pointer; }
+.ibtn:disabled { opacity: .4; cursor: default; }
+@media (max-width: 440px) { .brand small { display: none; } .seg button { padding: 6px 9px; } }
+@media (max-width: 360px) { .brand { display: none; } .top-bar .seg { margin-right: auto; } }
+
+/* page layout: the 3D stage is the big thing; on a computer the cards sit beside it */
+.wrap { display: grid; gap: 12px; max-width: 1400px; margin: 0 auto; padding-block: 12px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "coach" "task" "score"; }   /* phones: the gun first */
+#task { grid-area: task; } #coach { grid-area: coach; } .scol { grid-area: stage; min-width: 0; } #scoreCard { grid-area: score; }
+@media (min-width: 960px) {
+  .wrap { grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto auto 1fr; grid-template-areas: "stage task" "stage coach" "stage score"; column-gap: 20px; align-items: start; }
+  .scol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 64px); }
+  .stage { height: calc(100vh - 140px) !important; min-height: 460px; }
+}
+.card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.taskh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.taskh h2 { margin: 0 auto 0 0; }
+.linkbtn { padding: 4px 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; }
+.tline { margin: 8px 0 10px; font-size: 13.5px; }
+.vlink { display: inline-block; margin-top: 4px; color: var(--accent); font-weight: 700; text-decoration: none; }
+.card .seg { background: var(--bg); }
+.coach { min-width: 0; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); }
+.coach .lbl { color: var(--accent); }
+.coach .do { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 1.3; }
+.coach .how { margin-top: 2px; font-size: 13.5px; color: var(--muted); }
+.coach .feel { margin-top: 4px; font-size: 13.5px; font-weight: 600; }
+.coach .feel:empty { display: none; }
+.coach.shake { animation: nope .4s ease-in-out; }
+.coach.ok { animation: okflash .7s ease-out; }
+@keyframes okflash { from { background: var(--go-soft); box-shadow: 0 0 0 2px var(--go); } }
+@keyframes nope { 20%, 60% { translate: -4px 0; } 40%, 80% { translate: 4px 0; } }
+
+/* 3D stage */
+.stage { position: relative; height: clamp(380px, 72vh, 680px); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: radial-gradient(130% 100% at 50% 0%, var(--surface), var(--bg)); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.tools { position: absolute; top: 8px; right: 8px; pointer-events: none; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; max-width: calc(100% - 16px); }
+.tools button { pointer-events: auto; padding: 5px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 12.5px; font-weight: 650; cursor: pointer; }
+.tools button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.tools .gap { width: 4px; }
+.tools .more { display: contents; }
+.sdo { position: absolute; left: 8px; bottom: 36px; z-index: 2; max-width: min(78%, 520px); padding: 7px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 13.5px; font-weight: 700; line-height: 1.25; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+.sdo:empty { display: none; }
+@media (min-width: 960px) { .sdo:not(.ex) { display: none; } }
+.sthint { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); overflow: hidden; padding: 3px 8px; border-radius: 7px; background: rgba(20, 23, 16, .62); color: #eeecdc; font-size: 12px; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
+.tip { position: absolute; z-index: 3; pointer-events: none; padding: 4px 8px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 12.5px; font-weight: 600; white-space: nowrap; transform: translate(12px, 12px); }
+.names { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.nm { position: absolute; left: 0; top: 0; padding: 2px 6px; border-left: 3px solid var(--c, #ddd); border-radius: 5px; background: rgba(18, 20, 14, .8); color: #f4f2e4; font-size: 11.5px; font-weight: 650; white-space: nowrap; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; color: var(--muted); text-align: center; }
+.call { position: absolute; left: 0; top: 0; z-index: 3; width: 0; height: 0; pointer-events: none; }
+.call .ring { position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; border: 3px solid var(--hint); border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.25); animation: ring 1.15s ease-out infinite; }
+.call .lab { position: absolute; left: 0; bottom: 30px; padding: 5px 10px; border-radius: 9px; background: var(--hint); color: #1b2016; font: 800 13.5px/1.2 var(--ui); white-space: nowrap; transform: translateX(-50%); box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+.call .lab small { display: block; font-size: 11.5px; font-weight: 650; opacity: .78; }
+.call .lab::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -6px; border: 6px solid transparent; border-top-color: var(--hint); }
+@keyframes ring { from { transform: scale(.55); opacity: 1; } to { transform: scale(1.35); opacity: .15; } }
+body.demo .call { display: none; }
+/* hands-on: the direction arrow, and the force note beside the finger */
+.arr { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.arr path { fill: none; stroke: var(--hint); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 9 7; animation: dash 1s linear infinite; filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+.arr .head { fill: var(--hint); stroke: none; animation: none; }
+@keyframes dash { to { stroke-dashoffset: -32; } }
+.force { position: absolute; left: 0; top: 0; z-index: 4; max-width: 240px; padding: 6px 9px; border-radius: 10px; background: rgba(20, 23, 16, .88); color: #f1efe0; font: 600 12.5px/1.3 var(--ui); pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+.force b { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; background: var(--fc, #7fe0a4); color: #16190f; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; }
+.force .bar { height: 4px; margin-top: 5px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+.force .bar i { display: block; height: 100%; width: 0; background: var(--fc, #7fe0a4); }
+.stage.grab canvas { cursor: grab; }
+.stage.grabbing canvas { cursor: grabbing; }
+.hnote { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+/* secondary choices stay folded until wanted */
+.opts summary, .more-x summary { padding: 4px 0; color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; }
+.opts[open] summary { margin-bottom: 6px; }
+.opts .seg + .seg { margin-top: 8px; }
+/* Guided: after a few idle seconds a finger shows the move once, then again */
+.finger { position: absolute; left: 0; top: 0; z-index: 3; width: 0; height: 0; pointer-events: none; }
+.finger i { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border: 3px solid var(--hint); border-radius: 50%; background: rgba(255,255,255,.85); box-shadow: 0 4px 14px rgba(0,0,0,.35); animation: fdrag 2.3s ease-in-out infinite; }
+.finger.press i { animation: fpress 1.3s ease-in-out infinite; }
+@keyframes fdrag { 0% { transform: translate(var(--x0), var(--y0)) scale(1.3); opacity: 0; } 14% { transform: translate(var(--x0), var(--y0)) scale(.85); opacity: 1; } 72% { transform: translate(var(--x1), var(--y1)) scale(.85); opacity: 1; } 88%, 100% { transform: translate(var(--x1), var(--y1)) scale(1.25); opacity: 0; } }
+@keyframes fpress { 0%, 100% { transform: translate(var(--x0), var(--y0)) scale(1.25); opacity: .45; } 35%, 75% { transform: translate(var(--x0), var(--y0)) scale(.8); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arr path { animation: none; } .finger i { animation: none; transform: translate(var(--x0), var(--y0)); } .coach.ok { animation: none; } }
+/* phones held sideways: the gun fills the screen height (iPhone Safari has no full screen for a page) */
+@media (orientation: landscape) and (max-height: 520px) {
+  .top-bar { padding-block: 4px; }
+  .brand small { display: none; }
+  .wrap { padding-top: 8px; }
+  .stage { height: calc(100vh - 58px); height: calc(100dvh - 58px); min-height: 240px; }
+}
+.readybar { display: flex; margin-top: 10px; }
+.readybar .btn { flex: 1; margin: 0; padding: 12px; font-size: 15px; }
+
+/* score sheet */
+.score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.m { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.num { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--line); border-radius: 50%; font: 700 12px/1 var(--mono); }
+.m.cur .num { border-color: var(--accent); color: var(--accent); }
+.m.done .num { border-color: var(--go); background: var(--go); color: var(--surface); }
+.mt { padding-top: 3px; font-weight: 650; }
+.subs { display: grid; gap: 3px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.subs li { position: relative; padding-left: 18px; }
+.subs li::before { content: "○"; position: absolute; left: 0; font-size: 11px; line-height: 1.75; }
+.subs li.ok { color: var(--ink); }
+.subs li.ok::before { content: "✓"; color: var(--go); font-size: 13px; font-weight: 700; line-height: 1.45; }
+.subs li.now { color: var(--ink); font-weight: 650; }
+.subs li.now::before { content: "▸"; color: var(--accent); font-size: 13px; line-height: 1.45; }
+.subs li.na::before { content: "–"; }
+.sw { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; background: var(--c); }
+.scnote { margin: 12px 0 0; font-size: 13px; }
+
+/* buttons and modals */
+.txrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); font-weight: 650; cursor: pointer; }
+.btn.primary { margin-left: auto; border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); background: var(--scrim); }
+.mcard { position: relative; width: 100%; max-width: 760px; margin: auto 0; padding: 18px; border-radius: 16px; background: var(--surface); }
+.mcard h2 { padding-right: 48px; }
+.mcard h3 { margin: 18px 0 6px; font-size: 15px; }
+.mcard .x { position: absolute; right: 12px; top: 12px; }
+.mcard p, .mcard li { font-size: 14px; }
+.mcard ol, .mcard ul { margin: 6px 0; padding-left: 20px; }
+.tbl { overflow-x: auto; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.go { color: var(--go); font-weight: 700; }
+td.nogo { color: var(--nogo); font-weight: 700; }
+.fb { margin: 6px 0 0; padding-left: 18px; color: var(--nogo); font-size: 13.5px; }
+.verdict { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 15px var(--mono); }
+.verdict.go { background: var(--go-soft); color: var(--go); }
+.verdict.nogo { background: var(--nogo-soft); color: var(--nogo); }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 45; pointer-events: none; width: max-content; max-width: min(92vw, 520px); padding: 12px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); font-size: 15px; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.35); transform: translateX(-50%); }
+.toast b { color: var(--hint); }
+.toast.pop { animation: pop .25s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* NO-GO twice: recycled to Charlie Company */
+.modal.charlie { align-items: center; background: rgba(12, 14, 8, .82); }
+.ccard { position: relative; width: 100%; max-width: 460px; margin: auto 0; padding: 20px 18px 18px; overflow: hidden; border-radius: 18px; text-align: center; color: #f1efe0; background: radial-gradient(120% 90% at 50% 0%, #3d4628, #1c2112 70%); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.ccard .eyebrow { font: 700 11px/1 var(--ui); letter-spacing: .16em; text-transform: uppercase; color: #c9c7a4; }
+.guidon { display: block; width: 180px; max-width: 60%; height: auto; margin: 10px auto 0; overflow: visible; }
+.guidon .flag { transform-origin: 14px 56px; animation: wave 2.4s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-4deg) scaleX(.96); } }
+.ccard h2.ct { margin: 6px 0 2px; font: 800 30px/1.05 var(--stencil); letter-spacing: .04em; text-transform: uppercase; color: #fff; text-wrap: balance; }
+.ccard p { margin: 6px 0 0; font-size: 14.5px; color: #dcdac6; }
+.ccard .orders { margin: 12px auto 0; max-width: 34ch; padding: 10px 12px; border: 1px dashed rgba(241,239,224,.35); border-radius: 10px; font: 600 12.5px/1.5 var(--mono); color: #e9e7d4; text-align: left; }
+.stamp { position: absolute; right: 12px; top: 52px; padding: 4px 10px; border: 4px solid #e2432f; border-radius: 8px; color: #e2432f; font: 900 28px/1 var(--stencil); letter-spacing: .08em; transform: rotate(-14deg); opacity: .92; animation: slam .5s cubic-bezier(.2, 1.6, .4, 1) .25s both; }
+@keyframes slam { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: .92; } }
+.ccard .txrow { justify-content: center; margin-top: 16px; }
+.ccard .btn { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #f1efe0; }
+.ccard .btn.primary { margin-left: 0; border-color: #e2432f; background: #e2432f; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .guidon .flag, .stamp, .coach.shake, .toast.pop { animation: none; } }
+
+/* demo-video layout (?demo): only the stage, with a caption bar */
+body.demo .top-bar, body.demo #task, body.demo #coach, body.demo #scoreCard, body.demo .tools, body.demo .sthint, body.demo .sdo, body.demo .readybar, body.demo .finger { display: none !important; }
+body.demo .wrap { display: block; max-width: none; padding: 0; }
+body.demo .stage { height: 100vh !important; border: 0; border-radius: 0; background: radial-gradient(120% 100% at 50% 0%, #f4f5ee, #d9dccd); }
+.cap { position: absolute; left: 50%; bottom: 34px; z-index: 4; width: min(88%, 1500px); padding: 18px 26px 20px; border-radius: 18px; background: rgba(20, 23, 16, .86); color: #f5f3e6; transform: translateX(-50%); box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+.cap .k { font: 700 22px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: #f0c25e; }
+.cap .t { margin-top: 6px; font: 800 44px/1.15 var(--ui); }
+.cap .h { margin-top: 8px; font: 500 27px/1.3 var(--ui); color: #d8d6c4; }
+.title { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; text-align: center; color: #f5f3e6; background: radial-gradient(120% 100% at 50% 20%, #3d4628, #161a0e 75%); }
+.title .a { font: 700 30px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; color: #f0c25e; }
+.title .b { margin-top: 18px; font: 800 110px/1 var(--stencil); letter-spacing: .04em; text-transform: uppercase; }
+.title .c { margin-top: 22px; font: 500 34px/1.35 var(--ui); color: #dcdac6; }
+</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three-0.160.0/three.module.js", "three/addons/": "../vendor/three-0.160.0/addons/" } }</script>
+</head>
+<body>
+
+<header class="top-bar">
+  <a class="brand" href="../" title="All Bravo study tools">‹ Weapons 3D<small id="brandSub">take it apart, put it back</small></a>
+  <div class="seg" role="group" aria-label="Practice mode">
+    <button id="mGuided" aria-pressed="true">Guided</button>
+    <button id="mExam" aria-pressed="false">Exam</button>
+  </div>
+  <div class="clock" id="clock">0:00</div>
+  <button class="ibtn" id="btnRef" aria-label="Score sheet and how-to">Ref</button>
+</header>
+
+<main class="wrap">
+  <section class="card" id="task" aria-label="Weapon">
+    <div class="taskh"><h2>Weapon</h2><a class="linkbtn" href="drills/" style="text-decoration:none">Clearing drills ›</a><button class="linkbtn" id="restart">Restart</button></div>
+    <div class="seg" role="group" aria-label="Weapon"><button id="wM249" aria-pressed="true">M249</button><button id="wM240" aria-pressed="false">M240B</button></div>
+    <p class="tline" id="tline"></p>
+    <details class="opts"><summary>More options</summary>
+      <div class="seg" role="group" aria-label="Start with" id="startSeg"><button id="stGun" aria-pressed="true">Start assembled</button><button id="stMat" aria-pressed="false">Start with parts on the mat</button></div>
+      <div class="seg" role="group" aria-label="How you move the parts"><button id="hOn" aria-pressed="true">Hands-on</button><button id="hOff" aria-pressed="false">Tap</button></div>
+      <p class="hnote" id="hNote"></p>
+    </details>
+  </section>
+
+  <section class="coach" id="coach" aria-live="polite">
+    <span class="lbl" id="cStep"></span>
+    <div class="do" id="cDo"></div>
+    <div class="how" id="cHow"></div>
+    <div class="feel" id="cFeel"></div>
+  </section>
+
+  <section class="scol" aria-label="3D weapon on the maintenance mat">
+    <div class="stage" id="stage">
+      <div class="loading" id="loading">Loading the 3D model…<br>(it needs an internet connection the first time)</div>
+      <div class="names" id="names"></div>
+      <div class="tools">
+        <button data-v="work" aria-pressed="true">Work</button><button data-v="right" aria-pressed="false">Right</button><button data-v="left" aria-pressed="false">Left</button><button data-v="mat" aria-pressed="false">Mat</button>
+        <span class="gap"></span>
+        <button id="tXray" aria-pressed="false">X-ray</button><button id="tMore" aria-expanded="false" aria-label="More tools">⋯</button>
+        <span class="more" id="toolsMore" hidden><button id="tColors" aria-pressed="true">Colors</button><button id="tNames" aria-pressed="false">Names</button><button id="tSound" aria-pressed="true">Sound</button></span>
+      </div>
+      <svg class="arr" id="arr" hidden><path id="arrLine" d=""/><path class="head" id="arrHead" d=""/></svg>
+      <div class="call" id="call" hidden><div class="ring"></div><div class="lab" id="callLab"></div></div>
+      <div class="finger" id="finger" hidden><i></i></div>
+      <div class="force" id="force" hidden></div>
+      <div class="sdo" id="sdo"></div>
+      <div class="sthint" id="sthint"></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="readybar" id="endBar" hidden><button class="btn" id="endExam">End exam and grade now</button></div>
+  </section>
+
+  <section class="card" id="scoreCard" aria-label="Score sheet">
+    <h2 id="scoreT"></h2>
+    <ol class="score" id="score"></ol>
+    <p class="scnote muted">Each group has its own color, and its label on the mat has the same color. Exam turns the colors off.</p>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="assertive" hidden></div>
+
+<div class="modal" id="mIntro" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exT">
+    <h2 id="exT">Exam mode</h2>
+    <ul id="exList"></ul>
+    <details class="more-x"><summary>More about the exam</summary><ul id="exMore"></ul></details>
+    <div class="txrow"><button class="btn" id="exBack">Back to Guided</button><button class="btn primary" id="exStart">Start part 1</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mMid" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="midT">
+    <h2 id="midT">Part 1 done</h2>
+    <div id="midBody"></div>
+    <div class="txrow" style="margin-top:14px"><button class="btn primary" id="midGo">Start part 2: assemble</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRes" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="resT">
+    <h2 id="resT">Exam result</h2>
+    <div id="resBody"></div>
+    <div class="txrow" style="margin-top:14px" id="resBtns"></div>
+  </div>
+</div>
+
+<div class="modal charlie" id="mCharlie" hidden>
+  <div class="ccard" role="dialog" aria-modal="true" aria-labelledby="chT">
+    <div class="eyebrow">Double failure · 0 / 20 pts</div>
+    <svg class="guidon" viewBox="0 0 200 112" aria-hidden="true">
+      <rect x="8" y="4" width="6" height="106" rx="3" fill="#8a6a3c"/>
+      <circle cx="11" cy="6" r="6" fill="#d4b13c"/>
+      <g class="flag">
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="#b3261e"/>
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="none" stroke="#ffffff" stroke-opacity=".2" stroke-width="2"/>
+        <text x="84" y="74" text-anchor="middle" font-family="DIN Condensed, Arial Narrow, Arial, sans-serif" font-weight="800" font-size="56" fill="#ffffff">C</text>
+      </g>
+    </svg>
+    <div class="stamp" aria-hidden="true">NO-GO</div>
+    <h2 class="ct" id="chT">Welcome to Charlie Company!</h2>
+    <p id="chStats"></p>
+    <div class="orders" id="chOrders"></div>
+    <div class="txrow"><button class="btn" id="chWhy">See what went wrong</button><button class="btn primary" id="chRetry">Recycle: start over</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRef" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="refT">
+    <h2 id="refT">Score sheet and how-to</h2>
+    <button class="btn x" data-close="mRef" aria-label="Close">✕</button>
+    <div id="refBody"></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n, w) => String(n).padStart(w, '0');
+const mmss = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60), 2)}`;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const qAxis = (ax, a) => new THREE.Quaternion().setFromAxisAngle(ax === 'x' ? V(1, 0, 0) : ax === 'y' ? V(0, 1, 0) : V(0, 0, 1), a);
+const hex = n => '#' + n.toString(16).padStart(6, '0');
+const DEMO = new URLSearchParams(location.search).has('demo');
+
+/* ---------- scene (units: cm; x toward the muzzle, y up, z to the gun's right) ---------- */
+const stage = $('#stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: DEMO });
+renderer.setPixelRatio(DEMO ? 1 : Math.min(2, devicePixelRatio));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+$('#loading').remove();
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;
+scene.environmentIntensity = .75;
+const camera = new THREE.PerspectiveCamera(34, 1, 1, 3000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .09;
+controls.minDistance = 20; controls.maxDistance = 700; controls.maxPolarAngle = 1.5;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3d2c, 1.05));
+const sun = new THREE.DirectionalLight(0xffffff, 2.3);
+sun.position.set(70, 190, 130); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -125, right: 125, top: 125, bottom: -125, near: 10, far: 520 });
+sun.shadow.bias = -.0004;
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, .7); fill.position.set(-140, 70, -40); scene.add(fill);
+const root = new THREE.Group(); scene.add(root);
+
+/* ---------- materials: the real finish, plus a color per group so the parts can be told apart ---------- */
+const std = (color, metalness, roughness, extra = {}) => new THREE.MeshStandardMaterial({ color, metalness, roughness, ...extra });
+const MAT = {
+  recv: std(0x3e4245, .5, .5), metal: std(0x2e3134, .6, .45), plate: std(0x34383b, .55, .5), gas: std(0x4b4f53, .6, .42),
+  steel: std(0x9ca1a6, .85, .3), steel2: std(0x70757a, .8, .36),
+  poly: std(0x232425, 0, .8), stock: std(0x29292a, 0, .78), shield: std(0x202122, .15, .65, { side: THREE.DoubleSide }),
+  rubber: std(0x141515, 0, .95), spring: std(0xb5babf, .9, .28), pin: std(0xb0b5ba, .85, .28), red: std(0xd23a2e, .1, .55),
+  hole: std(0x070808, 0, 1), white: std(0xe8e8e2, .1, .6), brass: std(0xb98e3e, .8, .35),
+};
+const HIT = new THREE.MeshBasicMaterial({ visible: false });
+const EDGE = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: .32 });
+const cache = new Map();
+const cached = (key, make) => { let m = cache.get(key); if (!m) { m = make(); cache.set(key, m); } return m; };
+const tinted = (m, t) => m === MAT.hole ? m : cached(`t${m.uuid}${t}`, () => { const c = m.clone(); c.color = m.color.clone().lerp(new THREE.Color(t), .78); c.metalness = Math.min(m.metalness, .35); c.roughness = .5; return c; });
+const xray = m => cached(`x${m.uuid}`, () => { const c = m.clone(); c.transparent = true; c.opacity = .2; c.depthWrite = false; return c; });
+const variant = (m, kind) => cached(`${kind}${m.uuid}`, () => { const c = m.clone(); c.emissive = new THREE.Color(kind === 'hi' ? 0xffb020 : 0xe2432f); c.emissiveIntensity = kind === 'hi' ? .4 : .7; return c; });
+
+/* ---------- geometry helpers ---------- */
+function mesh(geo, mat, p, x = 0, y = 0, z = 0, edges = true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z); m.castShadow = m.receiveShadow = true;
+  if (edges) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), EDGE); e.raycast = () => {}; m.add(e); }
+  p.add(m); return m;
+}
+const box = (p, mat, x0, x1, y0, y1, z0, z1) => mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat, p, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+function cylX(p, mat, x0, x1, r, y, z, seg = 24, r1) { const g = new THREE.CylinderGeometry(r1 ?? r, r, x1 - x0, seg); g.rotateZ(-Math.PI / 2); return mesh(g, mat, p, (x0 + x1) / 2, y, z); }
+function cylZ(p, mat, z0, z1, r, x, y, seg = 16) { const g = new THREE.CylinderGeometry(r, r, z1 - z0, seg); g.rotateX(Math.PI / 2); return mesh(g, mat, p, x, y, (z0 + z1) / 2); }
+const cylY = (p, mat, x, y, z, r, h, seg = 16) => mesh(new THREE.CylinderGeometry(r, r, h, seg), mat, p, x, y, z);
+function prof(p, mat, pts, z0, z1, bev = .35) {
+  const s = new THREE.Shape(); s.moveTo(...pts[0]); pts.slice(1).forEach(q => s.lineTo(...q));
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(.05, z1 - z0 - 2 * bev), bevelEnabled: bev > 0, bevelThickness: bev, bevelSize: bev, bevelSegments: 1, curveSegments: 6 });
+  g.translate(0, 0, z0 + bev);
+  return mesh(g, mat, p);
+}
+function rod(p, mat, a, b, r) {
+  const d = b.clone().sub(a), m = mesh(new THREE.CylinderGeometry(r, r, d.length(), 14), mat, p, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); return m;
+}
+function halfPipe(p, mat, x0, x1, r, y) { const g = new THREE.CylinderGeometry(r, r, x1 - x0, 22, 1, true, Math.PI, Math.PI); g.rotateZ(-Math.PI / 2); return mesh(g, mat, p, (x0 + x1) / 2, y, 0); }
+class Helix extends THREE.Curve {
+  constructor(len, r, turns) { super(); Object.assign(this, { len, r, turns }); }
+  getPoint(t, v = new THREE.Vector3()) { const a = t * this.turns * Math.PI * 2; return v.set(t * this.len, Math.cos(a) * this.r, Math.sin(a) * this.r); }
+}
+function coil(p, x0, x1, r, turns, y, z, wire = .13) { const g = new THREE.TubeGeometry(new Helix(x1 - x0, r, turns), turns * 14, wire, 5); g.translate(x0, y, z); return mesh(g, MAT.spring, p, 0, 0, 0, false); }
+const shell = m => { m.userData.shell = true; return m; };
+/* the right hand on the charging handle, palm up, fingers hooked around its front ("Pull and hold, with palm up, charging handle
+   with right hand"). xf, yb, yt: front, bottom and top of the handle knob; zc: its middle. Not part of the gun: never painted, measured or hit. */
+const SKIN = std(0xc58f6a, 0, .72), SLEEVE = std(0x7b785a, 0, .92);
+function limb(p, mat, a, b, r) {
+  const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(.01, d.length()), 4, 10), mat);
+  m.position.copy(a).lerp(b, .5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); p.add(m); return m;
+}
+function hand(ck, xf, yb, yt, zc) {
+  const g = new THREE.Group(); g.visible = false; ck.add(g);
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), SKIN); palm.scale.set(4.4, 1.15, 3.3); palm.position.set(xf - 4.2, yb - 1.4, zc + 1.4); g.add(palm);
+  for (const [z, r, k] of [[zc - 1, .62, 1.1], [zc + .4, .72, 1.3], [zc + 1.8, .76, 1.35], [zc + 3.1, .72, 1.25]]) {   // little finger next to the gun, index finger outside
+    const a = V(xf - .6, yb - 1.1, z), b = V(xf + 1.1 * k, yb - .4, z), c = V(xf + 1.2, yt - .7, z), d = V(xf + .2, yt + .1, z);
+    limb(g, SKIN, a, b, r); limb(g, SKIN, b, c, r); limb(g, SKIN, c, d, r * .92);
+  }
+  limb(g, SKIN, V(xf - 5.5, yb - 1.3, zc + 4.2), V(xf - 2.2, yb - .7, zc + 5.4), .85);   // thumb: palm up, so it is on the outside
+  limb(g, SKIN, V(xf - 2.2, yb - .7, zc + 5.4), V(xf - .2, yb - .5, zc + 5.6), .75);
+  limb(g, SKIN, V(xf - 8, yb - 1.4, zc + 1.6), V(xf - 11, yb - 2, zc + 3), 2);          // wrist
+  limb(g, SLEEVE, V(xf - 11, yb - 2, zc + 3), V(xf - 23, yb - 4, zc + 8.5), 2.9);      // sleeve
+  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.userData.proxy = true; m.raycast = () => {}; } });
+  return g;
+}
+/* an invisible, larger shape around a small part so a finger can hit it */
+function hitbox(p, x0, x1, y0, y1, z0, z1) { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), HIT); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); m.userData.proxy = true; p.add(m); return m; }
+const rivets = (p, xs, ys, z) => xs.forEach(x => ys.forEach(y => cylZ(p, MAT.steel2, z - .14, z + .14, .26, x, y, 10)));
+/* small blocks spaced around the bore axis (locking lugs, flash-suppressor slots) */
+function around(p, mat, x0, x1, y, r0, r1, w, n, phase = 0) {
+  for (let i = 0; i < n; i++) { const g = new THREE.Group(); g.position.set(0, y, 0); g.rotation.x = phase + i * Math.PI * 2 / n; p.add(g); box(g, mat, x0, x1, -w / 2, w / 2, r0, r1); }
+}
+/* a part you can pick (it moves as one), and a sub-item that can be separated from it */
+function part(parent, pick, name, tint, x = 0, y = 0, z = 0) { const g = new THREE.Group(); g.position.set(x, y, z); g.userData = { pick, name, tint }; parent.add(g); return g; }
+function sub(parent, name, pick, tint) { const g = new THREE.Group(); g.userData = { pick: pick || parent.userData.pick, name, sub: true, tint: tint ?? parent.userData.tint }; parent.add(g); return g; }
+function pinPart(rig, id, name, x, y, len, headRight, tint) {
+  const g = part(rig, id, name, tint, x, y, 0), s = headRight ? 1 : -1;
+  cylZ(g, MAT.pin, -len, len, .36, 0, 0);
+  cylZ(g, MAT.pin, s > 0 ? len : -len - .5, s > 0 ? len + .5 : -len, .62, 0, 0);
+  hitbox(g, -1.4, 1.4, -1.4, 1.4, -len - 1.5, len + 1.5);
+  return g;
+}
+
+/* ---------- colors per group (the label on the mat has the same color) ---------- */
+const C = { amber: 0xe3a23b, blue: 0x3fa6e6, red: 0xe0534a, violet: 0x9b7be6, green: 0x46c37f, yellow: 0xe9cb3a, teal: 0x2fc2b8, white: 0xe9e7da };
+
+/* ---------- M249 (FM 3-22.68 ch. 1; groups as on the class sheet "Maintain a M249") ---------- */
+function buildM249(rig) {
+  const P = {}, S = {}, Y = 6.5, G = 2.3;
+  const rc = P.receiver = part(rig, 'receiver', 'Receiver', null);
+  shell(prof(rc, MAT.recv, [[0, 0], [34, 0], [34, 8.4], [32.6, 9.6], [27, 9.6], [27, 8.9], [8, 8.9], [8, 9.6], [0, 9.6]], -3.4, 3.4, .3));
+  for (const s of [-1, 1]) {
+    box(rc, MAT.plate, 2, 30, 1, 8.4, s > 0 ? 3.42 : -3.56, s > 0 ? 3.56 : -3.42);
+    rivets(rc, [3.2, 9, 15, 21, 28.6], [1.8, 7.6], s * 3.62);
+  }
+  box(rc, MAT.hole, -.06, .02, .8, 8.8, -2.8, 2.8);
+  shell(prof(rc, MAT.recv, [[17, 5.5], [23.4, 5.5], [23.4, -1.6], [17.4, -1.2]], -6.6, -3.3, .25));   // magazine well (left)
+  box(rc, MAT.hole, 17.6, 22.8, -1.62, -1.5, -6.2, -3.7);
+  box(rc, MAT.steel, 23.2, 24.2, 1.2, 3.4, -5.6, -4.4);                                                  // magazine release tab
+  shell(box(rc, MAT.recv, 11, 30.5, 5.4, 7.6, 3.3, 4.4));                                                 // charging handle rail
+  box(rc, MAT.hole, 12, 26.5, 6.1, 6.9, 4.38, 4.45);
+  box(rc, MAT.plate, 13, 21, -.3, .05, .3, 3.2);                                                          // ejection port cover
+  box(rc, MAT.hole, 20.5, 27, 7.1, 8.5, 3.5, 3.58);                                                       // link ejection port
+  shell(cylX(rc, MAT.recv, 33, 35.2, 2.3, Y, 0, 28));
+  box(rc, MAT.steel2, 2, 4, 3.2, 4.6, -4.1, -3.5); box(rc, MAT.steel2, 2.4, 3.6, 2.8, 5, -4.6, -4.1);        // sling swivel
+  const hg = sub(rc, 'Handguard');
+  shell(prof(hg, MAT.stock, [[34, -.6], [44.6, -.6], [46.5, .8], [46.5, 4.4], [34, 4.4]], -3.5, 3.5, .45));
+  for (const x of [36.2, 38.8, 41.4, 44]) for (const s of [-1, 1]) box(hg, MAT.hole, x, x + 1.6, .8, 3.2, s * 3.52 - .05, s * 3.52 + .05);
+  box(hg, MAT.poly, 35, 44.5, -1, -.6, -1.2, 1.2);
+  const tr = sub(rc, 'Feed tray');
+  box(tr, MAT.plate, 8.6, 26.4, 8.95, 9.45, -3, 3);
+  for (const z of [-1.2, 1.2]) box(tr, MAT.steel, 9, 26, 9.45, 9.6, z - .25, z + .25);
+  const cv = P.cover = part(rc, 'cover', 'Feed cover', null, 27, 9.6, 0);
+  shell(prof(cv, MAT.recv, [[-21, 0], [0, 0], [0, 1.6], [-2, 3], [-21, 3]], -3.6, 3.6, .3));
+  box(cv, MAT.metal, -19.8, -15.4, 3, 4.2, -1.6, 1.6);                                                   // rear sight base
+  cylZ(cv, MAT.metal, -2.6, 2.6, .9, -17.6, 4.9);                                                         // elevation drum
+  box(cv, MAT.metal, -18.1, -17.1, 4.9, 6.9, -.6, .6); cylZ(cv, MAT.hole, -.62, .62, .25, -17.6, 6.3);     // aperture
+  box(cv, MAT.metal, -13, -2.5, 3, 3.9, -1.1, 1.1);                                                       // short rail
+  for (let x = -12.4; x < -3; x += 1.5) box(cv, MAT.hole, x, x + .6, 3.85, 3.95, -1.12, 1.12);
+  box(cv, MAT.steel2, -21.5, -20, .5, 2.3, -4.05, 4.05);                                                 // cover latches
+  const lv = P.lever = part(rc, 'lever', 'Barrel locking lever', null, 31.2, 3.6, -3.4);
+  box(lv, MAT.steel2, -.7, .7, 0, 5.2, -1, 0);
+  box(lv, MAT.steel2, -.95, .95, 4.4, 5.8, -1.35, -.8);
+  hitbox(lv, -2.2, 2.2, -1, 7, -3, .5);
+
+  const ck = P.cock = part(rig, 'cock', 'Charging handle', null);
+  box(ck, MAT.metal, 27.6, 29.2, 5.9, 7.1, 4.4, 5.1);
+  box(ck, MAT.metal, 27.2, 29.8, 5.2, 7.8, 5.1, 7.2);
+  for (const x of [27.6, 28.3, 29]) box(ck, MAT.hole, x, x + .3, 5.25, 7.75, 7.18, 7.24);
+  hitbox(ck, 25.5, 31.5, 3.6, 9.4, 4.4, 9);
+  const rh = hand(ck, 29.8, 5.2, 7.8, 6.15);
+
+  P.pinU = pinPart(rig, 'pinU', 'Upper retaining pin', 1.3, 8, 3.62, false, null);
+  P.pinL = pinPart(rig, 'pinL', 'Lower retaining pin', 1.3, -.6, 3, false, null);
+
+  const st = P.stock = part(rig, 'stock', 'Buttstock and buffer assembly', C.violet, 1.3, -.6, 0);
+  const si = new THREE.Group(); si.position.set(-1.3, .6, 0); st.add(si);
+  shell(prof(si, MAT.stock, [[2.6, -1.5], [2.6, 1], [0, 1], [0, 9.6], [-30.4, 10], [-30.4, -5], [-23, -4], [-8, -.4], [-2, -1.5]], -2.3, 2.3, .5));
+  for (const s of [-1, 1]) box(si, MAT.poly, -26, -6, 2, 7.6, s > 0 ? 2.3 : -2.42, s > 0 ? 2.42 : -2.3);  // side recess
+  box(si, MAT.rubber, -32, -30.2, -5.3, 10.2, -2.55, 2.55);                                              // buttplate
+  box(si, MAT.metal, -32.6, -31.8, 8.2, 12.4, -2.2, 2.2);                                                // folding shoulder rest
+  cylX(si, MAT.metal, -4, 0, 1.5, 5.2, 0);                                                               // buffer tube end
+
+  const tg = P.trigger = part(rig, 'trigger', 'Trigger mechanism assembly', C.green);
+  box(tg, MAT.metal, .2, 21, -1.6, 0, -2.6, 2.6);
+  box(tg, MAT.metal, 21, 22.4, -1, .3, -1.8, 1.8);
+  prof(tg, MAT.poly, [[9.2, -1.6], [15.2, -1.6], [14.4, -3.6], [13.2, -4.4], [13.3, -6], [12.2, -6.8], [12.2, -8.4], [11.1, -9.2], [10.9, -12.6], [4.6, -12.2], [7.8, -4]], -1.7, 1.7, .5);
+  box(tg, MAT.metal, 13.8, 21.4, -5, -4.3, -.8, .8);
+  box(tg, MAT.metal, 20.6, 21.4, -4.6, -1.6, -.8, .8);
+  box(tg, MAT.steel, 16, 16.9, -3.9, -1.6, -.35, .35);
+  cylZ(tg, MAT.steel, -3.1, 3.1, .42, 18.4, -.9);
+  cylZ(tg, MAT.red, -3.3, -3, .45, 18.4, -.9);
+
+  const br = P.barrel = part(rig, 'barrel', 'Barrel assembly', C.red);
+  cylX(br, MAT.metal, 22.3, 72, 1.25, Y, 0);
+  cylX(br, MAT.metal, 33.4, 36.6, 2, Y, 0, 28);
+  around(br, MAT.metal, 22.3, 24, Y, 1.1, 1.75, .9, 4, Math.PI / 4);                                    // locking lugs
+  cylX(br, MAT.metal, 72, 78, 1.55, Y, 0);
+  around(br, MAT.hole, 73, 77.4, Y, 1.45, 1.6, .36, 5);                                                  // flash suppressor slots
+  cylX(br, MAT.hole, 77.95, 78.1, 1, Y, 0);
+  box(br, MAT.metal, 66.4, 69.6, Y + 1, Y + 2.4, -.9, .9);
+  box(br, MAT.metal, 67.5, 68.3, Y + 2.4, Y + 4.4, -.25, .25);
+  box(br, MAT.metal, 67, 68.8, Y + 2.4, Y + 4.8, .7, 1);
+  box(br, MAT.metal, 67, 68.8, Y + 2.4, Y + 4.8, -1, -.7);
+  box(br, MAT.metal, 54.2, 58.4, G - 1.1, Y + .6, -1.5, 1.5);                                             // gas block
+  cylX(br, MAT.metal, 37, 39.6, 1.75, Y, 0);                                                              // carrying handle
+  box(br, MAT.poly, 37.6, 38.9, Y + 1.4, Y + 8.6, -.55, .55);
+  cylX(br, MAT.poly, 37.6, 46.5, .85, Y + 8.9, 0);
+  for (const x of [40, 41.8, 43.6]) cylX(br, MAT.poly, x, x + .5, .95, Y + 8.9, 0);
+  const sh = P.shield = sub(br, 'Heat shield (stays on the barrel)', null, 0xf08a5a);
+  halfPipe(sh, MAT.shield, 40.5, 53.5, 2.25, Y);
+  for (const x of [42, 44.6, 47.2, 49.8]) box(sh, MAT.hole, x, x + 1.4, Y + 2.2, Y + 2.3, -.8, .8);
+  box(sh, MAT.metal, 51.6, 52.8, Y + 2.05, Y + 2.65, -.7, .7);
+  const rg = P.regulator = sub(br, 'Gas regulator (stays on the barrel)', null, 0xb33a33);
+  cylX(rg, MAT.metal, 58.4, 60.6, 1.05, G, 0);
+  cylX(rg, MAT.steel, 58.4, 59.3, 1.32, G, 0);
+  box(rg, MAT.steel, 59, 59.7, G + 1.2, G + 2.1, -.3, .3);
+  hitbox(rg, 57.8, 61.6, G - 1.8, G + 2.6, -1.8, 1.8);
+
+  const gc = P.gascyl = part(rig, 'gascyl', 'Gas cylinder', C.yellow);
+  cylX(gc, MAT.gas, 34.6, 58.3, .95, G, 0);
+  cylX(gc, MAT.gas, 52.5, 54.1, 1.12, G, 0);
+  cylX(gc, MAT.gas, 57.4, 58.3, 1.15, G, 0);
+
+  const bp = P.bipod = part(rig, 'bipod', 'Bipod', 0xc9a92a);
+  cylX(bp, MAT.metal, 47.6, 50.2, 1.55, G, 0);
+  box(bp, MAT.metal, 48.1, 49.7, G - 2.2, G - .8, -2.6, 2.6);
+  for (const s of [-1, 1]) {
+    const a = V(48.9, G - 1.5, s * 2.2), f = V(58, -35.4, s * 9.5), m = a.clone().lerp(f, .5);
+    rod(bp, MAT.metal, a, m, .66); rod(bp, MAT.steel2, m, f, .48);
+    for (const k of [.58, .66, .74]) { const q = a.clone().lerp(f, k); mesh(new THREE.TorusGeometry(.5, .08, 6, 14), MAT.hole, bp, q.x, q.y, q.z, false).quaternion.setFromUnitVectors(V(0, 0, 1), f.clone().sub(a).normalize()); }
+    mesh(new THREE.SphereGeometry(1, 14, 8), MAT.rubber, bp, f.x, f.y, f.z).scale.y = .55;
+  }
+
+  const op = P.oprod = part(rig, 'oprod', 'Driving spring and return rod', C.amber);
+  const rodG = sub(op, 'Return rod and transfer mechanism (operating rod)');
+  box(rodG, MAT.steel, .4, 3.6, G - 1.5, G + 2.5, -2.1, 2.1);
+  box(rodG, MAT.steel, .8, 2, G + .2, G + 1.2, -2.7, 2.7);
+  cylX(rodG, MAT.steel, 3.6, 17, .42, G, 0);
+  const spG = sub(op, 'Driving spring (operating rod spring)', null, 0xf3c97a);
+  coil(spG, 4, 16.2, .8, 16, G, 0);
+  S.oprod = [rodG, spG];
+
+  const bs = P.bsp = part(rig, 'bsp', 'Bolt, slide and piston', C.blue);
+  const pi = sub(bs, 'Piston assembly', null, 0x2c7fbf);
+  cylX(pi, MAT.steel, 11, 24, 1, G, 0); cylX(pi, MAT.steel, 24, 55, .6, G, 0); cylX(pi, MAT.steel, 55, 57.6, .85, G, 0);
+  for (const x of [55.6, 56.4]) cylX(pi, MAT.hole, x, x + .2, .87, G, 0);
+  box(pi, MAT.hole, 12, 14, G - 1.02, G - .6, -.5, .5);
+  const sl = sub(bs, 'Slide assembly', null, 0x5bb6ee);
+  box(sl, MAT.steel2, 12.6, 20.6, G + 1, Y - .2, -1.5, 1.5);
+  box(sl, MAT.steel2, 13.6, 15.4, Y - .2, Y + 1, -.6, .6);
+  cylY(sl, MAT.steel, 14.5, Y + 1.6, 0, .55, 1.2);
+  cylX(sl, MAT.steel, 20.6, 22, .22, Y, 0);
+  const bo = sub(bs, 'Bolt assembly', null, 0x9fd6f7);
+  cylX(bo, MAT.steel, 16.8, 22.2, 1.12, Y, 0);
+  box(bo, MAT.steel, 20.5, 21.8, Y - 1.55, Y + 1.55, -.45, .45);
+  box(bo, MAT.hole, 19, 22.1, Y + .85, Y + 1.25, .35, .9);
+  S.bsp = [pi, sl, bo];
+  return { P, S, hand: rh };
+}
+
+/* ---------- M240B (FM 3-22.68 ch. 3; groups as on the class sheet "Maintain an M240") ---------- */
+function buildM240(rig) {
+  const P = {}, S = {}, Y = 7.2, G = 3;
+  const rc = P.receiver = part(rig, 'receiver', 'Receiver assembly (with the bipod)', null);
+  shell(prof(rc, MAT.recv, [[0, 0], [40, 0], [40, 9], [38.5, 10.2], [36.5, 10.2], [36.5, 9.4], [9, 9.4], [9, 10.2], [0, 10.2]], -3.5, 3.5, .3));
+  for (const s of [-1, 1]) {
+    box(rc, MAT.plate, 1.5, 36, .8, 8.8, s > 0 ? 3.52 : -3.66, s > 0 ? 3.66 : -3.52);
+    rivets(rc, [2.6, 8, 14, 20, 26, 32, 35], [1.6, 8], s * 3.72);
+  }
+  box(rc, MAT.hole, -.06, .02, .8, 9.4, -2.9, 2.9);
+  shell(box(rc, MAT.recv, 14, 38.5, 6.4, 8.4, 3.3, 4.4));
+  box(rc, MAT.hole, 15, 36, 7.1, 7.7, 4.38, 4.46);
+  const pc = P.port = part(rc, 'port', 'Ejection port cover', null, 16, 0, 2.2);                        // ejection port cover (bottom), hinged on its right edge
+  box(pc, MAT.plate, 0, 10, -.3, .05, -4.4, 0);
+  hitbox(pc, -.5, 10.5, -1.6, .6, -4.6, .4);
+  box(rc, MAT.hole, 22, 30, 7.6, 9, 3.6, 3.7);                                                            // link ejection port
+  shell(cylX(rc, MAT.recv, 39, 44, 2.6, Y, 0, 28));
+  for (const s of [-1, 1]) box(rc, MAT.recv, 5, 8, -2.2, 0, s > 0 ? 2.8 : -3.5, s > 0 ? 3.5 : -2.8);    // trigger housing bracket
+  box(rc, MAT.metal, 2, 6, 10.2, 11, -1.4, 1.4); box(rc, MAT.metal, 3.4, 4.2, 11, 14.4, -1, 1);          // rear sight leaf
+  for (const y of [12, 13.2]) box(rc, MAT.white, 3.38, 4.22, y, y + .12, -.6, .6);
+  cylX(rc, MAT.gas, 44, 70, 1.15, G, 0);                                                                  // gas cylinder
+  const hg = sub(rc, 'Handguard');
+  shell(prof(hg, MAT.stock, [[44, -.5], [58, -.5], [60, 1], [60, 5.4], [44, 5.4]], -3.6, 3.6, .4));
+  for (const x of [46, 49, 52, 55]) for (const s of [-1, 1]) box(hg, MAT.hole, x, x + 1.8, 1, 4, s * 3.62 - .05, s * 3.62 + .05);
+  box(rc, MAT.metal, 64, 68, G + 1.1, Y - 1.3, -1.2, 1.2);                                               // barrel support
+  const bp = sub(rc, 'Bipod');
+  cylX(bp, MAT.metal, 65.5, 68.5, 1.7, G, 0);
+  box(bp, MAT.metal, 66, 68, G - 2.4, G - 1, -2.6, 2.6);
+  for (const s of [-1, 1]) {
+    const a = V(67, G - 1.7, s * 2.2), f = V(76, -27.4, s * 11), m = a.clone().lerp(f, .45);
+    rod(bp, MAT.metal, a, m, .72); rod(bp, MAT.steel2, m, f, .52);
+    mesh(new THREE.SphereGeometry(1, 14, 8), MAT.rubber, bp, f.x, f.y, f.z).scale.y = .55;
+  }
+  const cv = P.cover = part(rc, 'cover', 'Cover assembly', C.teal, 36.5, 10.2, 0);
+  shell(prof(cv, MAT.recv, [[-28, 0], [0, 0], [0, 1.8], [-1.5, 3.4], [-28, 3.4]], -3.7, 3.7, .3));
+  box(cv, MAT.metal, -26, -3, 3.4, 4.3, -1.15, 1.15);                                                    // top rail
+  for (let x = -25.2; x < -3.5; x += 1.6) box(cv, MAT.hole, x, x + .7, 4.25, 4.36, -1.17, 1.17);
+  box(cv, MAT.steel2, -28.4, -26.6, .6, 2.4, -4.15, 4.15);                                               // cover latches
+  const cp = P.coverPin = pinPart(rc, 'coverPin', 'Cover spring pin', 36.8, 10.9, 3.9, true, 0x7fe0d8);
+  const tr = P.tray = part(rc, 'tray', 'Feed tray', 0x1f9e95);
+  box(tr, MAT.plate, 10, 35.5, 9.45, 10.05, -3.2, 3.2);
+  for (const z of [-1.4, 1.4]) box(tr, MAT.steel, 11, 35, 10.05, 10.16, z - .3, z + .3);
+  const la = P.latch = part(rc, 'latch', 'Barrel locking latch', null, 41, 4.4, -3.5);
+  box(la, MAT.steel2, -1.1, 1.1, -1, 1.4, -1.1, 0);
+  hitbox(la, -2.4, 2.4, -2.4, 2.8, -3, .4);
+
+  const ck = P.cock = part(rc, 'cock', 'Charging handle', null);   // on the receiver: it goes down with it
+  box(ck, MAT.metal, 34.4, 36.2, 6.8, 8, 4.4, 5.2);
+  box(ck, MAT.metal, 34, 36.8, 6, 8.8, 5.2, 7.4);
+  for (const x of [34.4, 35.1, 35.8]) box(ck, MAT.hole, x, x + .3, 6.05, 8.75, 7.38, 7.44);
+  hitbox(ck, 32.4, 38.4, 4.4, 10.4, 4.4, 9.2);
+  const rh = hand(ck, 36.8, 6, 8.8, 6.3);
+
+  const tg = P.trigger = part(rig, 'trigger', 'Trigger housing assembly', C.green, 25.6, -.6, 0);
+  const ti = new THREE.Group(); ti.position.set(-25.6, .6, 0); tg.add(ti);
+  box(ti, MAT.metal, 5.2, 26.4, -2, 0, -2.7, 2.7);
+  box(ti, MAT.metal, 25.4, 27, -1, .3, -1.6, 1.6);
+  prof(ti, MAT.poly, [[9, -2], [15, -2], [14.2, -4], [13, -4.8], [13.1, -6.6], [12, -7.4], [12, -9], [11, -9.8], [11.2, -13.5], [5.2, -13], [7.6, -4.2]], -1.8, 1.8, .5);
+  box(ti, MAT.metal, 13.6, 22, -6, -5.2, -.8, .8);
+  box(ti, MAT.metal, 21.2, 22, -5.6, -2, -.8, .8);
+  box(ti, MAT.steel, 16.2, 17.1, -4.6, -2, -.35, .35);
+  const sf = P.safety = part(ti, 'safety', 'Safety', null, 18.8, -1.2, 0);   // FIRE: red ring out on the left; SAFE: pushed to the right
+  cylZ(sf, MAT.steel, -3.2, 3.2, .42, 0, 0);
+  cylZ(sf, MAT.red, -3.4, -3.1, .45, 0, 0);
+  hitbox(sf, -1.3, 1.3, -1.3, 1.3, -4.4, 4.4);
+  P.tpin = pinPart(rig, 'tpin', 'Trigger housing spring pin', 6.5, -1.1, 3.8, true, 0x9be8b8);
+
+  const st = P.stock = part(rig, 'stock', 'Buttstock and buffer assembly', C.amber);
+  box(st, MAT.metal, -5, .4, 0, 10.2, -3.2, 3.2);
+  shell(prof(st, MAT.stock, [[-5, 9.4], [-38, 9], [-38, -7], [-31, -6], [-12, -.6], [-5, 0]], -2.4, 2.4, .5));
+  for (const s of [-1, 1]) box(st, MAT.poly, -33, -10, 0, 7, s > 0 ? 2.4 : -2.52, s > 0 ? 2.52 : -2.4);
+  box(st, MAT.rubber, -39.6, -38, -7.3, 9.3, -2.6, 2.6);
+  box(st, MAT.steel, -1.2, 1, -.9, 0, -1, 1);                                                            // back plate latch (underneath)
+
+  const ds = P.dsr = part(rig, 'dsr', 'Driving spring rod assembly', C.red);
+  box(ds, MAT.steel, .5, 2.6, G - 1.8, G + 1.8, -1.5, 1.5);
+  cylY(ds, MAT.steel, 1.5, G - 2.2, 0, .45, .8);
+  cylX(ds, MAT.steel, 2.6, 22, .42, G, 0);
+  coil(ds, 3, 21, .9, 20, G, 0);
+
+  const bo = P.bor = part(rig, 'bor', 'Bolt and operating rod assembly', C.blue);
+  box(bo, MAT.steel2, 17, 30, G - 1.3, G + 1.3, -1.4, 1.4);
+  box(bo, MAT.hole, 18, 20, G - 1.32, G - .9, -.6, .6);
+  cylX(bo, MAT.steel2, 30, 66, .75, G, 0);
+  cylX(bo, MAT.steel2, 66, 69.2, 1, G, 0);
+  box(bo, MAT.steel, 26.4, 28.8, G + 1.3, Y - 1.2, -.8, .8);
+  box(bo, MAT.steel, 24.6, 32, Y - 1.3, Y + 1.3, -1.45, 1.45);
+  box(bo, MAT.hole, 27, 31.9, Y + .9, Y + 1.32, .5, 1);
+
+  const br = P.barrel = part(rig, 'barrel', 'Barrel assembly', C.violet);
+  cylX(br, MAT.metal, 32.2, 100, 1.45, Y, 0);
+  cylX(br, MAT.metal, 38, 45.5, 2.35, Y, 0, 28);
+  for (const x of [39, 40.4, 41.8, 43.2]) cylX(br, MAT.hole, x, x + .3, 2.37, Y, 0, 28);
+  cylX(br, MAT.metal, 100, 108, 1.75, Y, 0);
+  around(br, MAT.hole, 101, 107.4, Y, 1.62, 1.8, .36, 6);
+  cylX(br, MAT.hole, 107.95, 108.1, 1.1, Y, 0);
+  box(br, MAT.metal, 94, 97.5, Y + 1.2, Y + 2.8, -1, 1);
+  box(br, MAT.metal, 95.4, 96.2, Y + 2.8, Y + 5.4, -.28, .28);
+  box(br, MAT.metal, 70, 74.5, G - 1.3, Y + .7, -1.6, 1.6);                                              // gas block
+  cylX(br, MAT.metal, 68.6, 70, .95, G, 0);                                                              // gas plug
+  cylX(br, MAT.steel, 74.5, 76, 1.25, G, 0);                                                             // gas collar
+  cylX(br, MAT.metal, 50, 53, 2.1, Y, 0);                                                                // carrying handle clamp
+  const hd = P.handle = sub(br, 'Carrying handle');
+  hd.position.set(51.5, Y + 1.6, 1.6); hd.rotation.x = Math.PI / 2;
+  box(hd, MAT.metal, -.6, .6, 0, 3.2, -.5, .5);
+  cylY(hd, MAT.poly, 0, 7.4, 0, .95, 8.4);
+  hitbox(hd, -2, 2, 0, 11.8, -2, 2);
+  const hs = P.hshield = part(br, 'hshield', 'Heat shield', 0xc6b2f5, 56, Y, 0);   // comes off before the barrel (class video); pivots on its rear end
+  halfPipe(hs, MAT.shield, 0, 28, 2.4, 0);
+  for (let x = 2; x < 26; x += 3) box(hs, MAT.hole, x, x + 1.6, 2.35, 2.45, -.9, .9);
+  for (const s of [-1, 1]) box(hs, MAT.metal, 14.6, 15.6, -.4, .5, s * 2.4 - .15, s * 2.4 + .15);
+  return { P, S, hand: rh };
+}
+
+/* ---------- the two weapons: score sheets, mat labels, steps ---------- */
+const STOCK_DOWN = 1.25; // M249: the buttstock hangs on the lower pin
+const FC = ['Assemble the weapon correctly in sequence.', 'Ensure safety is on FIRE before moving bolt/operating rod assembly; pull/hold charging handle to rear, locking bolt.', 'While holding to rear with no tension on bolt, place on SAFE and depress trigger (weapon should not fire).', 'Place safety to FIRE, depress trigger, ease bolt forward to close and lock, and release trigger.', 'Attempt to place on SAFE (must not move to SAFE); close ejection port cover.'];
+const clearList = n => ['Point weapon in safe direction. Ensure safety is on FIRE before moving bolt/operating rod assembly.', 'Pull and hold, with palm up, charging handle with right hand to rear, ensuring bolt locks completely to rear.', 'While holding charging handle to rear (with no tension on bolt), place safety to SAFE. Release charging handle fully forward and locked.',
+  n === 5 ? 'Push feed cover latches, look in safe direction, raise feed cover, conduct 5-point check (brass/links/ammo, feed pawl, feed tray/chamber, space under bolt, magazine well).' : 'Push feed cover latches, look in safe direction, raise feed cover, conduct 4-point check (brass/links/ammo, feed pawl, feed tray, inspect chamber/under bolt).',
+  'Lower feed tray and close feed cover, making sure it locks shut.', 'Pull/hold charging handle to rear, place safety to FIRE, ease bolt forward while fully depressing trigger. Release trigger.', 'Attempt to place safety to SAFE; safety must not be able to be moved to SAFE.'];
+const WEAPONS = {
+  m249: {
+    key: 'm249', name: 'M249', video: ['video/M249_3D_demo.mp4', '4:10'], sheet: 'Warrior Task: Maintain a M249', codes: '071-COM-4025 (Maintain M249) & 071-COM-4026 (Perform Function Check M249)',
+    build: buildM249, rig: [-23, 36, 30], mat: [-86, 86, -98, 56], R: { work: 64, gun: 58, mat: 108 }, internal: ['oprod', 'bsp'], home: 'D',
+    zones: {
+      A: [-84, -56, -42, 4, 'Driving spring and return rod transfer mechanism assembly', C.amber, true],
+      B: [-54, 8, -42, 4, 'Bolt, slide, and piston assemblies', C.blue, true],
+      C: [10, 84, -42, 4, 'Heat shield, gas regulator, and barrel', C.red],
+      D: [-66, 66, 8, 54, 'Handguard and receiver assembly', C.white],
+      E: [-84, -42, -96, -46, 'Buttstock and buffer assembly', C.violet],
+      F: [-40, -8, -96, -46, 'Trigger mechanism assembly', C.green],
+      G: [-6, 84, -96, -46, 'Gas cylinder and bipod', C.yellow],
+    },
+    items: {
+      oprod: { x: -70, z: -27, zone: 'A' }, 'oprod.0': { x: -70, z: -34, g: 'oprod' }, 'oprod.1': { x: -70, z: -20, g: 'oprod' },
+      bsp: { x: -23, z: -27, zone: 'B' }, 'bsp.0': { x: -23, z: -36, g: 'bsp' }, 'bsp.1': { x: -37, z: -20, g: 'bsp' }, 'bsp.2': { x: -10, z: -20, g: 'bsp' },
+      barrel: { x: 47, z: -30, zone: 'C' },
+      stock: { x: -63, z: -76, zone: 'E' }, trigger: { x: -24, z: -76, zone: 'F' }, gascyl: { x: 12, z: -76, zone: 'G' }, bipod: { x: 54, z: -74, r: [0, 0, 1.325], zone: 'G' },
+    },
+    orders: 'REPORT TO: C Co, 3rd Platoon<br>TIME: 0430 tomorrow<br>BRING: ruck, M249, and a cartridge for the pins',
+    dis: () => [
+      { pick: 'pinU', cam: 'left', do: 'Pull the upper retaining pin to the left.', how: 'Upper of the two pins at the rear of the receiver. It is captive: it slides out to the left but stays in the gun. The buttstock pivots down on the lower pin.', run: async () => { await act('pinU', { z: -2.6 }, 320); await act('stock', { rz: STOCK_DOWN }, 750); } },
+      { pick: 'oprod', grp: 'A', do: 'Remove the operating rod and driving spring.', how: 'Push in and up on the rear of the operating rod (return rod and transfer mechanism) to free its buffer lugs from the receiver grooves, then pull the rod and spring out the rear.', run: () => off('oprod', [{ d: [.4, .6, 0] }, { d: [-22, 0, 0], t: 420 }]) },
+      { pick: 'oprod', grp: 'A', do: 'Separate the rod and the driving spring.', how: 'The label says "separated": take the spring off the rod and lay them side by side.', run: () => sep('oprod') },
+      { pick: 'cock', cam: 'right', do: 'Pull the charging handle to the rear, then push it forward.', how: 'Right side, palm up. The bolt locks to the rear. The handle does not come back on its own: push it forward until it locks.', run: async () => { await Promise.all([act('cock', { x: -13 }, 420), act('bsp', { x: -12 }, 420)]); await act('cock', {}, 420); } },
+      { pick: 'bsp', grp: 'B', do: 'Remove the bolt, slide and piston.', how: 'Finger on the bolt face, push it rearward until it meets the bridge at the rear of the receiver. Hold the slide and pull the moving parts out the rear.', run: () => off('bsp', [{ d: [-50, 0, 0], t: 750 }]) },
+      { pick: 'bsp', grp: 'B', do: 'Separate the bolt, slide and piston.', how: 'Rotate the bolt to unhook it from the slide (keep the firing pin spring), press the slide retaining pin to the left and lift the slide off the piston.', run: () => sep('bsp') },
+      { pick: 'lever', cam: 'left', do: 'Depress the barrel locking lever.', how: 'Left side of the receiver, at the front where the barrel goes in. The feed cover must be closed (it is). Hold it down.', run: () => act('lever', { rz: .42 }, 260) },
+      { pick: 'barrel', grp: 'C', do: 'Lift the carrying handle and push the barrel forward and out.', how: 'Keep the lever down. The barrel slides forward off the gas cylinder. It comes off whole: the heat shield and gas regulator stay on it.', run: () => off('barrel', [{ d: [16, .4, 0], t: 500 }], () => act('lever', {}, 220)) },
+      { pick: 'pinL', cam: 'left', do: 'Push the lower retaining pin to the left.', how: 'Use a cartridge or the operating rod. It is captive. It holds both the buttstock and the trigger mechanism, so support the trigger mechanism.', run: () => act('pinL', { z: -2.6 }, 320) },
+      { pick: 'stock', grp: 'E', do: 'Pull the buttstock off to the rear.', how: 'Support the trigger mechanism with the other hand.', run: () => off('stock', [{ d: [-5, -1, 0] }]) },
+      { pick: 'trigger', grp: 'F', do: 'Remove the trigger mechanism.', how: 'With the buttstock off nothing holds its rear: lower the rear and unhook the front from the slot under the receiver.', run: () => off('trigger', [{ d: [-1.5, -3, 0] }, { d: [-2, -4, 0] }]) },
+      { pick: 'gascyl', grp: 'G', do: 'Remove the gas cylinder.', how: 'Grasp it at the top of the bipod legs, turn it left or right to release the locking spring, and pull it forward out of the receiver.', run: () => off('gascyl', [{ rx: .6, t: 260 }, { d: [26, 0, 0], t: 520 }]) },
+      { pick: 'bipod', grp: 'G', do: 'Pull the bipod off.', how: 'With the gas cylinder out nothing holds it: pull it away from the receiver. It goes on the same label as the gas cylinder.', run: () => off('bipod', [{ d: [0, -3, 0] }]) },
+    ],
+    /* hands-on: how each part comes off with your finger (axis in the gun's frame: x toward the muzzle, y up, z to the right) */
+    hands: () => ({ dis: [
+      { ph: [{ g: 'slide', part: 'pinU', axis: [0, 0, -1], dist: 2.6, force: 'light', feel: 'Captive pin: a light push to the left (a cartridge tip works). It stops when it is out.' }],
+        done: async () => { await act('stock', { rz: STOCK_DOWN }, 650); sfx('thunk'); } },
+      { ph: [{ g: 'slide', part: 'oprod', axis: [0, 1, 0], dist: .7, force: 'firm', feel: 'Push in and up on the rear of the rod to free its buffer lugs from the grooves.' },
+        { g: 'slide', part: 'oprod', axis: [-1, 0, 0], dist: 22, force: 'light', spring: true, feel: 'Now draw it out the rear. Let go early and the spring pulls it back in.' },
+        { g: 'place', key: 'oprod' }] },
+      { ph: [{ g: 'apart', key: 'oprod', feel: 'Pull the spring off the rod.' }] },
+      { ph: [{ g: 'slide', part: 'cock', axis: [-1, 0, 0], dist: 13, force: 'light', with: [['bsp', 12 / 13]], endSound: 'clack', feel: 'Palm up, all the way back until the bolt catches. With the spring out it moves easily.' },
+        { g: 'slide', part: 'cock', axis: [1, 0, 0], dist: 13, force: 'light', feel: 'Push it forward until it locks. The bolt stays back.' }] },
+      { ph: [{ g: 'slide', part: 'bsp', axis: [-1, 0, 0], dist: 50, force: 'light', feel: 'Finger on the bolt face: push the moving parts back and slide them out the rear.' },
+        { g: 'place', key: 'bsp' }] },
+      { ph: [{ g: 'apart', key: 'bsp', feel: 'Turn the bolt off the slide; lift the slide off the piston.' }] },
+      { ph: [{ g: 'hold', part: 'lever', feel: 'Press it and keep holding: a second finger on a phone, Space on a computer.' }] },
+      { ph: [{ g: 'slide', part: 'barrel', axis: [1, 0, 0], dist: 16, force: 'firm', needs: 'lever', feel: 'Lever held down: push the barrel forward off the gas cylinder.' },
+        { g: 'place', key: 'barrel' }] },
+      { ph: [{ g: 'slide', part: 'pinL', axis: [0, 0, -1], dist: 2.6, force: 'firm', feel: 'Captive pin: push it left with a cartridge tip. Support the trigger mechanism.' }] },
+      { ph: [{ g: 'slide', part: 'stock', axis: [-1, 0, 0], dist: 5, force: 'light', feel: 'Pull the buttstock off to the rear.' }, { g: 'place', key: 'stock' }] },
+      { ph: [{ g: 'slide', part: 'trigger', axis: [0, -1, 0], dist: 4, force: 'light', feel: 'Lower its rear and unhook the front.' }, { g: 'place', key: 'trigger' }] },
+      { ph: [{ g: 'twist', part: 'gascyl', angle: .6, force: 'firm', feel: 'Grip it at the bipod legs and turn it against the locking spring.' },
+        { g: 'slide', part: 'gascyl', axis: [1, 0, 0], dist: 26, force: 'light', feel: 'Pull it forward out of the receiver.' }, { g: 'place', key: 'gascyl' }] },
+      { ph: [{ g: 'slide', part: 'bipod', axis: [0, -1, 0], dist: 3, force: 'light', feel: 'Pull it away from the receiver.' }, { g: 'place', key: 'bipod' }] },
+    ], as: [
+      { ph: [{ g: 'mount', key: 'bipod', via: { d: [0, -3, 0] } }, { g: 'slide', part: 'bipod', axis: [0, 1, 0], dist: 3, force: 'light', feel: 'Legs down, yoke in front of the handguard: push it up onto the receiver.' }] },
+      { ph: [{ g: 'mount', key: 'gascyl', via: { d: [14, 0, 0], rx: .6 } }, { g: 'slide', part: 'gascyl', axis: [-1, 0, 0], dist: 14, force: 'light', feel: 'Through the bipod yoke and into the receiver.' },
+        { g: 'twist', part: 'gascyl', angle: .6, dir: -1, force: 'firm', endSound: 'clack', feel: 'Push it rearward against the locking spring and turn it until the spring clicks into the recess.' }] },
+      { ph: [{ g: 'mount', key: 'trigger', via: { d: [-3.5, -7, 0] } }, { g: 'slide', part: 'trigger', axis: [3.5, 7, 0], dist: Math.hypot(3.5, 7), force: 'light', feel: 'Hook its front into the slot under the receiver and hold its rear up.' }] },
+      { ph: [{ g: 'mount', key: 'stock', off: { rz: STOCK_DOWN }, via: { d: [-5, -1, 0] } }, { g: 'slide', part: 'stock', axis: [5, 1, 0], dist: Math.hypot(5, 1), force: 'light', feel: 'Lower hole of the buttstock on the rear hole of the trigger mechanism. It stays pivoted down.' }] },
+      { ph: [{ g: 'slide', part: 'pinL', axis: [0, 0, 1], dist: 2.6, force: 'firm', feel: 'Push the captive pin to the right. It locks the buttstock and the trigger mechanism.' }] },
+      { ph: [{ g: 'hold', part: 'lever', feel: 'Press it and keep holding: a second finger on a phone, Space on a computer.' }] },
+      { ph: [{ g: 'mount', key: 'barrel', via: { d: [16, .4, 0] } }, { g: 'slide', part: 'barrel', axis: [-16, -.4, 0], dist: Math.hypot(16, .4), force: 'firm', needs: 'lever', endSound: 'clack', feel: 'Lever held: pull it rearward and down, gas regulator into the gas cylinder. Then let go of the lever.' }] },
+      { ph: [{ g: 'join', key: 'bsp', feel: 'Slide onto the piston first, then the bolt onto the slide.' }] },
+      { ph: [{ g: 'swing', part: 'cover', ax: 'z', dir: -1, dist: 1.15, force: 'light', feel: 'Push in the cover latches and raise the cover.' }] },
+      { ph: [{ g: 'mount', key: 'bsp', via: { d: [-36, 0, 0] } }, { g: 'slide', part: 'bsp', axis: [1, 0, 0], dist: 36, force: 'light', feel: 'Piston first, bolt lugs on the rails: push them forward until the bolt seats.' }] },
+      { ph: [{ g: 'swing', part: 'cover', ax: 'z', dir: 1, dist: 1.15, force: 'light', endSound: 'clack', feel: 'Press it down until the latches lock.' }] },
+      { ph: [{ g: 'join', key: 'oprod', feel: 'Slide the spring over the rod tip.' }] },
+      { ph: [{ g: 'mount', key: 'oprod', via: { d: [-22, .6, 0] } }, { g: 'slide', part: 'oprod', axis: [1, 0, 0], dist: 22, force: 'firm', spring: true, feel: 'Spring end into the rear of the piston: push against the spring. Let go early and it pushes back out.' },
+        { g: 'slide', part: 'oprod', axis: [0, -1, 0], dist: .6, force: 'firm', endSound: 'clack', feel: 'Press the rear down until both buffer lugs drop into the grooves.' }] },
+      { ph: [{ g: 'swing', part: 'stock', ax: 'z', dir: -1, dist: STOCK_DOWN, force: 'light', endSound: 'thunk', feel: 'Swing it up against the rear of the receiver.' }] },
+      { ph: [{ g: 'slide', part: 'pinU', axis: [0, 0, 1], dist: 2.6, force: 'light', feel: 'Push the captive pin to the right. Then the functions check.' }] },
+    ] }),
+    holds: { lever: { rz: .42 } },
+    as: () => [
+      { pick: 'bipod', do: 'Put the bipod on the receiver.', how: 'Legs open and pointing down, yoke in front of the handguard.', run: () => home('bipod', {}, { d: [0, -3, 0] }) },
+      { pick: 'gascyl', do: 'Install the gas cylinder.', how: 'Push it through the bipod yoke into the receiver, push it rearward against the locking spring and turn it until the spring clicks into the recess.', run: () => home('gascyl', {}, { d: [26, 0, 0], rx: .6, t: 520 }) },
+      { pick: 'trigger', do: 'Put the trigger mechanism in place.', how: 'Hook its front into the slot on the bottom of the receiver and hold its rear up.', run: () => home('trigger', {}, { d: [-3.5, -7, 0] }) },
+      { pick: 'stock', do: 'Put the buttstock on.', how: 'Line up the lower hole in the buttstock with the rear hole in the trigger mechanism. It stays pivoted down for now.', run: () => home('stock', { rz: STOCK_DOWN }, { d: [-5, -1, 0] }) },
+      { pick: 'pinL', cam: 'left', do: 'Push the lower retaining pin to the right.', how: 'It locks the buttstock and the trigger mechanism to the receiver.', run: () => act('pinL', {}, 320) },
+      { pick: 'lever', cam: 'left', do: 'Depress the barrel locking lever.', how: 'Left side, front of the receiver. Hold it while you put the barrel in.', run: () => act('lever', { rz: .42 }, 260) },
+      { pick: 'barrel', do: 'Install the barrel.', how: 'Holding the carrying handle, pull the barrel rearward and down so the gas regulator goes into the gas cylinder, then release the lever. Lift the handle to check it is locked.', run: async () => { await home('barrel', {}, { d: [16, .4, 0], t: 500 }); await act('lever', {}, 220); } },
+      { pick: 'bsp', do: 'Put the bolt, slide and piston together.', how: 'Slide onto the rear of the piston (firing pin forward), push the slide retaining pin to the right; firing pin spring on, bolt onto the slide with its driving lug in the slot, press and rotate to hook it.', run: () => join('bsp') },
+      { pick: 'cover', do: 'Open the feed cover.', how: 'Push in the cover latches at the rear and raise it, so you can watch the bolt ride onto the rails.', run: () => act('cover', { rz: -1.15 }, 480) },
+      { pick: 'bsp', do: 'Insert the moving parts.', how: 'Piston first into the rear of the receiver, bolt lugs on the receiver rails. Pull the trigger and push them forward until the bolt seats in the chamber.', run: () => home('bsp', {}, { d: [-50, 0, 0], t: 750 }) },
+      { pick: 'cover', do: 'Close the feed cover.', how: 'Press it down until the latches lock.', run: () => act('cover', {}, 420) },
+      { pick: 'oprod', do: 'Put the driving spring on the operating rod.', how: 'Slide the spring over the rod tip.', run: () => join('oprod') },
+      { pick: 'oprod', do: 'Install the operating rod and spring.', how: 'Free end of the spring into the rear of the piston, then press the rear of the rod down until the two buffer lugs sit in the receiver grooves.', run: () => home('oprod', {}, { d: [-22, .6, 0], t: 420 }) },
+      { pick: 'stock', do: 'Pivot the buttstock up.', how: 'Swing it up against the rear of the receiver.', run: () => act('stock', {}, 650) },
+      { pick: 'pinU', cam: 'left', do: 'Push the upper retaining pin to the right.', how: 'It locks the buttstock to the receiver. Then the functions check.', run: () => act('pinU', {}, 320) },
+    ],
+  },
+  m240: {
+    key: 'm240', name: 'M240B', video: ['video/M240B_3D_demo.mp4', '3:38'], sheet: 'Warrior Task: Maintain an M240', codes: '071-025-0001 (Maintain M240B) & 071-025-0002 (Perform Function Check M240B)',
+    build: buildM240, rig: [-34, 28, 30], mat: [-102, 102, -108, 58], R: { work: 78, gun: 72, mat: 126 }, internal: ['dsr', 'bor'], home: 'F',
+    zones: {
+      A: [-100, -52, -46, 2, 'Buttstock and buffer assembly', C.amber],
+      B: [-50, 34, -46, 2, 'Bolt and operating rod assembly', C.blue],
+      C: [36, 100, -46, 2, 'Driving spring rod assembly', C.red],
+      D: [-100, -56, -106, -50, 'Trigger housing assembly', C.green],
+      E: [-54, 100, -106, -50, 'Barrel assembly; removing heat shield', C.violet],
+      F: [-100, 100, 6, 56, 'Cover assembly, feed tray, and receiver assembly', C.teal],
+    },
+    items: {
+      stock: { x: -77, z: -26, zone: 'A' }, bor: { x: -8, z: -26, zone: 'B' }, dsr: { x: 68, z: -26, zone: 'C' },
+      trigger: { x: -78, z: -84, zone: 'D' }, tpin: { x: -78, z: -70, zone: 'D', free: true },
+      barrel: { x: 12, z: -84, zone: 'E' }, hshield: { x: 52, z: -64, zone: 'E' },
+      cover: { x: 20, z: 44, zone: 'F' }, tray: { x: 50, z: 44, zone: 'F' }, coverPin: { x: 72, z: 44, zone: 'F', free: true },
+      receiver: { x: -50, z: 32, zone: 'F', r: [Math.PI / 2, 0, 0] },
+    },
+    orders: 'REPORT TO: C Co, 3rd Platoon<br>TIME: 0430 tomorrow<br>BRING: ruck, M240B, and the driving spring rod before the bolt',
+    dis: () => [
+      /* clear the weapon first, as at the station (class video): the sheet's 7 clearing steps */
+      { sec: 'clr', pick: 'cock', cam: 'right', do: 'Pull the charging handle to the rear and hold it.', how: 'Weapon in a safe direction, safety on FIRE. Palm up, pull it all the way back: the bolt locks to the rear and the ejection port cover opens.', run: () => Promise.all([act('cock', { x: -12 }, 420), act('bor', { x: -10 }, 420), act('port', { rx: -1.2 }, 300)]) },
+      { sec: 'clr', pick: 'safety', do: 'Put the safety on SAFE, then return the charging handle forward.', how: 'While holding the handle to the rear (no tension on the bolt), push the safety to SAFE. Then let the handle go fully forward and locked. The bolt stays to the rear.', run: async () => { await act('safety', { z: .7 }, 220); await act('cock', {}, 320); } },
+      { sec: 'clr', pick: 'cover', do: 'Open the feed cover and do the 4-point check.', how: 'Push in the cover latches, look in a safe direction, raise the cover and lift the feed tray. Check for brass, links or ammo, the feed pawl, the feed tray, the chamber and under the bolt. No rounds: clear.', run: async () => { await act('cover', { rz: -1.1 }, 420); await act('tray', { y: 2.5 }, 260); } },
+      { sec: 'clr', pick: 'tray', do: 'Lower the feed tray and close the feed cover.', how: 'Press the cover down until it locks shut.', run: async () => { await act('tray', {}, 220); await act('cover', {}, 420); } },
+      { sec: 'clr', pick: 'cock', cam: 'right', do: 'Charging handle back, safety on FIRE, pull the trigger and ride the bolt forward.', how: 'Pull and hold the charging handle to the rear, put the safety on FIRE, hold the trigger and ease the bolt forward. Then release the trigger.', run: async () => { await act('cock', { x: -12 }, 320); await act('safety', {}, 220); await Promise.all([act('cock', {}, 600), act('bor', {}, 600)]); } },
+      { sec: 'clr', pick: 'safety', do: 'Try to put the safety on SAFE.', how: 'With the bolt forward it must not go to SAFE. The weapon is clear.', run: async () => { await act('safety', { z: .15 }, 120); await act('safety', {}, 160); } },
+      { pick: 'stock', grp: 'A', do: 'Depress the buttstock latch and slide the buttstock straight up.', how: 'The latch is under the buttstock where it meets the receiver. Hold it in and slide the buttstock and buffer straight up off the receiver.', run: () => off('stock', [{ d: [0, 14, 0], t: 480 }]) },
+      { pick: 'dsr', grp: 'C', do: 'Remove the driving spring rod assembly.', how: 'Push it forward and up to free its retaining stud, then pull it out the rear. Hold it firmly (spring tension) and keep your face away from the rear of the receiver.', run: () => off('dsr', [{ d: [.6, .9, 0] }, { d: [-26, 0, 0], t: 480 }]) },
+      { pick: 'cock', cam: 'right', do: 'Pull the charging handle to the rear.', how: 'Palm up. It starts the bolt and operating rod moving to the rear. Do this only after the driving spring rod is out.', run: () => Promise.all([act('cock', { x: -12 }, 420), act('bor', { x: -10 }, 420)]) },
+      { pick: 'bor', grp: 'B', do: 'Pull the bolt and operating rod out the rear.', how: 'Index finger in through the top, push the bolt face rearward until the group sticks out the rear, and pull it out. Then push the charging handle forward. (You may need to pull the trigger to lower the sear.)', run: () => off('bor', [{ d: [-58, 0, 0], t: 780 }], () => act('cock', {}, 320)) },
+      { pick: 'tpin', grp: 'D', cam: 'right', do: 'Remove the trigger housing pin.', how: 'The spring pin at the rear of the trigger housing. Press its spring and pull it out (tap it with the buttstock back plate if it is tight).', run: () => off('tpin', [{ d: [0, 0, 7], t: 320 }]) },
+      { pick: 'trigger', grp: 'D', do: 'Remove the trigger housing.', how: 'Rotate its rear down, unhook the holding notch at the front from its recess under the receiver, and lift it off.', run: () => off('trigger', [{ rz: .35, t: 320 }, { d: [1.5, -4, 0] }]) },
+      { pick: 'coverPin', grp: 'F', cam: 'right', do: 'Remove the cover pin.', how: 'The cover must be closed (it is). The spring pin is in the hinge at the front of the cover: press its spring and pull it out (tap it with the buttstock if it is tight).', run: () => off('coverPin', [{ d: [0, 0, 7], t: 320 }]) },
+      { pick: 'cover', grp: 'F', do: 'Lift the cover assembly off.', how: 'Press in the cover latches, raise the cover and lift it off the receiver.', run: () => off('cover', [{ rz: -.55, t: 320 }, { d: [0, 7, 0], t: 320 }]) },
+      { pick: 'tray', grp: 'F', do: 'Remove the feed tray.', how: 'Lift it out of the receiver. It goes on the same label as the cover and the receiver.', run: () => off('tray', [{ d: [0, 4, 0] }]) },
+      { pick: 'hshield', grp: 'E', do: 'Remove the heat shield.', how: 'Lift its front end off the barrel and pull it forward off. It goes on the barrel label ("removing heat shield").', run: () => off('hshield', [{ rz: .25, t: 260 }, { d: [5, 0, 0], t: 320 }]) },
+      { pick: 'latch', cam: 'left', do: 'Press and hold the barrel locking latch.', how: 'Left side of the receiver, where the barrel joins it. Check first that the carrying handle is to the right.', run: () => act('latch', { z: .6 }, 220) },
+      { pick: 'barrel', grp: 'E', do: 'Turn the carrying handle up, push the barrel forward and lift it out.', how: 'Holding the latch in, rotate the carrying handle to the upright position (without pulling up), then push the barrel forward and pull it up off the receiver.', run: async () => { await act('handle', { rx: -Math.PI / 2 }, 420); await off('barrel', [{ d: [4, 0, 0] }, { d: [0, 4, 0] }], () => act('latch', {}, 220)); } },
+      { pick: 'receiver', grp: 'F', do: 'Lay the receiver down on its label.', how: 'With the cover and the feed tray already off, set the receiver (with the bipod) down on label F next to them.', run: () => off('receiver', [{ d: [0, 3, 0] }]) },
+    ],
+    hands: () => ({ dis: [
+      { ph: [{ g: 'slide', part: 'cock', axis: [-1, 0, 0], dist: 12, force: 'light', with: [['bor', 10 / 12]], endSound: 'clack', feel: 'Palm up: pull it all the way back until the bolt locks.' }], done: () => act('port', { rx: -1.2 }, 200) },
+      { ph: [{ g: 'slide', part: 'safety', axis: [0, 0, 1], dist: .7, force: 'firm', feel: 'Push the safety across to SAFE.' }, { g: 'slide', part: 'cock', axis: [1, 0, 0], dist: 12, force: 'light', feel: 'Let the handle go forward: the bolt stays back.' }] },
+      { ph: [{ g: 'swing', part: 'cover', ax: 'z', dir: -1, dist: 1.1, force: 'light', feel: 'Push in the latches and raise the cover.' }, { g: 'slide', part: 'tray', axis: [0, 1, 0], dist: 2.5, force: 'light', feel: 'Lift the feed tray to see under it.' },
+        { g: 'look', part: 'receiver', cue: 'Tap to check', say: 'Clear: no brass, links or ammo', feel: 'Look: feed pawl, feed tray, chamber, under the bolt.' }] },
+      { ph: [{ g: 'slide', part: 'tray', axis: [0, -1, 0], dist: 2.5, force: 'light', feel: 'Lower the feed tray.' }, { g: 'swing', part: 'cover', ax: 'z', dir: 1, dist: 1.1, force: 'light', endSound: 'clack', feel: 'Close the cover until it locks.' }] },
+      { ph: [{ g: 'slide', part: 'cock', axis: [-1, 0, 0], dist: 12, force: 'light', feel: 'Pull and hold the charging handle to the rear.' }, { g: 'slide', part: 'safety', axis: [0, 0, -1], dist: .7, force: 'firm', feel: 'Safety to FIRE.' },
+        { g: 'slide', part: 'cock', axis: [1, 0, 0], dist: 12, force: 'light', needs: 'trigger', with: [['bor', 10 / 12]], endSound: 'clack', feel: 'Trigger held: ride the handle forward until the bolt closes.' }] },
+      { ph: [{ g: 'look', part: 'safety', cue: 'Try SAFE', say: 'It does not move: clear', feel: 'Try to push it to SAFE: with the bolt forward it must not move.' }] },
+      { ph: [{ g: 'slide', part: 'stock', axis: [0, 1, 0], dist: 14, force: 'firm', feel: 'Thumb in on the latch underneath, then slide the buttstock straight up.' }, { g: 'place', key: 'stock' }] },
+      { ph: [{ g: 'slide', part: 'dsr', axis: [.6, .9, 0], dist: Math.hypot(.6, .9), force: 'firm', feel: 'Push it forward and up to free the retaining stud.' },
+        { g: 'slide', part: 'dsr', axis: [-1, 0, 0], dist: 26, force: 'firm', feel: 'Hold it firmly (spring tension) and draw it out the rear, face clear.' }, { g: 'place', key: 'dsr' }] },
+      { ph: [{ g: 'slide', part: 'cock', axis: [-1, 0, 0], dist: 12, force: 'light', with: [['bor', 10 / 12]], feel: 'Palm up: pull it to the rear. The bolt and operating rod start back with it.' }] },
+      { ph: [{ g: 'slide', part: 'bor', axis: [-1, 0, 0], dist: 58, force: 'light', feel: 'Index finger in through the top: push the bolt face back and slide the group out the rear.' }, { g: 'place', key: 'bor' },
+        { g: 'slide', part: 'cock', axis: [1, 0, 0], dist: 12, force: 'light', feel: 'Push the charging handle forward.' }] },
+      { ph: [{ g: 'slide', part: 'tpin', axis: [0, 0, 1], dist: 7, force: 'firm', feel: 'Press its spring and pull it out to the right.' }, { g: 'place', key: 'tpin' }] },
+      { ph: [{ g: 'swing', part: 'trigger', ax: 'z', dir: 1, dist: .35, force: 'light', feel: 'Rotate its rear down.' },
+        { g: 'slide', part: 'trigger', axis: [1.5, -4, 0], dist: Math.hypot(1.5, 4), force: 'light', feel: 'Unhook the holding notch at the front and lift it off.' }, { g: 'place', key: 'trigger' }] },
+      { ph: [{ g: 'slide', part: 'coverPin', axis: [0, 0, 1], dist: 7, force: 'firm', feel: 'Press its spring and pull it out to the right. Tight? Tap it with the buttstock.' }, { g: 'place', key: 'coverPin' }] },
+      { ph: [{ g: 'swing', part: 'cover', ax: 'z', dir: -1, dist: .55, force: 'light', feel: 'Press in the cover latches and raise the cover.' },
+        { g: 'slide', part: 'cover', axis: [0, 1, 0], dist: 7, force: 'light', feel: 'Lift it off the receiver.' }, { g: 'place', key: 'cover' }] },
+      { ph: [{ g: 'slide', part: 'tray', axis: [0, 1, 0], dist: 4, force: 'light', feel: 'Lift the feed tray out.' }, { g: 'place', key: 'tray' }] },
+      { ph: [{ g: 'swing', part: 'hshield', ax: 'z', dir: 1, dist: .25, force: 'light', feel: 'Lift the front end of the heat shield off the barrel.' },
+        { g: 'slide', part: 'hshield', axis: [1, 0, 0], dist: 5, force: 'light', feel: 'Pull it forward off the barrel.' }, { g: 'place', key: 'hshield' }] },
+      { ph: [{ g: 'hold', part: 'latch', feel: 'Press it in and keep holding: a second finger on a phone, Space on a computer.' }] },
+      { ph: [{ g: 'swing', part: 'handle', ax: 'x', dir: -1, dist: Math.PI / 2, force: 'light', needs: 'latch', feel: 'Latch held: turn the carrying handle up. Do not pull up yet.' },
+        { g: 'slide', part: 'barrel', axis: [1, 0, 0], dist: 4, force: 'firm', needs: 'latch', feel: 'Latch held: push the barrel forward.' },
+        { g: 'slide', part: 'barrel', axis: [0, 1, 0], dist: 4, force: 'light', feel: 'Now lift it up off the receiver.' }, { g: 'place', key: 'barrel' }] },
+      { ph: [{ g: 'place', key: 'receiver' }] },
+    ], as: [
+      { ph: [{ g: 'mount', key: 'receiver', via: { d: [0, 6, 0] } }, { g: 'slide', part: 'receiver', axis: [0, -1, 0], dist: 6, force: 'light', feel: 'Set it down on its bipod in front of you.' }] },
+      { ph: [{ g: 'mount', key: 'barrel', via: { d: [4, 4, 0] } }, { g: 'slide', part: 'barrel', axis: [0, -1, 0], dist: 4, force: 'light', feel: 'Handle upright, gas regulator down: set it on the barrel support.' },
+        { g: 'slide', part: 'barrel', axis: [-1, 0, 0], dist: 4, force: 'firm', feel: 'Gun upright: pull it rearward into the receiver, gas plug into the gas cylinder.' }] },
+      { ph: [{ g: 'swing', part: 'handle', ax: 'x', dir: 1, dist: Math.PI / 2, force: 'firm', clicks: 5, endSound: 'clack', feel: 'Turn it fully to the right and count the clicks: 2 to 7 means good headspace.' }] },
+      { ph: [{ g: 'mount', key: 'hshield', via: { d: [5, 0, 0], rz: .25 } }, { g: 'slide', part: 'hshield', axis: [-1, 0, 0], dist: 5, force: 'light', feel: 'Heat shield to the back first: slide its rear end in against the receiver.' },
+        { g: 'swing', part: 'hshield', ax: 'z', dir: -1, dist: .25, force: 'light', endSound: 'clack', feel: 'Slap the front down onto the barrel.' }] },
+      { ph: [{ g: 'mount', key: 'tray', via: { d: [0, 4, 0] } }, { g: 'slide', part: 'tray', axis: [0, -1, 0], dist: 4, force: 'light', feel: 'Guides on the receiver brackets: set it in.' }] },
+      { ph: [{ g: 'mount', key: 'cover', via: { d: [0, 7, 0], rz: -.55 } }, { g: 'slide', part: 'cover', axis: [0, -1, 0], dist: 7, force: 'light', feel: 'Mounting holes on the brackets.' },
+        { g: 'swing', part: 'cover', ax: 'z', dir: 1, dist: .55, force: 'light', endSound: 'clack', feel: 'Close the cover.' }] },
+      { ph: [{ g: 'mount', key: 'coverPin', via: { d: [0, 0, 7] } }, { g: 'slide', part: 'coverPin', axis: [0, 0, -1], dist: 7, force: 'firm', feel: 'Spring end first: get it started, then tap it in (the buttstock works).' }] },
+      { ph: [{ g: 'mount', key: 'bor', via: { d: [-40, 0, 0] } }, { g: 'slide', part: 'bor', axis: [1, 0, 0], dist: 40, force: 'light', feel: 'Up and extended: operating rod on the bottom, bolt up top, above the tracks. It slides right in.' }] },
+      { ph: [{ g: 'mount', key: 'dsr', via: { d: [-26, .9, 0] } }, { g: 'slide', part: 'dsr', axis: [1, 0, 0], dist: 26, force: 'firm', spring: true, feel: 'Into the recess in the rear of the operating rod: push against the spring. Let go early and it pushes back out.' },
+        { g: 'slide', part: 'dsr', axis: [0, -1, 0], dist: .9, force: 'firm', endSound: 'clack', feel: 'Push it in and get the lip down into the bottom hole.' }] },
+      { ph: [{ g: 'mount', key: 'trigger', via: { d: [1.5, -4, 0], rz: .35 } }, { g: 'slide', part: 'trigger', axis: [-1.5, 4, 0], dist: Math.hypot(1.5, 4), force: 'light', feel: 'Hook its front underneath the receiver.' },
+        { g: 'swing', part: 'trigger', ax: 'z', dir: -1, dist: .35, force: 'light', feel: 'Rotate the rear up until the holes line up, and hold it.' }] },
+      { ph: [{ g: 'mount', key: 'tpin', via: { d: [0, 0, 7] } }, { g: 'slide', part: 'tpin', axis: [0, 0, -1], dist: 7, force: 'firm', feel: 'Little detent end in first, then push it through.' }] },
+      { ph: [{ g: 'mount', key: 'stock', via: { d: [0, 14, 0] } }, { g: 'slide', part: 'stock', axis: [0, -1, 0], dist: 14, force: 'firm', endSound: 'clack', feel: 'Grooves on the receiver grooves: slide it straight down until it locks.' }] },
+      { ph: [{ g: 'slide', part: 'cock', axis: [-1, 0, 0], dist: 12, force: 'light', with: [['bor', 10 / 12]], endSound: 'clack', feel: 'Safety on FIRE: pull the handle back until the bolt locks.' }], done: () => act('port', { rx: -1.2 }, 200) },
+      { ph: [{ g: 'slide', part: 'safety', axis: [0, 0, 1], dist: .7, force: 'firm', feel: 'Safety to SAFE (keep holding the charging handle).' }, { g: 'look', part: 'trigger', cue: 'Pull the trigger', say: 'Nothing happens: good', feel: 'Pull the trigger: it must not fire.' }] },
+      { ph: [{ g: 'slide', part: 'safety', axis: [0, 0, -1], dist: .7, force: 'firm', feel: 'Safety to FIRE.' }, { g: 'slide', part: 'cock', axis: [1, 0, 0], dist: 12, force: 'light', needs: 'trigger', with: [['bor', 10 / 12]], endSound: 'clack', feel: 'Trigger held: ride the handle forward until the bolt closes.' }] },
+      { ph: [{ g: 'look', part: 'safety', cue: 'Try SAFE', say: 'It does not move: good', feel: 'Try to push it to SAFE: it must not move.' }, { g: 'swing', part: 'port', ax: 'x', dir: 1, dist: 1.2, force: 'light', endSound: 'clack', feel: 'Close the ejection port cover.' }] },
+    ] }),
+    holds: { latch: { z: .6 }, trigger: {} },
+    as: () => [
+      { pick: 'receiver', do: 'Pick up the receiver.', how: 'Set it back on its bipod in front of you, ready for the barrel: work from front to back.', run: () => home('receiver', {}, { d: [0, 6, 0] }) },
+      { pick: 'barrel', do: 'Install the barrel.', how: 'Carrying handle upright, gas regulator down: set the barrel on the barrel support, keep the gun upright and pull the barrel rearward into the receiver, guiding the gas plug into the gas cylinder.', run: () => home('barrel', {}, { d: [4, 4, 0], t: 520 }) },
+      { pick: 'barrel', cam: 'right', do: 'Rotate the carrying handle fully to the right.', how: 'Count the clicks: 2 to 7 means the headspace is right. Fewer or more: turn it in to the armorer.', run: () => act('handle', {}, 480) },
+      { pick: 'hshield', do: 'Put the heat shield on.', how: 'Rear end in first, then slap the front down onto the barrel.', run: () => home('hshield', {}, { d: [5, 0, 0], rz: .25, t: 380 }) },
+      { pick: 'tray', do: 'Put the feed tray in.', how: 'Feed tray guides lined up with the receiver brackets.', run: () => home('tray', {}, { d: [0, 4, 0] }) },
+      { pick: 'cover', do: 'Put the cover assembly on and close it.', how: 'Line up its mounting holes with the brackets on the receiver and close the cover.', run: () => home('cover', {}, { d: [0, 7, 0], rz: -.55, t: 380 }) },
+      { pick: 'coverPin', cam: 'right', do: 'Insert the cover pin.', how: 'Spring end first: get it started by hand, then tap it in (the buttstock works as a hammer).', run: () => home('coverPin', {}, { d: [0, 0, 7] }) },
+      { pick: 'bor', do: 'Insert the bolt and operating rod.', how: 'Fully extended (unlocked): the operating rod goes in on the bottom, the bolt up top, lifted above the tracks inside the receiver. Pushed straight in, it slides right in.', run: () => home('bor', {}, { d: [-58, 0, 0], t: 780 }) },
+      { pick: 'dsr', do: 'Insert the driving spring rod assembly.', how: 'Into the recess in the rear of the operating rod, push it all the way in, and get its lip (the retaining stud) down into the hole in the bottom of the receiver.', run: () => home('dsr', {}, { d: [-26, .9, 0], t: 480 }) },
+      { pick: 'trigger', do: 'Put the trigger housing on.', how: 'Hook its front underneath the receiver (holding notch into the recess), then rotate the rear up so the holes line up with the mounting bracket, and hold it.', run: () => home('trigger', {}, { d: [1.5, -4, 0], rz: .35, t: 380 }) },
+      { pick: 'tpin', cam: 'right', do: 'Insert the trigger housing pin.', how: 'Put the little detent (spring) end in first, then push it through the bracket. That makes it easier.', run: () => home('tpin', {}, { d: [0, 0, 7] }) },
+      { pick: 'stock', do: 'Slide the buttstock down onto the receiver.', how: 'Bottom grooves of the buttstock onto the receiver grooves, slide it straight down until it locks. Tug it to be sure. Then the functions check.', run: () => home('stock', {}, { d: [0, 14, 0], t: 480 }) },
+      /* then the functions check, as at the station */
+      { sec: 'fc', pick: 'cock', cam: 'right', do: 'Pull the charging handle to the rear and hold it.', how: 'Safety on FIRE first. Pull it to the rear: the bolt locks back.', run: () => Promise.all([act('cock', { x: -12 }, 420), act('bor', { x: -10 }, 420), act('port', { rx: -1.2 }, 300)]) },
+      { sec: 'fc', pick: 'safety', do: 'Safety on SAFE and pull the trigger: nothing happens.', how: 'Still holding the charging handle (no tension on the bolt), put it on SAFE and pull the trigger. The weapon must not fire.', run: () => act('safety', { z: .7 }, 220) },
+      { sec: 'fc', pick: 'safety', do: 'Safety on FIRE, pull the trigger and ride the bolt forward.', how: 'Hold the trigger and ease the charging handle forward until the bolt closes and locks. Release the trigger.', run: async () => { await act('safety', {}, 220); await Promise.all([act('cock', {}, 600), act('bor', {}, 600)]); } },
+      { sec: 'fc', pick: 'safety', do: 'Try SAFE, then close the ejection port cover.', how: 'The safety must not go to SAFE. Close the ejection port cover. Done.', run: async () => { await act('safety', { z: .15 }, 120); await act('safety', {}, 160); await act('port', {}, 300); } },
+    ],
+  },
+};
+
+/* ---------- settings (this browser only) ---------- */
+const STORE = 'weapons3d-v1';
+const S = { weapon: 'm249' };
+try { Object.assign(S, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* storage blocked */ }
+if (!WEAPONS[S.weapon]) S.weapon = 'm249';
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* storage blocked */ } };
+let D = WEAPONS[S.weapon];
+
+/* ---------- motion: a small tween list (the demo recorder drives the clock by hand) ---------- */
+let tweens = [], FAST = false, SPEED = 1, manualNow = null;
+const clock = () => manualNow ?? performance.now();
+const ease = k => k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+const slow = matchMedia('(prefers-reduced-motion: reduce)').matches ? .45 : 1;
+const easeCam = k => .5 - .5 * Math.cos(Math.PI * k);   // gentle start and stop for the camera
+function tween(ms, fn, ez, cam) {
+  return new Promise(res => { if (FAST || !ms) { fn(1); res(); } else tweens.push({ t0: clock(), ms: ms * slow * SPEED, fn, res, ez, cam }); });
+}
+function stepTweens(now) {
+  tweens = tweens.filter(w => { const k = Math.min(1, Math.max(0, (now - w.t0) / w.ms)); w.fn((w.ez || ease)(k)); if (k >= 1) { w.res(); return false; } return true; });
+}
+function moveTo(o, p, q, ms) { const p0 = o.position.clone(), q0 = o.quaternion.clone(); return tween(ms, k => { o.position.lerpVectors(p0, p, k); o.quaternion.slerpQuaternions(q0, q, k); }); }
+function fly(o, p, q, ms = 820) {
+  const a = o.position.clone(), q0 = o.quaternion.clone(), mid = a.clone().lerp(p, .5);
+  mid.y = Math.max(a.y, p.y) + 24;
+  return tween(ms, k => { const u = 1 - k; o.position.set(0, 0, 0).addScaledVector(a, u * u).addScaledVector(mid, 2 * u * k).addScaledVector(p, k * k); o.quaternion.slerpQuaternions(q0, q, k); });
+}
+
+/* ---------- moving parts: on the gun, off to the mat, back home ---------- */
+let W = null, PLACED = {}, LANDED = {}, HELD = null;
+const H = o => o.userData.home;
+function poseOf(o, off = {}) {
+  const p = H(o).p.clone().add(V(off.x || 0, off.y || 0, off.z || 0)), q = H(o).q.clone();
+  if (off.rz) q.multiply(qAxis('z', off.rz));
+  if (off.rx) q.multiply(qAxis('x', off.rx));
+  return { p, q };
+}
+const act = (id, off, ms) => { const o = W.P[id], t = poseOf(o, off); return moveTo(o, t.p, t.q, ms); };
+function bounds(o) {
+  const b = new THREE.Box3(); o.updateMatrixWorld(true);
+  o.traverse(c => { if (c.isMesh && !c.userData.proxy) { if (!c.geometry.boundingBox) c.geometry.computeBoundingBox(); b.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld)); } });
+  return b;
+}
+/* the pose that puts the item's middle at (x, z) on the mat, lying flat */
+function matPose(o, x, z, r = [0, 0, 0]) {
+  const keepP = o.position.clone(), keepQ = o.quaternion.clone();
+  o.position.set(0, 0, 0); o.quaternion.setFromEuler(new THREE.Euler(...r));
+  const b = bounds(o), c = b.getCenter(V(0, 0, 0)), q = o.quaternion.clone();
+  o.position.copy(keepP); o.quaternion.copy(keepQ);
+  return { p: V(x - c.x, -b.min.y + .12, z - c.z), q };
+}
+/* where an item goes: on its own label, or (in Exam) on whatever label it was put; separated pieces stay next to their group */
+function target(o, key, zone) {
+  const it = D.items[key];
+  let x = it.x, z = it.z;
+  if (it.g) { const g = D.items[it.g], at = LANDED[it.g] || g; x = at.x + it.x - g.x; z = at.z + it.z - g.z; }
+  else if (zone && zone !== it.zone) { const zz = D.zones[zone], n = Object.values(PLACED).filter(k => k === zone).length; x = (zz[0] + zz[1]) / 2 + (n % 3 - 1) * 10; z = (zz[2] + zz[3]) / 2 - 6 + Math.floor(n / 3) * 8; }
+  if (!it.g) LANDED[key] = { x, z };
+  return matPose(o, x, z, it.r);
+}
+function toMat(o, key, zone) { root.attach(o); const t = target(o, key, zone); return fly(o, t.p, t.q); }
+async function off(id, outs = [], after) {
+  const o = W.P[id];
+  for (const s of outs) {
+    const p = o.position.clone().add(V(...(s.d || [0, 0, 0]))), q = o.quaternion.clone();
+    if (s.rx) q.multiply(qAxis('x', s.rx));
+    if (s.rz) q.multiply(qAxis('z', s.rz));
+    await moveTo(o, p, q, s.t || 300);
+  }
+  if (after) after();
+  if (MODE === 'exam' && !FAST) return hold(o, id);
+  PLACED[id] = D.items[id].zone;
+  await toMat(o, id);
+  if (!FAST && !DEMO) { const z = D.zones[D.items[id].zone]; say(`On label ${D.items[id].zone}: ${z[4]}`); }
+}
+/* Exam: the part is in your hand until you tap its label on the mat */
+async function hold(o, id) {
+  root.attach(o);
+  await fly(o, V(0, D.rig[1] + 26, D.rig[2] - 4), o.quaternion.clone(), 620);
+  return new Promise(res => { HELD = { o, id, res }; renderAll(); });
+}
+async function putDown(zone) {
+  const { o, id, res } = HELD; HELD = null; renderAll();
+  const t = target(o, id, zone);
+  PLACED[id] = zone;
+  await fly(o, t.p, t.q, 620);
+  res();
+}
+const sep = id => Promise.all(W.S[id].map((s, i) => tween(i * 140, () => {}).then(() => toMat(s, `${id}.${i}`))));
+const sepOne = id => toMat(W.P[id], id);
+/* the pose just off its place where the part lines up before it goes in (on its parent, and as a world matrix) */
+function approach(o, off = {}, via = {}) {
+  const par = H(o).parent, t = poseOf(o, off);
+  const ap = t.p.clone().add(V(...(via.d || [0, 0, 0]))), aq = t.q.clone();
+  if (via.rx) aq.multiply(qAxis('x', via.rx));
+  if (via.rz) aq.multiply(qAxis('z', via.rz));
+  par.updateMatrixWorld(true);
+  return { par, t, ap, aq, M: par.matrixWorld.clone().multiply(new THREE.Matrix4().compose(ap, aq, V(1, 1, 1))) };
+}
+/* back to its place on its parent (the gun, or its group lying on the mat), coming in from an approach offset */
+async function flyHome(o, off = {}, via = {}) {
+  const { par, t, ap, aq } = approach(o, off, via);
+  root.attach(o);
+  await fly(o, par.localToWorld(ap.clone()), par.getWorldQuaternion(new THREE.Quaternion()).multiply(aq));
+  par.attach(o); o.position.copy(ap); o.quaternion.copy(aq);
+  await moveTo(o, t.p, t.q, via.t || 340);
+}
+const home = (id, off, via) => flyHome(W.P[id], off, via);
+const join = id => Promise.all(W.S[id].map(s => flyHome(s)));
+
+/* ---------- build the gun and the mat ---------- */
+let matMesh = null, ZM = {};
+function buildWeapon() {
+  tweens = [];
+  root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  root.clear();
+  const rig = new THREE.Group(); rig.position.set(...D.rig); root.add(rig);
+  W = { rig, ...D.build(rig) };
+  rig.traverse(o => {
+    if (o.userData.pick) o.userData.home = { p: o.position.clone(), q: o.quaternion.clone(), parent: o.parent };
+    if (o.isMesh) { o.userData.real = o.material; let t = null; for (let c = o; c && t == null; c = c.parent) if (c.userData.tint !== undefined) t = c.userData.tint; o.userData.tint = t; }
+  });
+  PLACED = {}; LANDED = {}; HELD = null;
+  buildNames();
+}
+function buildMat() {
+  if (matMesh) { scene.remove(matMesh); matMesh.geometry.dispose(); matMesh.material.map.dispose(); matMesh.material.dispose(); }
+  const [x0m, x1m, z0m, z1m] = D.mat, Wd = x1m - x0m, Dp = z1m - z0m, px = 2048 / Wd;
+  const cv = document.createElement('canvas'); cv.width = 2048; cv.height = Math.round(Dp * px);
+  const g = cv.getContext('2d');
+  g.fillStyle = '#4a5131'; g.fillRect(0, 0, cv.width, cv.height);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 9000; i++) { g.fillStyle = rnd() < .5 ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.035)'; g.fillRect(rnd() * cv.width, rnd() * cv.height, 3, 3); }
+  const X = x => (x - x0m) * px, Z = z => (z - z0m) * px;
+  for (const [k, [x0, x1, z0, z1, name, col, sepd]] of Object.entries(D.zones)) {
+    const c = hex(col);
+    g.fillStyle = 'rgba(255,255,240,.05)'; g.strokeStyle = c; g.globalAlpha = .9; g.lineWidth = 5; g.setLineDash([20, 12]);
+    g.beginPath(); g.roundRect(X(x0), Z(z0), (x1 - x0) * px, (z1 - z0) * px, 18); g.fill(); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    const left = X(x0) + 16, maxW = (x1 - x0) * px - 112, lines = []; let ln = '';
+    g.font = '700 37px Arial, sans-serif';
+    for (const w of name.split(' ')) { const t = ln ? ln + ' ' + w : w; if (g.measureText(t).width > maxW && ln) { lines.push(ln); ln = w; } else ln = t; }
+    lines.push(ln); if (sepd) lines.push('(separated)');
+    const base = Z(z1) - 18, top = base - (lines.length - 1) * 42;
+    g.fillStyle = c; g.beginPath(); g.roundRect(left, base - 60, 72, 72, 14); g.fill();
+    g.fillStyle = '#16190f'; g.font = '800 54px Arial, sans-serif'; g.textAlign = 'center'; g.fillText(k, left + 36, base - 6); g.textAlign = 'left';
+    g.fillStyle = '#f1eed6';
+    lines.forEach((t, i) => { g.font = (sepd && i === lines.length - 1 ? 'italic 600 ' : '700 ') + '37px Arial, sans-serif'; g.fillText(t, left + 88, top + i * 42); });
+  }
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  matMesh = new THREE.Mesh(new THREE.PlaneGeometry(Wd, Dp), new THREE.MeshStandardMaterial({ map: tex, roughness: .95 }));
+  matMesh.rotation.x = -Math.PI / 2; matMesh.position.set((x0m + x1m) / 2, 0, (z0m + z1m) / 2); matMesh.receiveShadow = true;
+  scene.add(matMesh);
+  Object.values(ZM).forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+  ZM = {};
+  for (const [k, [x0, x1, z0, z1, , col]] of Object.entries(D.zones)) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, .08, (z0 + z1) / 2); m.raycast = () => {}; scene.add(m); ZM[k] = m;
+  }
+}
+
+/* ---------- camera views ---------- */
+let curView = 'work', userMoved = false, ZOOM = false;   // ZOOM: a double-tap zoomed in
+function viewSpec(name) {
+  const [, , z0, z1] = D.mat, gy = D.rig[1] * .55, gz = D.rig[2];
+  return {
+    work: [V(0, gy * .45, gz - 40), V(.1, 1.2, 1), camera.aspect < 1 || stage.clientHeight < 450 ? Math.max(D.R.work, (D.mat[1] - D.mat[0]) * .47) : D.R.work], // phones (and short stages): the whole mat, so every label can be reached
+    right: [V(0, gy + 4, gz), V(.3, .3, 1), D.R.gun],
+    left: [V(0, gy + 4, gz), V(-.3, .3, -1), D.R.gun],
+    mat: [V(0, 0, (z0 + z1) / 2), V(0, 1, .28), D.R.mat],
+  }[name];
+}
+/* the camera circles around the gun (never cuts through it), slowly, easing in and out */
+function view(name, ms = 1100) {
+  const [t, dir, R] = viewSpec(name), f = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const fit = Math.min(f, Math.atan(Math.tan(f) * camera.aspect)), p = t.clone().add(dir.clone().normalize().multiplyScalar(R / Math.tan(fit)));
+  curView = name; userMoved = false; ZOOM = false;
+  $$('.tools [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === name)));
+  tweens = tweens.filter(w => !w.cam);
+  const t0 = controls.target.clone(), s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(t0)), s1 = new THREE.Spherical().setFromVector3(p.clone().sub(t));
+  let dth = s1.theta - s0.theta; dth -= Math.round(dth / (2 * Math.PI)) * 2 * Math.PI;
+  const sp = new THREE.Spherical(), off = V(0, 0, 0);
+  return tween(ms, k => { controls.target.lerpVectors(t0, t, k); sp.set(s0.radius + (s1.radius - s0.radius) * k, s0.phi + (s1.phi - s0.phi) * k, s0.theta + dth * k); camera.position.copy(controls.target).add(off.setFromSpherical(sp)); }, easeCam, true);
+}
+/* grabbing the view stops any camera move at once */
+controls.addEventListener('start', () => { tweens = tweens.filter(w => !w.cam); userMoved = true; curView = null; $$('.tools [data-v]').forEach(b => b.setAttribute('aria-pressed', 'false')); });
+/* Guided: the camera only moves when the next part is off screen (taps reach parts on the far side or inside the receiver) */
+const tcam = new THREE.PerspectiveCamera();
+function camFor(name) {
+  const [t, dir, R] = viewSpec(name), f = THREE.MathUtils.degToRad(camera.fov) / 2, fit = Math.min(f, Math.atan(Math.tan(f) * camera.aspect));
+  tcam.copy(camera); tcam.position.copy(t.clone().add(dir.clone().normalize().multiplyScalar(R / Math.tan(fit)))); tcam.lookAt(t); tcam.updateMatrixWorld(); return tcam;
+}
+function seen(o, cam) { const c = V(0, 0, 0); if (!aimAt(o, c)) return true; c.project(cam); return c.z < 1 && Math.abs(c.x) < .9 && Math.abs(c.y) < .86; }
+function follow() {
+  if (MODE !== 'guided' || FAST || DRAG.size || Object.values(HOLD).some(v => v != null)) return;   // never move the view under a finger
+  const s = cur(); if (!s) return;
+  const o = objsOf(s.pick).find(g => !bounds(g).isEmpty());
+  if (!o || seen(o, camera)) return;
+  view(seen(o, camFor('work')) ? 'work' : 'mat', 1600);
+}
+
+/* ---------- paint: real finish or group colors, X-ray shells, glow on the next part, red flash on a wrong one ---------- */
+let COLORS = true, XRAY = false, XAUTO = false, glow = [], nope = null;
+function baseMat(c) { let m = c.userData.real; if (COLORS && c.userData.tint) m = tinted(m, c.userData.tint); if ((XRAY || XAUTO) && c.userData.shell) m = xray(m); return m; }
+function paint(o, kind) { o.traverse(c => { if (c.isMesh && !c.userData.proxy) { const m = baseMat(c); c.material = kind ? variant(m, kind) : m; } }); }
+function repaint() { paint(root, null); glow.forEach(o => paint(o, 'hi')); if (nope) paint(nope, 'no'); }
+function objsOf(id) { const out = []; const walk = o => { if (o.userData.pick === id) out.push(o); else o.children.forEach(walk); }; root.children.forEach(walk); return out; }
+function setGlow(id) { const next = id ? objsOf(id) : []; if (next.length === glow.length && next.every((o, i) => o === glow[i])) return; glow = next; repaint(); }
+function setToggle(btn, on) { $(btn).setAttribute('aria-pressed', String(on)); }
+
+/* ---------- part names floating over the stage ---------- */
+let nameEls = [], NAMES = false;
+function buildNames() {
+  $('#names').innerHTML = ''; nameEls = [];
+  root.traverse(o => {
+    if (!o.userData.name || !(o.userData.pick || o.userData.sub)) return;
+    if (o.userData.pick === 'receiver' && o.userData.sub) { if (o.userData.name === 'Feed tray') return; }
+    const el = document.createElement('div'); el.className = 'nm'; el.hidden = true; el.textContent = o.userData.name;
+    el.style.setProperty('--c', hex(o.userData.tint ?? 0xdddddd));
+    $('#names').append(el);
+    const b = bounds(o), c = b.getCenter(V(0, 0, 0)); c.y = b.max.y;
+    nameEls.push({ o, el, a: o.worldToLocal(c) });
+  });
+}
+const tmp = V(0, 0, 0);
+function placeNames() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  for (const n of nameEls) {
+    let inside = false;
+    if (!XRAY) for (let c = n.o; c; c = c.parent) if (D.internal.includes(c.userData.pick) && !c.userData.sub) { inside = c.parent === W.rig; break; }
+    tmp.copy(n.a); n.o.localToWorld(tmp); tmp.project(camera);
+    const show = NAMES && !inside && tmp.z < 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05;
+    n.el.hidden = !show;
+    if (show) n.el.style.transform = `translate(${((tmp.x + 1) / 2 * w).toFixed(0)}px, ${((1 - tmp.y) / 2 * h).toFixed(0)}px) translate(-50%, -110%)`;
+  }
+}
+
+/* ---------- run state ---------- */
+let MODE = 'guided', PHASE = 'dis', SI = 0, LIST = [], BUSY = false, GEN = 0, START = 'gun';
+let T0 = null, stopAt = null, ended = false, TIMES = {}, ATT = 1, NOTES = [];
+const LIMIT = 180; // 3:00 per part, as on the sheet
+const cur = () => PHASE === 'done' || ended ? null : LIST[SI];
+const elapsed = () => T0 ? ((stopAt ?? Date.now()) - T0) / 1000 : 0;
+const nameOf = o => { for (let c = o; c; c = c.parent) if (c.userData.name) return c.userData.name; return ''; };
+const pickOf = o => { for (let c = o; c; c = c.parent) if (c.userData.pick) return c; return null; };
+
+async function newRun() {
+  const gen = ++GEN;
+  BUSY = true; ended = false; T0 = null; stopAt = null; TIMES = {}; NOTES = []; glow = []; nope = null;
+  buildWeapon(); repaint();
+  PHASE = 'dis'; LIST = D.dis(); SI = 0;
+  HL = D.hands ? D.hands() : {}; HS = null; IDLE0 = performance.now(); DRAG.clear(); for (const k in HOLD) delete HOLD[k]; HOVERZ = null; ghost(null); grabbing(false); hidePill();
+  $('#toast').hidden = true;
+  if (MODE === 'guided' && START === 'mat') { FAST = true; for (const s of LIST) await s.run(); FAST = false; PHASE = 'as'; LIST = D.as(); }
+  if (gen !== GEN) return;
+  BUSY = false; renderAll(); follow();
+}
+async function doStep(s) {
+  const gen = GEN;
+  BUSY = true; setGlow(null); $('#toast').hidden = true;
+  await s.run();
+  if (gen !== GEN || ended) return;
+  afterStep();
+}
+function afterStep() {
+  BUSY = false; SI++; HS = null; IDLE0 = performance.now();
+  if (!FAST) { const c = $('#coach'); c.classList.remove('ok', 'shake'); void c.offsetWidth; c.classList.add('ok'); }
+  if (SI >= LIST.length) {
+    if (PHASE === 'dis') {
+      TIMES.dis = elapsed();
+      PHASE = 'as'; LIST = D.as(); SI = 0;
+      if (MODE === 'exam') {
+        stopAt = Date.now();
+        if (wrongLabels().length) return finish('labels');
+        renderAll(); return openMid();
+      }
+    } else {
+      TIMES.as = elapsed() - (MODE === 'exam' ? 0 : TIMES.dis);
+      PHASE = 'done'; return finish('done');
+    }
+  }
+  renderAll(); follow();
+}
+let toastT;
+function say(html, warn) {
+  const t = $('#toast');
+  t.innerHTML = warn ? `<b>Not that one.</b> ${html}` : esc(html);
+  t.hidden = false; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, warn ? 3400 : 2200);
+}
+let shakeUntil = 0;
+function onPick(o) {
+  if (ended || HELD || clock() < shakeUntil) return;
+  if (MODE === 'exam' && !T0) return;
+  if (BUSY) return;
+  const top = pickOf(o), s = cur();
+  if (!top || !s) return;
+  if (!T0) T0 = Date.now();
+  if (top.userData.pick === s.pick) return doStep(s);
+  wrongPart(top, o);
+}
+/* wrong part: it shakes; in Guided it flashes red and a note says what to do */
+function wrongPart(top, o) {
+  const s = cur(); if (!s || clock() < shakeUntil) return;
+  shakeUntil = clock() + 420;
+  const p0 = top.position.clone();
+  if (MODE === 'guided') { nope = top; repaint(); }
+  tween(400, k => { top.position.copy(p0); top.position.x += Math.sin(k * Math.PI * 6) * .7 * (1 - k); }).then(() => { top.position.copy(p0); if (nope === top) { nope = null; repaint(); } });
+  if (MODE === 'guided') {
+    const c = $('#coach'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    say(`That is the ${esc(nameOf(o).toLowerCase())}. ${esc(s.do)}`, true); IDLE0 = performance.now() - 3000;
+  } else if (NOTES.length < 8) {
+    const n = `Tried the ${nameOf(o).toLowerCase()} out of order.`;
+    if (!NOTES.includes(n)) NOTES.push(n);
+  }
+}
+function zoneAt(p) { return Object.keys(D.zones).find(k => { const z = D.zones[k]; return p.x >= z[0] && p.x <= z[1] && p.z >= z[2] && p.z <= z[3]; }); }
+function onMat(p) {
+  if (!HELD || ended) return;
+  const k = zoneAt(p);
+  if (!k) return say('Tap one of the labels on the mat.');
+  putDown(k);
+}
+const wrongLabels = () => Object.keys(D.items).filter(k => !D.items[k].g && !D.items[k].free && PLACED[k] && PLACED[k] !== D.items[k].zone);
+
+/* ---------- page ---------- */
+function renderAll() {
+  const s = cur(), n = LIST.length, ex = MODE === 'exam';
+  $('#brandSub').textContent = `${D.name} · take it apart, put it back`;
+  $('#wM249').setAttribute('aria-pressed', String(D.key === 'm249'));
+  $('#wM240').setAttribute('aria-pressed', String(D.key === 'm240'));
+  $('#tline').innerHTML = `<b>${esc(D.sheet)}</b> · ${esc(D.codes)}. Starts standing; the gun on a flat surface, bipod legs extended, free of ammo, on FIRE, bolt forward. <b>3:00 per part.</b> ${D.dis().some(x => x.sec) ? 'Clear it first and do the functions check last, as at the station.' : 'Clearing and the functions check are drilled in the clearing trainer.'} <a class="vlink" href="${D.video[0]}" target="_blank" rel="noopener">▶ Demo video (${D.video[1]})</a>`;
+  $('#startSeg').hidden = ex;
+  setToggle('#hOn', HANDS); setToggle('#hOff', !HANDS);
+  $('#hNote').textContent = HANDS ? 'Drag each part the way it really moves. Firm parts resist, springs push back. Off: carry each group to its label. On: bring it to the blue outline, then push it home.' : 'Tap a part and it moves by itself.';
+  $('#sthint').textContent = HANDS ? (TOUCH ? 'Drag a part to move it · double-tap to zoom' : 'Drag a part to move it · drag elsewhere to turn · double-click to zoom') : (TOUCH ? 'Tap a part · drag to turn · double-tap to zoom' : 'Click a part · drag to turn · double-click to zoom');
+  stage.classList.toggle('grab', !!handStep());
+  if (handStep()) syncHand(); else $('#cFeel').textContent = '';
+  $('#coach').hidden = ex;
+  const sec = s && s.sec === 'clr' ? 'Part 1 · Clear the weapon' : s && s.sec === 'fc' ? 'Part 2 · Functions check' : PHASE === 'dis' ? 'Part 1 · Disassemble' : 'Part 2 · Assemble';
+  $('#cStep').textContent = PHASE === 'done' ? 'Done' : `${sec} · step ${SI + 1} of ${n}`;
+  $('#cDo').textContent = s ? s.do : `The ${D.name} is back together.`;
+  $('#cHow').textContent = s ? s.how : `Done in ${mmss(elapsed())}${TIMES.dis != null ? ` (take-apart ${mmss(TIMES.dis)}, put-together ${mmss(TIMES.as || 0)})` : ''}. Next comes the functions check. Try Exam mode.`;
+  const sdo = $('#sdo');
+  sdo.classList.toggle('ex', ex);
+  sdo.textContent = ex ? (HELD ? `Put the ${nameOf(HELD.o).toLowerCase()} down: tap its label on the mat.` : T0 && !ended && !stopAt ? (PHASE === 'dis' ? 'Part 1 · disassemble' : 'Part 2 · assemble') : '') : (s ? s.do : 'Done.');
+  const xa = !ex && !!s && D.internal.includes(s.pick) && W.P[s.pick].parent === W.rig;
+  if (xa !== XAUTO) { XAUTO = xa; repaint(); }
+  setGlow(!ex && s && !BUSY ? s.pick : null);
+  renderScore();
+  const running = ex && !!T0 && !ended;
+  $('#endBar').hidden = !running;
+  $('#btnRef').disabled = running;
+  $('#tColors').disabled = ex;
+}
+function renderScore() {
+  const card = $('#scoreCard'), ex = MODE === 'exam';
+  card.hidden = ex && !ended;
+  if (card.hidden) return;
+  $('#scoreT').textContent = `Score sheet · ${D.sheet.replace('Warrior Task: ', '')}`;
+  const s = cur(), dis = D.dis(), disDone = PHASE !== 'dis', as = D.as().map((x, i) => [x, i]), clr = dis.filter(x => x.sec === 'clr'), fc = as.filter(([x]) => x.sec === 'fc');
+  const zoneDone = k => k === D.home ? disDone : disDone || dis.reduce((last, x, i) => x.grp === k ? i : last, -1) < SI;
+  const li = (t, ok, now, cls = '') => `<li class="${ok ? 'ok' : now ? 'now' : cls}">${t}</li>`;
+  const m = (n, title, done, cur, subs) => `<li class="m${done ? ' done' : cur ? ' cur' : ''}"><span class="num">${n}</span><div><div class="mt">${title}</div><ul class="subs">${subs}</ul></div></li>`;
+  $('#score').innerHTML =
+    m(1, 'Clear the weapon.', clr.length > 0 && (disDone || SI >= clr.length), PHASE === 'dis' && s && s.sec === 'clr',
+      clr.length ? clr.map((x, i) => li(esc(x.do), disDone || i < SI, PHASE === 'dis' && i === SI)).join('') : li('7 checks: in the clearing trainer (next).', false, false, 'na')) +
+    m(2, 'Disassemble weapon into the following groups (matching nomenclature labels):', disDone, PHASE === 'dis' && !(s && s.sec),
+      Object.entries(D.zones).map(([k, z]) => li(`<span class="sw" style="--c:${hex(z[5])}"></span>${k}. ${esc(z[4])}${z[6] ? ' (separated)' : ''}`, zoneDone(k), PHASE === 'dis' && s && s.grp === k)).join('')) +
+    m(3, 'Assemble and perform a functions check:', PHASE === 'done', PHASE === 'as',
+      li('Assemble the weapon correctly in sequence:', PHASE === 'done', false) +
+      as.filter(([x]) => !x.sec).map(([x, i]) => li('&nbsp;&nbsp;' + esc(x.do), PHASE === 'done' || (PHASE === 'as' && i < SI), PHASE === 'as' && i === SI)).join('') +
+      (fc.length ? li('Functions check:', PHASE === 'done', false) + fc.map(([x, i]) => li('&nbsp;&nbsp;' + esc(x.do), PHASE === 'done' || (PHASE === 'as' && i < SI), PHASE === 'as' && i === SI)).join('') : li('Functions check: in the clearing trainer (next).', false, false, 'na')));
+}
+
+/* ---------- clock, exam parts, result ---------- */
+function tick() {
+  const el = $('#clock');
+  if (MODE === 'exam') {
+    const left = Math.max(0, LIMIT - elapsed());
+    el.textContent = mmss(T0 ? left : LIMIT);
+    el.classList.toggle('warn', !!T0 && !stopAt && left < 30);
+    if (T0 && !stopAt && !ended && left <= 0) finish('time');
+  } else { el.textContent = mmss(elapsed()); el.classList.remove('warn'); }
+}
+function openMid() {
+  $('#midBody').innerHTML = `<p><span class="verdict go">GO</span>&nbsp; Clear and disassemble in ${mmss(TIMES.dis)} <span class="muted">(limit 3:00)</span>. Every group is on its label.</p><p class="muted">Part 2 starts from where you are: assemble the ${esc(D.name)} and do the functions check, again within 3:00.</p>`;
+  openModal('mMid');
+}
+function finish(why) {
+  if (ended) return;
+  ended = true; if (T0 && !stopAt) stopAt = Date.now();
+  BUSY = false; HELD = null; glow = []; repaint();
+  if (MODE === 'exam') results(why);
+  renderAll(); tick();
+}
+function results(why) {
+  const bad = wrongLabels(), f1 = [], f2 = [];
+  const p1 = TIMES.dis != null && TIMES.dis <= LIMIT && !bad.length;
+  if (TIMES.dis == null) f1.push(why === 'time' ? 'Time ran out (3:00).' : 'Not finished.');
+  bad.forEach(k => f1.push(`${nameOf(W.P[k])} was put on label ${PLACED[k]} (${D.zones[PLACED[k]][4]}); it belongs on ${D.items[k].zone} (${D.zones[D.items[k].zone][4]}).`));
+  const p2 = p1 && TIMES.as != null && TIMES.as <= LIMIT;
+  if (!p1) f2.push('Not reached.'); else if (TIMES.as == null) f2.push(why === 'time' ? 'Time ran out (3:00).' : 'Not finished.');
+  const go = p1 && p2, nClr = D.dis().filter(x => x.sec === 'clr').length, hasFc = D.as().some(x => x.sec === 'fc');
+  const cleared = nClr ? TIMES.dis != null || SI >= nClr : null;
+  const rows = [
+    ['1', 'Clear the weapon.', nClr ? 'Done first, inside Part 1' : 'Drilled in the clearing trainer', cleared, cleared === false ? [why === 'time' ? 'Time ran out (3:00).' : 'Not finished.'] : []],
+    ['2', 'Disassemble weapon into the following groups (matching nomenclature labels).', `Part 1 time ${TIMES.dis != null ? mmss(TIMES.dis) : '–'} of 3:00`, p1, f1],
+    ['3', 'Assemble and perform a functions check.', `Part 2 time ${TIMES.as != null ? mmss(TIMES.as) : '–'} of 3:00${hasFc ? '' : ' (the functions check is drilled in the clearing trainer)'}`, p2, f2],
+  ];
+  const pts = go ? (ATT === 1 ? '1st attempt pass · 20 / 20 PTS' : '2nd attempt pass · 14 / 20 PTS') : ATT === 1 ? 'NO-GO on the 1st attempt. You get a 2nd attempt (a pass is worth 14 PTS).' : 'Double failure · 0 / 20 PTS';
+  $('#resBody').innerHTML = `<p><span class="verdict ${go ? 'go' : 'nogo'}">${go ? 'GO' : 'NO-GO'}</span>&nbsp; ${esc(pts)}</p>
+    <div class="tbl"><table><tr><th>#</th><th>Performance measure</th><th>Result</th></tr>
+    ${rows.map(r => `<tr><td>${r[0]}</td><td><b>${esc(r[1])}</b><div class="muted">${esc(r[2])}</div>${r[4].length ? `<ul class="fb">${r[4].map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</td><td class="${r[3] == null ? '' : r[3] ? 'go' : 'nogo'}">${r[3] == null ? '–' : r[3] ? 'GO' : 'NO-GO'}</td></tr>`).join('')}</table></div>
+    ${NOTES.length ? `<h3>Notes (not scored)</h3><ul>${NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}`;
+  const btn = (id, t, primary) => `<button class="btn${primary ? ' primary' : ''}" id="${id}">${t}</button>`;
+  $('#resBtns').innerHTML = btn('rsLook', 'Look at the gun') + btn('rsGuided', 'Guided mode') + (go || ATT === 2 ? btn('rsAgain', 'New exam (1st attempt)', true) : btn('rsSecond', 'Start 2nd attempt', true));
+  $('#rsLook').onclick = () => closeModal('mRes');
+  $('#rsGuided').onclick = () => { closeModal('mRes'); setMode('guided'); };
+  if ($('#rsAgain')) $('#rsAgain').onclick = () => { closeModal('mRes'); ATT = 1; startExam(); };
+  if ($('#rsSecond')) $('#rsSecond').onclick = () => { closeModal('mRes'); ATT = 2; startExam(); };
+  if (!go && ATT === 2) {
+    $('#chStats').textContent = `Part 1 ${TIMES.dis != null ? mmss(TIMES.dis) : 'not finished'} · Part 2 ${TIMES.as != null ? mmss(TIMES.as) : 'not finished'} · limit 3:00 per part`;
+    $('#chOrders').innerHTML = D.orders;
+    return openModal('mCharlie');
+  }
+  openModal('mRes');
+}
+function openModal(id) { $('#' + id).hidden = false; document.body.classList.add('locked'); }
+function closeModal(id) { $('#' + id).hidden = true; if (!$$('.modal').some(m => !m.hidden)) document.body.classList.remove('locked'); }
+async function startExam() { await newRun(); T0 = Date.now(); stopAt = null; view('work'); renderAll(); tick(); }
+function setMode(m) {
+  MODE = m;
+  $('#mGuided').setAttribute('aria-pressed', String(m === 'guided'));
+  $('#mExam').setAttribute('aria-pressed', String(m === 'exam'));
+  COLORS = m === 'guided'; setToggle('#tColors', COLORS);
+  ATT = 1;
+  newRun();
+  if (m === 'exam') { renderIntro(); openModal('mIntro'); }
+}
+function setWeapon(k) {
+  if (D.key === k) return;
+  S.weapon = k; save(); D = WEAPONS[k];
+  buildMat(); view('work', 0); newRun();
+  if (MODE === 'exam') { ATT = 1; renderIntro(); openModal('mIntro'); }
+}
+function renderIntro() {
+  $('#exT').textContent = `Exam mode · Maintain ${D.key === 'm249' ? 'a' : 'an'} ${D.name}`;
+  const full = D.dis().some(x => x.sec);   // clearing and the functions check are part of this run
+  $('#exList').innerHTML = [
+    full ? '<b>Part 1</b> clear it and take it apart, <b>Part 2</b> put it back and do the functions check: <b>3:00</b> each.' : '<b>Part 1</b> take it apart, <b>Part 2</b> put it back: <b>3:00</b> each.',
+    HANDS ? 'No help: no arrows, outlines or colors. Each group goes on its label; a wrong label is a NO-GO.' : 'No help: no glow or colors. Tap each group\'s label to put it down; a wrong label is a NO-GO.',
+    'Pass on the 1st try 20 pts, on the 2nd 14, two fails 0 and Charlie Company.',
+  ].map(t => `<li>${t}</li>`).join('');
+  $('#exMore').innerHTML = [
+    'Two clocks, like the station: <b>Part 1</b> clear and disassemble within <b>3:00</b>, <b>Part 2</b> assemble and functions check within <b>3:00</b>.' + (full ? '' : ' Here you only handle the parts (clearing and the functions check are in the clearing trainer), so beat the clock with time to spare.'),
+    HANDS ? 'No coach, no arrows, no outlines, no colors. Move each part by hand the way it really comes off and goes back, in the order the gun allows: a part that cannot move yet just stays put (on the real gun that costs you time).' : 'No coach, no glowing part, no colors. Tap the parts in the order the gun allows: a part that cannot come off yet just stays put (on the real gun that costs you time).',
+    HANDS ? 'Carry every group that comes off <b>to its nomenclature label on the mat</b> and let go. A group on the wrong label is a NO-GO. Separate the groups the sheet marks "separated". Putting it together, a part lines up by itself when you bring it close to where it goes.' : 'Every group that comes off is in your hand: <b>tap its nomenclature label on the mat</b> to put it down. A group on the wrong label is a NO-GO. Separate the groups the sheet marks "separated".',
+    'Two attempts: pass on the 1st = 20 PTS, on the 2nd = 14 PTS, double failure = 0 PTS and Charlie Company.',
+  ].map(t => `<li>${t}</li>`).join('');
+}
+function renderRef() {
+  const dis = D.dis().filter(x => !x.sec), as = D.as().filter(x => !x.sec);
+  $('#refT').textContent = `${D.sheet} · score sheet and how-to`;
+  $('#refBody').innerHTML = `<p class="muted">${esc(D.codes)}. Start position: standing. Conditions: member of team returned from mission; directed to conduct maintenance on the ${esc(D.name)} on a flat surface with bipod legs extended. Starting config: free of ammo, on FIRE, bolt forward. Standards: clear and disassemble matching nomenclature labels within 3 mins; assemble and perform functions check within 3 mins. Scoring: 1st attempt 20 pts, 2nd attempt 14 pts, double fail 0 pts.</p>
+    <h3>1 · Clear the weapon</h3><ol>${clearList(D.key === 'm249' ? 5 : 4).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    <h3>2 · Disassemble weapon into the following groups (matching nomenclature labels)</h3><ul>${Object.entries(D.zones).map(([k, z]) => `<li><span class="sw" style="--c:${hex(z[5])}"></span><b>${k}.</b> ${esc(z[4])}${z[6] ? ' (separated)' : ''}</li>`).join('')}</ul>
+    <h3>How each part comes off</h3><ol>${dis.map(s => `<li><b>${esc(s.do)}</b> ${esc(s.how)}</li>`).join('')}</ol>
+    <h3>3 · Assemble and perform a functions check</h3><ol>${as.map(s => `<li><b>${esc(s.do)}</b> ${esc(s.how)}</li>`).join('')}</ol>
+    <p>Then the functions check:</p><ol>${FC.slice(1).map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    <h3>Notes</h3><ul>
+      <li>${D.key === 'm249' ? 'Bolt forward before you start: the guide rod can hurt you if the spring is compressed with the bolt to the rear. The two retaining pins are captive: they slide out to the left but stay in the gun. The feed cover must be closed to take the barrel out. The handguard stays on the receiver.' : 'Bolt forward before you start. With the buttstock off, never pull the charging handle before the driving spring rod is out. The spring pins go in from the right toward the left. Count 2 to 7 clicks when you turn the carrying handle to the right.'}</li>
+      <li>Tools on the stage: Work, Right, Left and Mat turn the camera; Colors gives each group the color of its label; Names shows the part names; X-ray lets you see inside the receiver.</li></ul>
+    <h3>Sources and limits</h3><p class="muted">Steps, groups and times: the class score sheet (${esc(D.sheet)}). How each part comes off and goes back: FM 3-22.68, Crew-Served Machine Guns, ch. ${D.key === 'm249' ? 1 : 3}. The 3D model is simplified: it shows where the parts are and how they move, not every detail of the real gun.</p>`;
+}
+
+/* ---------- hands-on: the part moves with your finger along its real path, with resistance, snap-back and clicks ---------- */
+const GAIN = { light: 1, firm: .55, hard: .35 };                      // firm parts move less than your finger
+const FORCE = { light: 'Light', firm: 'Firm', hard: 'Hard', hold: 'Hold' };
+const FCOL = { light: '#7fe0a4', firm: '#f3c65c', hard: '#ff8a6b', hold: '#8ec5ff' };
+const CARRY_Y = 14, TOUCH = matchMedia('(pointer: coarse)').matches;
+let HANDS = S.hands !== false, SOUND = S.sound !== false, HL = {}, HS = null, HOVERZ = null, IDLE0 = 0;   // IDLE0: last time the user tried something (the demo finger waits 3 s)
+const DRAG = new Map(), HOLD = {};
+function handStep() { const s = cur(); return HANDS && s && HL[PHASE] ? HL[PHASE][SI] || null : null; }
+function syncHand() { const key = `${PHASE}:${SI}`; if (HS && HS.key === key) return; HS = { key, i: 0 }; setPhase(0); }
+function setPhase(i) {
+  const st = handStep(); HS.i = i; HS.travel = 0; HS.twist = 0; HS.clk = 0; showFeel();
+  const ph = st && st.ph[i]; if (!ph) return;
+  if (ph.g === 'slide' || ph.g === 'twist' || ph.g === 'swing') { const o = W.P[ph.part]; HS.base = o.position.clone(); HS.baseQ = o.quaternion.clone(); HS.withBase = (ph.with || []).map(([id, r]) => [W.P[id], W.P[id].position.clone(), r]); }
+  if (ph.g === 'apart') HS.sep = new Set();
+}
+/* Guided: how the move feels, in words, in the step card (the note by the finger stays short) */
+function showFeel() {
+  const st = handStep(), ph = st && HS && st.ph[HS.i];
+  const t = !ph ? '' : ph.feel || (ph.g === 'mount' ? 'Drag it to the blue outline: it lines up by itself when it is close.' : ph.g === 'place' ? 'Carry it to its label and let go.' : '');
+  $('#cFeel').textContent = t ? `By hand: ${t}` : '';
+}
+/* the next move of this step, or the next step */
+function advance() {
+  HS.i++;
+  if (HS.i >= handStep().ph.length) return completeStep();
+  setPhase(HS.i); BUSY = false; renderAll();
+}
+/* the pieces of a group still lying loose on the mat, in the order they go back on */
+const movers = key => W.S[key].filter(s => s.parent !== H(s).parent);
+/* the part's middle if it sat at the world pose M */
+function centerAt(o, M) { const c = aimW(o); return c.applyMatrix4(o.matrixWorld.clone().invert()).applyMatrix4(M); }
+const axisW = (o, a) => V(...a).normalize().applyQuaternion(o.parent.getWorldQuaternion(new THREE.Quaternion()));
+function scr(w) { const v = w.clone().project(camera), r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, on: v.z < 1 }; }
+function aimW(o) { const c = V(0, 0, 0); aimAt(o, c); return c; }
+const isIn = (o, child) => { for (let c = child; c; c = c.parent) if (c === o) return true; return false; };
+function grabbing(on) { controls.enabled = !on; stage.classList.toggle('grabbing', on); }
+function releaseIfIdle() { if (!DRAG.size && !Object.values(HOLD).some(v => v != null && v !== 'key')) grabbing(false); }
+function planeAt(e, y) { aim(e); const p = V(0, 0, 0); return ray.ray.intersectPlane(new THREE.Plane(V(0, 1, 0), -y), p) ? p : null; }
+/* sounds made on the spot (no files): a click at a detent, the bolt catching, a part dropping, a spring snapping back */
+let AC = null;
+function sfx(kind, vol = 1) {
+  if (!SOUND || DEMO) return;
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const a = AC, t = a.currentTime, g = a.createGain(); g.connect(a.destination);
+    const noise = (dur, f, q) => { const b = a.createBuffer(1, Math.max(1, a.sampleRate * dur | 0), a.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 2; const n = a.createBufferSource(), bp = a.createBiquadFilter(); n.buffer = b; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; n.connect(bp); bp.connect(g); n.start(t); };
+    const tone = (f0, f1, dur, type = 'sine') => { const o = a.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); o.connect(g); o.start(t); o.stop(t + dur); };
+    const env = (v, dur) => { g.gain.setValueAtTime(v * vol, t); g.gain.exponentialRampToValueAtTime(.0008, t + dur); };
+    if (kind === 'tick') { env(.45, .06); noise(.05, 3400, 4); }
+    else if (kind === 'clack') { env(.7, .16); noise(.12, 1500, 1.4); tone(240, 90, .12, 'triangle'); }
+    else if (kind === 'thunk') { env(.6, .22); tone(150, 55, .2); noise(.08, 500, 1); }
+    else if (kind === 'spring') { env(.22, .22); tone(700, 1900, .18, 'triangle'); }
+    else if (kind === 'place') { env(.38, .14); noise(.1, 800, 1.2); }
+    if (kind !== 'spring') buzz(kind === 'tick' ? 10 : 22);
+  } catch (err) { /* no audio */ }
+}
+/* a short buzz: the Vibration API (Android), or on an iPhone the tick Safari gives when a switch toggles */
+let HAP = null;
+function buzz(ms) {
+  if (navigator.vibrate) return navigator.vibrate(ms);
+  if (!TOUCH) return;
+  try {
+    if (!HAP) { HAP = document.createElement('label'); HAP.ariaHidden = 'true'; HAP.style.display = 'none'; const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); HAP.append(i); document.body.append(HAP); }
+    HAP.click();
+  } catch (err) { /* no haptics */ }
+}
+/* the note beside your finger: how hard, how it feels, how far along */
+function pill(e, kind, text, frac) {
+  const el = $('#force'), r = stage.getBoundingClientRect();
+  el.hidden = false; el.style.setProperty('--fc', FCOL[kind] || FCOL.light);
+  el.innerHTML = `<b>${FORCE[kind] || ''}</b>${esc(text || '')}${frac != null ? `<div class="bar"><i style="width:${Math.round(Math.min(1, frac) * 100)}%"></i></div>` : ''}`;
+  const x = Math.min(r.width - 250, Math.max(6, e.clientX - r.left + 18)), y = Math.max(6, e.clientY - r.top - 70);
+  el.style.transform = `translate(${x}px, ${y}px)`;
+}
+const hidePill = () => { $('#force').hidden = true; };
+function holdDown(id, who) {
+  if (HOLD[id] != null) return;
+  HOLD[id] = who; act(id, D.holds[id], 110); sfx('tick');
+}
+/* the part a finger (or Space) holds in this move: the lever or latch itself, or the one the move needs held */
+const holdId = ph => ph && (ph.g === 'hold' ? ph.part : ph.needs) || null;
+function holdUp(id, who) {
+  if (HOLD[id] !== who) return;
+  HOLD[id] = null; act(id, {}, 160); sfx('tick', .6); releaseIfIdle();
+}
+/* which part is under the finger: the lever if it may be held now, else (Guided) the part to use, else the first part (never the receiver) */
+function handHit(e, prefer) {
+  aim(e);
+  const hits = ray.intersectObjects(root.children, true).filter(x => x.object.isMesh);
+  for (const w of prefer) { const x = hits.find(hh => typeof w === 'string' ? pickOf(hh.object)?.userData.pick === w : isIn(w, hh.object)); if (x) return x; }
+  return hits.find(hh => { const p = pickOf(hh.object); return p && p.userData.pick !== 'receiver'; }) || hits[0];
+}
+/* the mesh is the part's own (or one of its pieces), not another part mounted on it: the feed tray is not the receiver */
+const owns = (o, m) => { const q = pickOf(m); return !!q && (q === o || (q.userData.pick === o.userData.pick && isIn(o, q))); };
+/* the part within a fingertip of the press (32 px on a phone, 16 with a mouse): the nearest outline on screen, the smaller part on a tie */
+function nearest(e, list) {
+  let best = null, bd = TOUCH ? 32 : 16, ba = Infinity;
+  for (const o of list) {
+    const b = bounds(o); if (b.isEmpty()) continue;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < 8; i++) { const q = scr(V(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z)); x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }
+    const d = Math.hypot(Math.max(0, x0 - e.clientX, e.clientX - x1), Math.max(0, y0 - e.clientY, e.clientY - y1)), a = (x1 - x0) * (y1 - y0);
+    if (d < bd || (d === bd && a < ba)) { best = o; bd = d; ba = a; }
+  }
+  return best;
+}
+/* the loose piece under the finger, among the given pieces */
+function pieceAt(e, list) {
+  aim(e);
+  const mh = ray.intersectObjects(root.children, true).find(hh => hh.object.isMesh && list.some(x => isIn(x, hh.object)));
+  return mh ? list.find(x => isIn(x, mh.object)) : null;
+}
+function handDown(e) {
+  const st = handStep();
+  if (!st || ended || HELD || (MODE === 'exam' && !T0)) return false;
+  syncHand();
+  if (BUSY) return true;
+  const ph = st.ph[HS.i]; if (!ph) return false;
+  const hid = holdId(ph) && HOLD[holdId(ph)] == null ? holdId(ph) : null, mp = ph.part && W.P[ph.part];   // a lever already held by one finger is not grabbed again by the other
+  const target = mp && mp.userData.sub ? mp : (ph.part || ph.key) && W.P[ph.part || ph.key].userData.pick;   // a piece of a part (the M240B carrying handle) must be hit itself
+  let h = handHit(e, [...(hid ? [hid] : []), ...(target ? [target] : [])]), top = h ? pickOf(h.object) : null;
+  /* a fingertip that lands just beside a small part (a spring, a pin, the latch) still gets it, if that part can be used now */
+  const list = ph.g === 'apart' ? W.S[ph.key].slice(1).filter(x => !HS.sep.has(x)) : ph.g === 'join' ? movers(ph.key) : [...(hid ? [W.P[hid]] : []), mp || W.P[ph.key]];
+  if (hid && !(h && owns(W.P[hid], h.object)) && nearest(e, [W.P[hid]])) { h = { object: W.P[hid] }; top = W.P[hid]; }   // a lever that must be held wins a press within reach of it
+  else if (!(h && list.some(o => owns(o, h.object)))) { const o = nearest(e, list); if (o) { h = { object: o }; top = pickOf(o); } }
+  const pick = top && top.userData.pick;
+  if (!top) return false;
+  if (!T0) T0 = Date.now();
+  if (hid && pick === hid) {
+    holdDown(hid, e.pointerId); grabbing(true); if (pdown) pdown.hold = true; pill(e, 'hold', ph.g === 'hold' ? 'Held · keep holding' : 'Held');
+    if (ph.g === 'hold') advance();
+    return true;
+  }
+  if (ph.g === 'look' && pick === mp.userData.pick) { if (ph.say) say(ph.say); sfx('tick'); advance(); return true; }   // a check: press it and look
+  let d = null;
+  if ((ph.g === 'slide' || ph.g === 'twist' || ph.g === 'swing') && (mp.userData.sub ? isIn(mp, h.object) : pick === mp.userData.pick)) d = startMove(e, ph);
+  else if (ph.g === 'place' && pick === ph.key) d = startCarry(e, ph, 8);
+  else if (ph.g === 'mount' && pick === ph.key) { const o = W.P[ph.key]; d = startMount(e, ph, o, approach(o, ph.off, ph.via)); }
+  else if (ph.g === 'apart' || ph.g === 'join') {
+    const m = pieceAt(e, list) || (list.includes(h.object) ? h.object : null);
+    if (m) d = ph.g === 'apart' ? startApart(e, ph, m) : startMount(e, ph, m, approach(m));
+    else if (pick === ph.key) { pill(e, 'firm', ph.g === 'apart' ? 'Grab a piece that comes off' : 'Grab a loose piece'); return true; }
+  }
+  if (!d) { const o = h.object; clearTimeout(tapNoteT); tapNoteT = setTimeout(() => wrongPart(top, o), 330); return true; }
+  d.id = e.pointerId; DRAG.set(e.pointerId, d); grabbing(true);
+  try { renderer.domElement.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ }
+  return true;
+}
+/* where the part's middle goes after a small step along its path (a swing turns it on its pin) */
+function stepPt(o, ph, s) {
+  if (ph.g !== 'swing') return aimW(o).add(axisW(o, ph.axis).multiplyScalar(s));
+  const q = o.quaternion.clone(); o.quaternion.multiply(qAxis(ph.ax, ph.dir * s)); const c = aimW(o); o.quaternion.copy(q); return c;
+}
+/* screen pixels per unit of travel along the part's path (never less than 45 px of finger travel for the whole move) */
+function axisPx(o, ph) {
+  const s = ph.g === 'swing' ? .15 : 1, A = scr(aimW(o)), B = scr(stepPt(o, ph, s));
+  let a = { x: (B.x - A.x) / s, y: (B.y - A.y) / s }, L = Math.hypot(a.x, a.y);
+  if (L < 2) { a = { x: 0, y: -1 }; L = 1; }
+  const need = ph.dist * L / GAIN[ph.force], k = need < 45 ? 45 / need : 1;
+  return { A, a: { x: a.x * k, y: a.y * k } };
+}
+function startMove(e, ph) {
+  const o = W.P[ph.part];
+  let a = null;
+  if (ph.g !== 'twist') a = axisPx(o, ph).a;
+  return { kind: ph.g === 'swing' ? 'slide' : ph.g, ph, o, sx: e.clientX, sy: e.clientY, t0: ph.g === 'twist' ? HS.twist : HS.travel, a, n: ph.g === 'twist' ? rollDir(o).n : null, moved: 0 };
+}
+function setTravel(ph, t) {
+  HS.travel = t;
+  if (ph.g === 'swing') { W.P[ph.part].quaternion.copy(HS.baseQ).multiply(qAxis(ph.ax, ph.dir * t)); return; }
+  const ax = V(...ph.axis).normalize();
+  W.P[ph.part].position.copy(HS.base).addScaledVector(ax, t);
+  HS.withBase.forEach(([w, b, r]) => w.position.copy(b).addScaledVector(ax, t * r));
+}
+function moveSlide(d, e) {
+  const ph = d.ph;
+  if (ph.needs && HOLD[ph.needs] == null) { d.sx = e.clientX; d.sy = e.clientY; d.t0 = HS.travel; return pill(e, 'hold', TOUCH ? `Hold the ${ph.needs} with another finger` : `Hold Space for the ${ph.needs}`); }
+  const raw = ((e.clientX - d.sx) * d.a.x + (e.clientY - d.sy) * d.a.y) / (d.a.x ** 2 + d.a.y ** 2);
+  const t = Math.min(ph.dist, Math.max(0, d.t0 + raw * GAIN[ph.force]));
+  d.moved = Math.max(d.moved, Math.hypot(e.clientX - d.sx, e.clientY - d.sy));
+  if (raw * GAIN[ph.force] + d.t0 < -ph.dist * .2 && !d.warned && MODE === 'guided') { d.warned = true; say('It does not go that way. Follow the yellow arrow.'); }
+  setTravel(ph, t);
+  if (ph.clicks) { const n = Math.floor(t / ph.dist * ph.clicks + .001); if (n > HS.clk && n < ph.clicks) sfx('tick', .8); HS.clk = n; }   // detents you can count
+  const extra = ph.spring ? 'spring pushes back' : ph.clicks ? 'count the clicks' : ph.needs ? `${ph.needs} held` : '';
+  pill(e, ph.force, `${ph.g === 'swing' ? 'Swing' : 'Slide'} ${arrowChar(d.a.x, d.a.y)}${extra ? ' · ' + extra : ''}`, t / ph.dist);   // a glance, not a sentence: the step card says how it feels
+  if (t >= ph.dist * .985) { setTravel(ph, ph.dist); phaseDone(d, e); }
+}
+/* a twist is a roll: drag across the part (70 px of finger travel for the full turn at light force) */
+function rollDir(o) { const c = aimW(o), A = scr(c), B = scr(c.clone().add(axisW(o, [1, 0, 0]))); let x = B.x - A.x, y = B.y - A.y; const L = Math.hypot(x, y) || 1; return { A, n: { x: -y / L, y: x / L } }; }
+function moveTwist(d, e) {
+  const ph = d.ph, px = (e.clientX - d.sx) * d.n.x + (e.clientY - d.sy) * d.n.y;
+  HS.twist = d.t0 + px / 70 * ph.angle;
+  const rot = Math.min(ph.angle, Math.abs(HS.twist) * GAIN[ph.force]) * (ph.dir || Math.sign(HS.twist) || 1);   // either way off; back on it turns home
+  d.o.quaternion.copy(HS.baseQ).multiply(qAxis('x', rot)); HS.travel = Math.abs(rot);
+  d.moved = Math.max(d.moved, Math.hypot(e.clientX - d.sx, e.clientY - d.sy));
+  pill(e, ph.force, `Roll it ${arrowChar(d.n.x, d.n.y)}`, Math.abs(rot) / ph.angle);
+  if (Math.abs(rot) >= ph.angle * .97) phaseDone(d, e);
+}
+/* a phase is done: click, and if the finger is still down, keep going into the next move or into carrying the part */
+function phaseDone(d, e) {
+  const st = handStep();
+  sfx(d.ph.endSound || 'tick');
+  HS.i++;
+  if (HS.i >= st.ph.length) { DRAG.delete(d.id); hidePill(); releaseIfIdle(); return completeStep(); }
+  setPhase(HS.i);
+  const nx = st.ph[HS.i];
+  if (nx.g === 'place') { const c = startCarry(e, nx); c.id = d.id; DRAG.set(d.id, c); return; }
+  if ((nx.g === 'slide' || nx.g === 'twist' || nx.g === 'swing') && nx.part === d.ph.part) { const m = startMove(e, nx); m.id = d.id; m.cont = true; DRAG.set(d.id, m); return; }
+  DRAG.delete(d.id); hidePill(); releaseIfIdle(); renderAll();
+}
+function startCarry(e, ph, arm = 40) {   // straight out of a slide the finger must move on 40 px before a drop counts; a fresh grab, 8 px
+  if (ZOOM) view('work', 900);   // the labels must be in view
+  const o = W.P[ph.key];
+  if (o.parent !== root) root.attach(o);
+  return { kind: 'carry', ph, o, off: aimW(o).sub(o.position), q: new THREE.Quaternion().setFromEuler(new THREE.Euler(...(D.items[ph.key].r || [0, 0, 0]))), sx: e.clientX, sy: e.clientY, arm, armed: false, t0: performance.now() };
+}
+function moveCarry(d, e) {
+  if (!d.armed && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > d.arm) d.armed = true;
+  const P = planeAt(e, CARRY_Y); if (!P) return;
+  P.x = Math.min(D.mat[1] - 4, Math.max(D.mat[0] + 4, P.x)); P.z = Math.min(D.mat[3] - 4, Math.max(D.mat[2] + 4, P.z));   // stays over the mat
+  d.o.position.set(P.x - d.off.x, CARRY_Y - d.off.y, P.z - d.off.z);
+  d.o.quaternion.slerp(d.q, .15);
+  aim(e); const m = ray.intersectObject(matMesh)[0]; HOVERZ = m ? zoneAt(m.point) || null : null;
+  pill(e, 'light', HOVERZ ? `Label ${HOVERZ} · let go` : 'To its label');
+}
+/* let go anywhere but a label (or the wrong label in Guided): the part floats to your "hand" above the gun, in view */
+async function toHand(o) {
+  BUSY = true;
+  const c = aimW(o).sub(o.position), p = controls.target.clone().lerp(camera.position, .3).sub(c);   // in front of you, mid-screen
+  await fly(o, p, o.quaternion.clone(), 420);
+  BUSY = false; renderAll();
+}
+async function dropCarry(d) {
+  const zone = d.armed || (d.arm < 40 && performance.now() - d.t0 > 300) ? HOVERZ : null, key = d.ph.key, it = D.items[key]; HOVERZ = null; hidePill();   // a fresh grab held a moment over a label counts even if it hardly moved
+  if (!zone) { if (d.armed) say('Put it down on its label on the mat.'); return toHand(d.o); }
+  if (MODE === 'guided' && zone !== it.zone) { say(`That is label ${zone}: ${D.zones[zone][4]}. The ${nameOf(d.o).toLowerCase()} goes on label ${it.zone}: ${D.zones[it.zone][4]}.`, true); return toHand(d.o); }
+  BUSY = true; PLACED[key] = zone;
+  const t = target(d.o, key, zone);
+  await fly(d.o, t.p, t.q, 380); sfx('place');
+  advance();
+}
+/* put-together: carry the part (or a loose piece of its group) to the blue outline; near it, it snaps into line */
+function startMount(e, ph, o, a) {
+  if (ZOOM && ph.g === 'mount') view('work', 900);
+  const gc = centerAt(o, a.M), wp = V(0, 0, 0), wq = new THREE.Quaternion(); a.M.decompose(wp, wq, V(0, 0, 0));
+  if (o.parent !== root) root.attach(o);
+  return { kind: 'mount', ph, o, a, gc, wp, wq, p0: o.position.clone(), q0: o.quaternion.clone(), sx: e.clientX, sy: e.clientY, moved: 0, snap: false };
+}
+function moveMount(d, e) {
+  d.moved = Math.max(d.moved, Math.hypot(e.clientX - d.sx, e.clientY - d.sy));
+  const G = scr(d.gc), near = Math.hypot(e.clientX - G.x, e.clientY - G.y) < (TOUCH ? 56 : 64);
+  const first = d.ph.g === 'join' ? movers(d.ph.key)[0] : d.o;
+  if (near && first === d.o) {
+    if (!d.snap) { d.snap = true; sfx('tick'); }
+    d.o.position.copy(d.wp); d.o.quaternion.copy(d.wq);
+    return pill(e, 'light', 'Lined up · let go');
+  }
+  d.snap = false;
+  const P = planeAt(e, d.gc.y); if (!P) return;
+  P.x = Math.min(D.mat[1] - 4, Math.max(D.mat[0] + 4, P.x)); P.z = Math.min(D.mat[3] - 4, Math.max(D.mat[2] + 4, P.z));
+  d.o.quaternion.slerp(d.wq, .12);
+  d.o.position.add(P.sub(aimW(d.o)));   // its middle under the finger
+  pill(e, 'light', near ? `${nameOf(first)} goes first` : d.ph.g === 'join' ? 'Onto its piece' : MODE === 'guided' ? 'To the blue outline' : 'To where it goes');
+}
+async function dropMount(d) {
+  hidePill();
+  if (!d.snap) {
+    if (MODE === 'guided') { const m = d.moved; clearTimeout(tapNoteT); tapNoteT = setTimeout(() => { say(m < 6 ? 'Drag it, do not just tap. Follow the yellow arrow.' : 'Bring it right onto the blue outline: it lines up by itself when it is close.'); IDLE0 = performance.now() - 3000; }, m < 6 ? 330 : 0); }
+    BUSY = true; await fly(d.o, d.p0, d.q0, 360); BUSY = false; return renderAll();
+  }
+  const { par, ap, aq } = d.a;
+  par.attach(d.o); d.o.position.copy(ap); d.o.quaternion.copy(aq); sfx(d.ph.g === 'join' ? 'tick' : 'clack', .7);
+  if (d.ph.g === 'join' && movers(d.ph.key).length) return renderAll();
+  advance();
+}
+/* Guided: a see-through copy of the part where it goes (never hit by the finger: it is not in the gun's tree) */
+const GHOST = new THREE.MeshBasicMaterial({ color: 0x7cc4ff, transparent: true, opacity: .4, depthWrite: false, depthTest: false });
+let GH = null;
+function ghost(o, M) {
+  if (GH && (GH.o !== o || !M)) { scene.remove(GH.g); GH = null; }
+  if (!o || !M) return;
+  if (!GH) {
+    const g = new THREE.Group(); o.updateMatrixWorld(true); const inv = o.matrixWorld.clone().invert();
+    o.traverse(c => { if (c.isMesh && !c.userData.proxy && c.visible) { const m = new THREE.Mesh(c.geometry, GHOST); m.matrixAutoUpdate = false; m.matrix.multiplyMatrices(inv, c.matrixWorld); m.renderOrder = 3; g.add(m); } });
+    scene.add(g); GH = { o, g };
+  }
+  M.decompose(GH.g.position, GH.g.quaternion, GH.g.scale);
+}
+function ghostCue() {
+  const st = handStep(), ph = st && HS && st.ph[HS.i];
+  if (MODE !== 'guided' || !ph || BUSY || ended || (ph.g !== 'mount' && ph.g !== 'join') || [...DRAG.values()].some(d => d.snap)) return ghost(null);
+  const o = ph.g === 'mount' ? W.P[ph.key] : movers(ph.key)[0];
+  ghost(o, o && approach(o, ph.off, ph.via).M);
+}
+function startApart(e, ph, m) {
+  root.attach(m);
+  const y = aimW(m).y, P0 = planeAt(e, y);
+  return { kind: 'apart', ph, o: m, y, p0: m.position.clone(), P0: P0 || V(0, 0, 0) };
+}
+function moveApart(d, e) {
+  const P = planeAt(e, d.y); if (!P) return;
+  d.o.position.set(d.p0.x + P.x - d.P0.x, d.p0.y + .4, d.p0.z + P.z - d.P0.z);
+  const moved = Math.hypot(P.x - d.P0.x, P.z - d.P0.z);
+  pill(e, 'firm', 'Pull it away', moved / 4);
+}
+async function settleApart(d) {
+  const moved = Math.hypot(d.o.position.x - d.p0.x, d.o.position.z - d.p0.z), key = d.ph.key, subs = W.S[key];
+  BUSY = true; hidePill();
+  if (moved < 4) { await flyHome(d.o); BUSY = false; return; }
+  HS.sep.add(d.o); sfx('tick');
+  await toMat(d.o, `${key}.${subs.indexOf(d.o)}`); sfx('place');
+  if (subs.slice(1).every(x => HS.sep.has(x))) return advance();
+  BUSY = false;
+}
+async function completeStep() {
+  const st = handStep(), gen = GEN;
+  BUSY = true; hidePill();
+  if (st && st.done) await st.done();
+  if (gen !== GEN || ended) return;
+  afterStep();
+}
+function handMove(e) {
+  const d = DRAG.get(e.pointerId); if (!d) return false;
+  if (d.kind === 'slide') moveSlide(d, e); else if (d.kind === 'twist') moveTwist(d, e); else if (d.kind === 'carry') moveCarry(d, e); else if (d.kind === 'apart') moveApart(d, e); else if (d.kind === 'mount') moveMount(d, e);
+  return true;
+}
+function handUp(e) {
+  let used = false;
+  for (const k in HOLD) if (HOLD[k] === e.pointerId) { holdUp(k, e.pointerId); hidePill(); used = true; }
+  const d = DRAG.get(e.pointerId);
+  if (d) {
+    DRAG.delete(e.pointerId); used = true;
+    if (d.kind === 'carry') dropCarry(d);
+    else if (d.kind === 'apart') settleApart(d);
+    else if (d.kind === 'mount') dropMount(d);
+    else {
+      hidePill();
+      if (d.moved < 6 && !d.cont && MODE === 'guided') { const k = d.kind; clearTimeout(tapNoteT); tapNoteT = setTimeout(() => { say(k === 'twist' ? 'Turn it: drag across it, as if rolling it under your finger.' : 'Drag it, do not just tap. Follow the yellow arrow.'); IDLE0 = performance.now() - 3000; }, 330); }   // and the finger shows the move at once
+      /* spring-loaded parts snap back if you let go early */
+      if (HS.travel > 0 && (d.ph.spring || d.ph.g === 'twist')) {
+        const ph = d.ph, t0 = HS.travel; sfx('spring');
+        if (ph.g === 'twist') { const q0 = d.o.quaternion.clone(); tween(220, k => d.o.quaternion.slerpQuaternions(q0, HS.baseQ, k)); HS.twist = 0; HS.travel = 0; }
+        else tween(220, k => setTravel(ph, t0 * (1 - k)));
+      }
+    }
+  }
+  releaseIfIdle();
+  return used;
+}
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.repeat || !handStep() || $$('.modal').some(m => !m.hidden)) return;
+  syncHand();
+  const ph = handStep().ph[HS.i], hid = holdId(ph);
+  if (!hid || BUSY) return;
+  e.preventDefault();
+  if (MODE === 'exam' && !T0) return;
+  if (!T0) T0 = Date.now();
+  IDLE0 = performance.now();
+  holdDown(hid, 'key');
+  if (ph.g === 'hold') advance();
+});
+const keyUp = () => { for (const k in HOLD) holdUp(k, 'key'); };
+document.addEventListener('keyup', e => { if (e.code === 'Space') keyUp(); });
+addEventListener('blur', keyUp);
+/* where a piece of a group will lie on the mat, as a screen point (measured with the piece loose, then put back) */
+function spotScreen(o, key) {
+  const par = o.parent; root.attach(o);
+  const t = target(o, key), c = aimW(o).sub(o.position).add(t.p);
+  par.attach(o);
+  return scr(c);
+}
+/* Guided: a yellow arrow shows which way to move the part, and the label says how */
+const arrowChar = (x, y) => '→↘↓↙←↖↑↗'[((Math.round(Math.atan2(y, x) / (Math.PI / 4)) % 8) + 8) % 8];
+function handCue() {
+  const st = handStep(), ph = st && HS && st.ph[HS.i];
+  if (!ph || BUSY || DRAG.size || ended) return null;
+  let o = null, from = null, to = null, text = '';
+  if (ph.needs && HOLD[ph.needs] == null) { o = W.P[ph.needs]; text = TOUCH ? `Hold this ${ph.needs} with one finger` : `Hold Space (or this ${ph.needs})`; }
+  else if (ph.g === 'slide' || ph.g === 'swing') { o = W.P[ph.part]; const { A, a } = axisPx(o, ph), L = Math.hypot(a.x, a.y) || 1; from = A; to = { x: A.x + a.x / L * 95, y: A.y + a.y / L * 95 }; text = `${ph.g === 'swing' ? 'Swing' : 'Drag'} ${arrowChar(a.x, a.y)} · ${FORCE[ph.force].toLowerCase()}${ph.clicks ? ' · count the clicks' : ''}`; }
+  else if (ph.g === 'mount' || ph.g === 'join') { o = ph.g === 'mount' ? W.P[ph.key] : movers(ph.key)[0]; if (o) { from = scr(aimW(o)); to = scr(centerAt(o, approach(o, ph.off, ph.via).M)); text = ph.g === 'mount' ? 'Drag it onto the outline' : 'Put it on'; } }
+  else if (ph.g === 'twist') { o = W.P[ph.part]; const r = rollDir(o); from = r.A; to = { x: r.A.x + r.n.x * 80, y: r.A.y + r.n.y * 80 }; text = `Roll it ${arrowChar(r.n.x, r.n.y)} · turn · ${FORCE[ph.force].toLowerCase()}`; }
+  else if (ph.g === 'hold') { o = W.P[ph.part]; text = TOUCH ? 'Press & hold' : 'Press & hold (or Space)'; }
+  else if (ph.g === 'look') { o = W.P[ph.part]; text = ph.cue || 'Tap to check'; }
+  else if (ph.g === 'place') { o = W.P[ph.key]; const z = D.zones[D.items[ph.key].zone]; from = scr(aimW(o)); to = scr(V((z[0] + z[1]) / 2, 0, (z[2] + z[3]) / 2)); text = `Carry to label ${D.items[ph.key].zone}`; }
+  else if (ph.g === 'apart') { const subs = W.S[ph.key]; o = subs.slice(1).find(x => !HS.sep.has(x)); if (o) { from = scr(aimW(o)); to = spotScreen(o, `${ph.key}.${subs.indexOf(o)}`); text = 'Pull it apart'; } }
+  return { o, from, to, text };
+}
+/* Guided: when nothing happens for 3 s (or right after a miss) a finger shows the move: a drag along the arrow, or a press */
+let fingerAt = '';
+function showFinger(cue) {
+  const el = $('#finger'), at = cue && (cue.from || (cue.o && scr(aimW(cue.o))));
+  if (!at || DEMO || performance.now() - IDLE0 < 3000) { el.hidden = true; return; }
+  const r = stage.getBoundingClientRect(), to = cue.from && cue.to ? cue.to : at;
+  const v = [at.x - r.left, at.y - r.top, to.x - r.left, to.y - r.top].map(n => Math.round(n / 4) * 4), key = v.join();
+  if (key !== fingerAt) { fingerAt = key; ['--x0', '--y0', '--x1', '--y1'].forEach((k, i) => el.style.setProperty(k, v[i] + 'px')); el.classList.toggle('press', to === at); }
+  el.hidden = false;
+}
+function drawArrow(cue) {
+  const svg = $('#arr');
+  if (!cue || !cue.from || !cue.to || MODE !== 'guided') { svg.setAttribute('hidden', ''); return; }
+  const r = stage.getBoundingClientRect(), a = { x: cue.from.x - r.left, y: cue.from.y - r.top }, b = { x: cue.to.x - r.left, y: cue.to.y - r.top };
+  const L = Math.hypot(b.x - a.x, b.y - a.y); if (L < 12) { svg.setAttribute('hidden', ''); return; }
+  const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, s0 = { x: a.x + ux * 26, y: a.y + uy * 26 }, tip = b, base = { x: b.x - ux * 16, y: b.y - uy * 16 };
+  svg.removeAttribute('hidden');
+  $('#arrLine').setAttribute('d', `M${s0.x.toFixed(1)},${s0.y.toFixed(1)} L${base.x.toFixed(1)},${base.y.toFixed(1)}`);
+  $('#arrHead').setAttribute('d', `M${tip.x.toFixed(1)},${tip.y.toFixed(1)} L${(base.x - uy * 9).toFixed(1)},${(base.y + ux * 9).toFixed(1)} L${(base.x + uy * 9).toFixed(1)},${(base.y - ux * 9).toFixed(1)} Z`);
+}
+
+/* ---------- input ---------- */
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+function aim(e) { const r = renderer.domElement.getBoundingClientRect(); ptr.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ptr, camera); }
+function hit(e) {
+  aim(e);
+  const hits = ray.intersectObjects(root.children, true).filter(h => h.object.isMesh);
+  const want = MODE === 'guided' && cur() ? cur().pick : null;
+  return (want && hits.find(h => pickOf(h.object)?.userData.pick === want)) || hits.find(h => { const p = pickOf(h.object); return p && p.userData.pick !== 'receiver'; }) || hits[0];
+}
+let down = null, pdown = null, lastTap = null, tapNoteT = 0;
+/* double-tap (or double-click) zooms in on that spot, as in Sketchfab; double-tap again, or on empty space, goes back to the Work view */
+function zoomAt(e) {
+  aim(e);
+  const h = ray.intersectObjects([...root.children, matMesh], true).find(x => x.object.isMesh);
+  if (!h || ZOOM) return view('work', 800);
+  const off = camera.position.clone().sub(controls.target), t0 = controls.target.clone(), p0 = camera.position.clone(), t1 = h.point.clone(), p1 = t1.clone().add(off.setLength(Math.max(26, off.length() * .45)));
+  tweens = tweens.filter(w => !w.cam); ZOOM = true; curView = null; userMoved = true;
+  $$('.tools [data-v]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  return tween(650, k => { controls.target.lerpVectors(t0, t1, k); camera.position.lerpVectors(p0, p1, k); }, easeCam, true);
+}
+/* a press on a part you can move never reaches the view control, so a part drag never turns the view */
+renderer.domElement.addEventListener('pointerdown', e => {
+  IDLE0 = performance.now();
+  if (lastTap && performance.now() - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) { lastTap = null; clearTimeout(tapNoteT); zoomAt(e); e.stopImmediatePropagation(); down = null; return; }
+  pdown = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, hold: false };
+  if (handDown(e)) { e.stopImmediatePropagation(); down = null; return; } down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }; }, true);
+renderer.domElement.addEventListener('pointermove', e => { handMove(e); });
+renderer.domElement.addEventListener('pointercancel', e => { handUp(e); });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (pdown && pdown.id === e.pointerId) { lastTap = !pdown.hold && Math.hypot(e.clientX - pdown.x, e.clientY - pdown.y) < 8 && performance.now() - pdown.t < 300 ? { t: performance.now(), x: e.clientX, y: e.clientY } : null; pdown = null; }
+  if (handUp(e)) return;
+  if (!down || down.id !== e.pointerId) return;
+  const tap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 700;
+  down = null;
+  if (!tap) return;
+  if (HELD) { aim(e); const h = ray.intersectObject(matMesh)[0]; if (h) onMat(h.point); return; }
+  const h = hit(e); if (h) onPick(h.object);
+});
+if (matchMedia('(hover: hover)').matches) {
+  let queued = false, last;
+  renderer.domElement.addEventListener('pointermove', e => {
+    last = e; if (queued) return; queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      const tip = $('#tip'), r = stage.getBoundingClientRect();
+      if (HELD) { aim(last); const h = ray.intersectObject(matMesh)[0], k = h && zoneAt(h.point); tip.hidden = !k; renderer.domElement.style.cursor = k ? 'pointer' : ''; if (k) tip.textContent = `${k}. ${D.zones[k][4]}`; }
+      else { const h = hit(last); tip.hidden = !h || DRAG.size > 0; renderer.domElement.style.cursor = h ? (handStep() ? 'grab' : 'pointer') : ''; if (h) tip.textContent = nameOf(h.object); }
+      tip.style.left = (last.clientX - r.left) + 'px'; tip.style.top = (last.clientY - r.top) + 'px';
+    });
+  });
+  renderer.domElement.addEventListener('pointerleave', () => { $('#tip').hidden = true; });
+}
+$$('.tools [data-v]').forEach(b => b.addEventListener('click', () => view(b.dataset.v)));
+$('#tColors').addEventListener('click', () => { COLORS = !COLORS; setToggle('#tColors', COLORS); repaint(); });
+$('#tSound').addEventListener('click', () => { SOUND = !SOUND; S.sound = SOUND; save(); setToggle('#tSound', SOUND); if (SOUND) sfx('tick'); });
+const setHands = on => { HANDS = on; S.hands = on; save(); newRun(); };
+$('#hOn').addEventListener('click', () => { if (!HANDS) setHands(true); });
+$('#hOff').addEventListener('click', () => { if (HANDS) setHands(false); });
+$('#tMore').addEventListener('click', () => { const m = $('#toolsMore'); m.hidden = !m.hidden; $('#tMore').setAttribute('aria-expanded', String(!m.hidden)); });
+$('#tXray').addEventListener('click', () => { XRAY = !XRAY; setToggle('#tXray', XRAY); repaint(); });
+$('#tNames').addEventListener('click', () => { NAMES = !NAMES; setToggle('#tNames', NAMES); if (!NAMES) nameEls.forEach(n => { n.el.hidden = true; }); });
+$('#restart').addEventListener('click', () => { if (MODE === 'exam') { ATT = 1; newRun(); renderIntro(); openModal('mIntro'); } else newRun(); });
+const setStart = v => { START = v; setToggle('#stGun', v === 'gun'); setToggle('#stMat', v === 'mat'); newRun(); };
+$('#stGun').addEventListener('click', () => setStart('gun'));
+$('#stMat').addEventListener('click', () => setStart('mat'));
+$('#wM249').addEventListener('click', () => setWeapon('m249'));
+$('#wM240').addEventListener('click', () => setWeapon('m240'));
+$('#mGuided').addEventListener('click', () => { if (MODE !== 'guided') setMode('guided'); });
+$('#mExam').addEventListener('click', () => { if (MODE !== 'exam') setMode('exam'); else if (ended) { ATT = 1; newRun(); renderIntro(); openModal('mIntro'); } });
+$('#exStart').addEventListener('click', () => { closeModal('mIntro'); startExam(); });
+$('#exBack').addEventListener('click', () => { closeModal('mIntro'); setMode('guided'); });
+$('#midGo').addEventListener('click', () => { closeModal('mMid'); T0 = Date.now(); stopAt = null; renderAll(); });
+$('#endExam').addEventListener('click', () => finish('quit'));
+$('#btnRef').addEventListener('click', () => { renderRef(); openModal('mRef'); });
+$('#chWhy').addEventListener('click', () => { closeModal('mCharlie'); openModal('mRes'); });
+$('#chRetry').addEventListener('click', () => { closeModal('mCharlie'); ATT = 1; startExam(); });
+$$('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+$$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m && !['mIntro', 'mMid', 'mCharlie'].includes(m.id)) closeModal(m.id); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(m => { if (!m.hidden && !['mIntro', 'mMid', 'mCharlie'].includes(m.id)) closeModal(m.id); }); });
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(() => { resize(); if (curView) view(curView, 0); }).observe(stage);
+resize();
+setToggle('#tSound', SOUND);
+buildMat();
+camera.position.set(0, 220, 240);
+view('work', 0);
+newRun();
+setInterval(tick, 250);
+function frame(t) {
+  stepTweens(t);
+  const k = .22 + .38 * (.5 + .5 * Math.sin(t / 170));
+  cache.forEach((m, key) => { if (key.startsWith('hi')) m.emissiveIntensity = k; });
+  controls.update();
+  const st = handStep(), ph = st && HS && st.ph[HS.i], carrying = [...DRAG.values()].some(d => d.kind === 'carry');
+  const guideZ = MODE === 'guided' && ph && ph.g === 'place' ? D.items[ph.key].zone : null;
+  for (const [k, m] of Object.entries(ZM)) m.material.opacity = (k === HOVERZ && carrying ? .34 : 0) + (k === guideZ ? .1 + .14 * (.5 + .5 * Math.sin(t / 220)) : 0);
+  const ck = W.P.cock, s = cur();   // the hand: on the handle while it is pulled or held, and (Guided) on a step that uses it
+  W.hand.visible = ck.position.distanceTo(H(ck).p) > .3 || (MODE === 'guided' && !!s && (s.pick === 'cock' || !!(st && st.ph.some(x => x.part === 'cock'))));
+  ghostCue(); GHOST.opacity = .3 + .25 * (.5 + .5 * Math.sin(t / 260));
+  if (NAMES) placeNames();
+  renderer.render(scene, camera);
+  placeCall();
+}
+/* the middle of the part's biggest piece, in world space */
+function aimAt(o, out) {
+  let best = null, vol = 0; o.updateMatrixWorld(true);
+  const own = c => { for (let p = c.parent; p && p !== o; p = p.parent) if (p.userData.pick && p.userData.pick !== o.userData.pick) return false; return true; };   // not a part mounted on it (the receiver's cover)
+  o.traverse(c => { if (c.isMesh && !c.userData.proxy && c.visible && own(c)) { if (!c.geometry.boundingBox) c.geometry.computeBoundingBox(); const b = c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld), d = b.getSize(V(0, 0, 0)), v = d.x * d.y * d.z + 1e-6; if (v > vol) { vol = v; best = b; } } });
+  if (!best) return false; best.getCenter(out); return true;
+}
+/* Guided: a ring and the part's name on the part to tap */
+let callTxt = '';
+function placeCall() {
+  const el = $('#call'), s = cur();
+  if (handStep()) {
+    if (HS == null) syncHand();
+    const cue = MODE === 'guided' ? handCue() : null;
+    drawArrow(cue); showFinger(cue);
+    if (!cue || !cue.o || !aimAt(cue.o, tmp)) { el.hidden = true; return; }
+    tmp.project(camera);
+    const on = tmp.z < 1 && Math.abs(tmp.x) < .95 && Math.abs(tmp.y) < .95;
+    el.hidden = !on; if (!on) return;
+    el.style.transform = `translate(${((tmp.x + 1) / 2 * stage.clientWidth).toFixed(0)}px, ${((1 - tmp.y) / 2 * stage.clientHeight).toFixed(0)}px)`;
+    const nm = cue.o ? nameOf(cue.o) : '', lab = nm + '|' + cue.text;   // the part's name over what to do with it
+    if (lab !== callTxt) { callTxt = lab; $('#callLab').innerHTML = `${nm ? `<small>${esc(nm)}</small>` : ''}${esc(cue.text)}`; }
+    return;
+  }
+  $('#arr').setAttribute('hidden', ''); $('#finger').hidden = true;
+  const o = MODE === 'guided' && s && !BUSY && !HELD ? glow.find(g => g.children.some(c => c.isMesh || c.isGroup)) : null;
+  if (!o) { el.hidden = true; return; }
+  if (!aimAt(o, tmp)) { el.hidden = true; return; }
+  tmp.project(camera);
+  const on = tmp.z < 1 && Math.abs(tmp.x) < .95 && Math.abs(tmp.y) < .95;
+  el.hidden = !on; if (!on) return;
+  el.style.transform = `translate(${((tmp.x + 1) / 2 * stage.clientWidth).toFixed(0)}px, ${((1 - tmp.y) / 2 * stage.clientHeight).toFixed(0)}px)`;
+  const t = 'Tap: ' + nameOf(o);
+  if (t !== callTxt) { callTxt = t; $('#callLab').textContent = t; }
+}
+renderer.setAnimationLoop(t => { if (manualNow == null) frame(t); });
+
+/* ---------- hooks for the test suite and the demo-video recorder ---------- */
+window.WT = {
+  state: () => ({ weapon: D.key, mode: MODE, phase: PHASE, si: SI, n: LIST.length, busy: BUSY, held: HELD && HELD.id, ended, placed: { ...PLACED }, step: cur() && cur().pick, colors: COLORS, view: curView, t: TIMES, att: ATT }),
+  tap(id) { let m; objsOf(id).forEach(o => o.traverse(c => { if (!m && c.isMesh) m = c; })); if (m) onPick(m); return !!m; },
+  tapZone(k) { const z = D.zones[k]; onMat(V((z[0] + z[1]) / 2, 0, (z[2] + z[3]) / 2)); },
+  speed(x) { SPEED = x; },
+  setWeapon, setMode, newRun, view, startExam, finish,
+  steps: () => ({ dis: D.dis().map(s => ({ pick: s.pick, do: s.do, how: s.how, cam: s.cam || 'work' })), as: D.as().map(s => ({ pick: s.pick, do: s.do, how: s.how, cam: s.cam || 'work' })) }),
+  /* the recorder sets the clock itself and draws one frame at a time */
+  manual(t) { manualNow = t; },
+  frame(t) { manualNow = t; frame(t); },
+  colors(on) { COLORS = on; setToggle('#tColors', on); repaint(); },
+  /* where the marker for a part sits on the page (for click tests) */
+  screen(id) { const o = objsOf(id).find(g => !bounds(g).isEmpty()); if (!o) return null; const c = V(0, 0, 0); aimAt(o, c); c.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (c.x + 1) / 2 * r.width, y: r.top + (1 - c.y) / 2 * r.height, on: c.z < 1 && Math.abs(c.x) < 1 && Math.abs(c.y) < 1 }; },
+  hitsAt(x, y) { aim({ clientX: x, clientY: y }); return ray.intersectObjects(root.children, true).filter(h => h.object.isMesh).map(h => (pickOf(h.object)?.userData.pick || '-') + (h.object.userData.proxy ? '*' : '')); },
+  hitAt(x, y) { const h = hit({ clientX: x, clientY: y }); return h ? (pickOf(h.object)?.userData.pick || 'mesh:' + nameOf(h.object)) : null; },
+  names(on) { NAMES = on; setToggle('#tNames', on); if (!on) nameEls.forEach(n => { n.el.hidden = true; }); },
+  hands(on) { setHands(on); },
+  plan() {
+    const st = handStep(); if (!st) return null; syncHand();
+    const ph = st.ph[HS.i]; if (!ph) return null;
+    if (ph.g === 'slide' || ph.g === 'swing') { const o = W.P[ph.part], { A, a } = axisPx(o, ph), k = (ph.dist - HS.travel) / GAIN[ph.force] * 1.12; return { g: 'slide', part: ph.part, needs: ph.needs || null, lever: ph.needs ? scr(aimW(W.P[ph.needs])) : null, from: A, to: { x: A.x + a.x * k, y: A.y + a.y * k } }; }
+    if (ph.g === 'mount' || ph.g === 'join') { const o = ph.g === 'mount' ? W.P[ph.key] : movers(ph.key)[0]; return { g: ph.g, part: ph.key, from: scr(aimW(o)), to: scr(centerAt(o, approach(o, ph.off, ph.via).M)) }; }
+    if (ph.g === 'twist') { const r = rollDir(W.P[ph.part]), k = 70 / GAIN[ph.force] * 1.15; return { g: 'twist', part: ph.part, from: r.A, to: { x: r.A.x + r.n.x * k, y: r.A.y + r.n.y * k } }; }
+    if (ph.g === 'hold') return { g: 'hold', at: scr(aimW(W.P[ph.part])) };
+    if (ph.g === 'look') return { g: 'look', part: ph.part, at: scr(aimW(W.P[ph.part])) };
+    if (ph.g === 'place') { const z = D.zones[D.items[ph.key].zone]; return { g: 'place', zone: D.items[ph.key].zone, from: scr(aimW(W.P[ph.key])), to: scr(V((z[0] + z[1]) / 2, 0, (z[2] + z[3]) / 2)) }; }
+    if (ph.g === 'apart') { const subs = W.S[ph.key], o = subs.slice(1).find(x => !HS.sep.has(x)); return { g: 'apart', from: scr(aimW(o)), to: spotScreen(o, `${ph.key}.${subs.indexOf(o)}`) }; }
+    return null;
+  },
+  piece(key, i) { const o = W.S[key][i]; return { from: scr(aimW(o)), to: scr(centerAt(o, approach(o).M)) }; },
+  zoneScreen(k) { const z = D.zones[k]; return scr(V((z[0] + z[1]) / 2, 0, (z[2] + z[3]) / 2)); },
+  spots: () => Object.fromEntries(Object.entries(D.items).filter(([, it]) => !it.g).map(([k, it]) => { const v = V(it.x, 1, it.z).project(camera); return [k, [+v.x.toFixed(2), +v.y.toFixed(2)]]; })),
+  hs: () => HS && { i: HS.i, travel: HS.travel, drags: DRAG.size, held: Object.keys(HOLD).filter(k => HOLD[k] != null), sep: HS.sep ? HS.sep.size : 0, loose: HL[PHASE] && W.S ? Object.keys(W.S).map(k => movers(k).length).join('') : '' },
+  calm: () => !tweens.some(w => w.cam),
+  camDist: () => camera.position.distanceTo(controls.target),
+  debugApart() { const subs = W.S.bsp; return subs.map(o => { const c = aimW(o), w = o.getWorldPosition(V(0, 0, 0)); return { name: o.userData.name, parent: o.parent === root ? 'root' : o.parent.userData.pick || o.parent.type, c: [c.x, c.y, c.z].map(v => +v.toFixed(1)), w: [w.x, w.y, w.z].map(v => +v.toFixed(1)), vis: o.visible }; }); },
+};
+if (DEMO) document.body.classList.add('demo');
+</script>
+</body>
+</html>

@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>ASIP Radio Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: the RT-1523E front panel sits on the bench (left on desktop, under the task card on phones);
+   the task card, coach and score sheet stack beside it, the way a lane grader lays them out. */
+:root {
+  --bg: #e2e4d9;
+  --surface: #f2f3ec;
+  --ink: #1b2016;
+  --muted: #586050;
+  --line: #c4c8b6;
+  --accent: #9a5a0c;
+  --accent-soft: #f1e2c4;
+  --go: #2b6a2e;
+  --go-soft: #d6e8d0;
+  --nogo: #a8291d;
+  --nogo-soft: #f3d7d1;
+  --scrim: rgba(16, 20, 12, .5);
+  --hint: #ffc53d;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --stencil: "DIN Condensed", "DIN Alternate", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+    --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+    --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11140d; --surface: #1a1e15; --ink: #e2e6d6; --muted: #98a08b; --line: #2f3528;
+  --accent: #e6a640; --accent-soft: #33280f; --go: #82c784; --go-soft: #1c2c1b;
+  --nogo: #f08b7d; --nogo-soft: #3b1d18; --scrim: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--ui); }
+body.locked { overflow: hidden; }
+button { font: inherit; color: inherit; touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.lbl { display: block; font: 600 10.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { margin-right: auto; color: inherit; text-decoration: none; font: 700 19px/1 var(--stencil); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.brand small { display: block; margin-top: 3px; font: 500 11px/1.1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.seg button { padding: 6px 11px; border: 0; border-radius: 999px; background: none; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.clock { min-width: 2.9em; text-align: right; font: 700 15px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.clock.warn { color: var(--nogo); }
+.ibtn { display: inline-grid; place-items: center; height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; font-weight: 650; cursor: pointer; }
+.ibtn svg { width: 18px; height: 18px; }
+.ibtn:disabled { opacity: .4; cursor: default; }
+@media (max-width: 440px) { .brand .bt, .brand small, .wide { display: none; } .seg button { padding: 6px 9px; } }
+@media (max-width: 350px) { .brand { display: none; } .seg { margin-right: auto; } }
+
+/* page layout */
+.wrap { display: grid; gap: 12px; max-width: 1100px; margin: 0 auto; padding-block: 12px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); grid-template-columns: minmax(0, 1fr); grid-template-areas: "task" "coach" "radio" "score"; }
+#task { grid-area: task; }
+#coach { grid-area: coach; }
+.rcol { grid-area: radio; min-width: 0; }
+#scoreCard { grid-area: score; }
+@media (min-width: 960px) {
+  .wrap { grid-template-columns: 500px minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "radio task" "radio coach" "radio score"; column-gap: 22px; align-items: start; }
+  .wrap .rcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 64px); max-width: calc((100vh - 76px) / 1.07); }
+}
+/* phone held sideways: radio beside the cards so it stays on screen; the sticky radio (antenna to battery box) is sized to fit the screen height */
+@media (min-width: 640px) and (max-width: 959px) and (max-height: 520px) {
+  .wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "radio task" "radio coach" "radio score"; column-gap: 16px; align-items: start; }
+  .wrap .rcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 60px); max-width: calc((100vh - 72px) / 1.07); }
+}
+.card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+
+/* task card */
+.taskh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.taskh h2 { margin: 0 auto 0 0; }
+.linkbtn { padding: 4px 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; }
+.sets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.set { min-width: 0; padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.set b { display: block; font: 700 18px/1.25 var(--mono); font-variant-numeric: tabular-nums; }
+.set.ok b { color: var(--go); }
+.set .spec { display: block; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.setline { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.callf { margin-top: 8px; font-size: 14px; }
+.callf b { font-family: var(--mono); font-size: 15px; }
+
+/* coach */
+.coach { min-width: 0; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); }
+.coach .lbl { color: var(--accent); }
+.coach .do { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 1.3; }
+.coach .how { margin-top: 2px; font-size: 13.5px; color: var(--muted); }
+.coach .warn { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--nogo); font-size: 13.5px; font-weight: 600; }
+.coach .warn span { display: block; font-weight: 400; }
+
+/* radio: front face of the RT-1523E, sized from the container width (cqw) so it keeps its proportions */
+.rcol { container-type: inline-size; width: 100%; max-width: 560px; margin-inline: auto; }
+.radio { position: relative; padding: 4.6cqw 2.4cqw 3cqw; border-radius: 2.6cqw; user-select: none; -webkit-user-select: none; background: linear-gradient(160deg, #6f7852 0%, #5c6543 40%, #4a5235 100%); box-shadow: inset 0 0.4cqw 0 rgba(255,255,255,.14), inset 0 -0.7cqw 0 rgba(0,0,0,.28), 0 2cqw 4cqw -1.5cqw rgba(0,0,0,.55); }
+.radio::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2.8cqw; border-radius: 2.6cqw 2.6cqw 0 0; background: linear-gradient(180deg, #7b845d, #646d49); box-shadow: 0 0.35cqw 0 rgba(0,0,0,.28); }
+.screw { position: absolute; width: 2.4cqw; height: 2.4cqw; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #959c7c, #3c4229 80%); box-shadow: inset 0 0 0 0.25cqw rgba(0,0,0,.35), 0 0.2cqw 0.3cqw rgba(0,0,0,.4); }
+.screw::before, .screw::after { content: ""; position: absolute; left: 50%; top: 50%; width: 1.4cqw; height: 0.32cqw; margin: -0.16cqw 0 0 -0.7cqw; background: rgba(0,0,0,.6); }
+.screw::after { transform: rotate(90deg); }
+.face { display: grid; grid-template-columns: 25cqw minmax(0, 1fr) 13cqw; gap: 1.6cqw; }
+.lcol { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2cqw; padding-top: 1cqw; }
+.ant { position: relative; width: 12.5cqw; height: 12.5cqw; border-radius: 50%; background: conic-gradient(from 15deg, #d9dcd4, #8c9089, #e8eae4, #7a7e77, #d0d3cb, #8c9089, #d9dcd4); box-shadow: 0 0.6cqw 1.2cqw rgba(0,0,0,.5); }
+.ant::before { content: ""; position: absolute; inset: 2cqw; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f1f2ee, #9a9e96 55%, #5b5e57); box-shadow: inset 0 0 0 0.6cqw rgba(0,0,0,.18); }
+.ant::after { content: ""; position: absolute; left: 50%; top: 50%; width: 2.6cqw; height: 2.6cqw; margin: -1.3cqw 0 0 -1.3cqw; border-radius: 50%; background: radial-gradient(circle, #d6d8d0 0 30%, #1c1d1a 34%); }
+.dial { position: relative; width: 25cqw; height: 25cqw; }
+.knob { position: absolute; left: 50%; top: 50%; width: 13cqw; height: 13cqw; margin: -6.5cqw 0 0 -6.5cqw; padding: 0; border: 0; border-radius: 50%; cursor: grab; touch-action: none; background: radial-gradient(circle at 40% 35%, #5d6542, #3c432a 62%, #2a2f1c); box-shadow: 0 0.9cqw 1.5cqw rgba(0,0,0,.55), inset 0 0.3cqw 0 rgba(255,255,255,.14); transition: transform .2s ease; }
+.knob::before { content: ""; position: absolute; left: 50%; top: 0.7cqw; bottom: 0.7cqw; width: 4.2cqw; margin-left: -2.1cqw; border-radius: 2.1cqw; background: linear-gradient(90deg, #434a2e, #6c754d 45%, #3a4027); box-shadow: 0 0.35cqw 0.7cqw rgba(0,0,0,.55); }
+.knob::after { content: ""; position: absolute; left: 50%; top: 1.2cqw; width: 0.9cqw; height: 3.8cqw; margin-left: -0.45cqw; border-radius: 0.45cqw; background: #f2f1e3; }
+.pos { position: absolute; left: 50%; top: 50%; padding: 1cqw 0.8cqw; border: 0; border-radius: 0.8cqw; background: none; cursor: pointer; color: #e7e6d6; font: 700 max(8px, 2.3cqw)/1.05 var(--stencil); letter-spacing: .03em; text-align: center; transform: translate(-50%, -50%) rotate(var(--a)) translateY(-10.2cqw) rotate(calc(var(--a) * -1)); }
+.pos span { display: block; padding: 0.1cqw 0.3cqw; }
+.pos.box span { border-radius: 2px; box-shadow: inset 0 0 0 1px currentColor; }
+.pos.on { color: #fff; background: rgba(0,0,0,.28); }
+.dname { position: absolute; right: 0; bottom: 0; font: 700 max(8px, 2.2cqw)/1 var(--stencil); letter-spacing: .12em; color: #e7e6d6; }
+.kdu { position: relative; padding: 2.4cqw 2.4cqw 2.6cqw; border-radius: 1.8cqw; background: linear-gradient(170deg, #515a3b, #3d442b); box-shadow: inset 0 0.3cqw 0 rgba(255,255,255,.12), 0 0.5cqw 1cqw rgba(0,0,0,.45); }
+.kdu .screw { width: 1.9cqw; height: 1.9cqw; }
+.kdu .screw::before, .kdu .screw::after { width: 1.1cqw; margin-left: -0.55cqw; }
+.lcdlab, .lcd .st { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; }
+.lcdlab { margin-bottom: 0.9cqw; font: 700 max(7.5px, 2.25cqw)/1 var(--stencil); letter-spacing: .08em; color: #efeee0; }
+.lcd { position: relative; display: grid; grid-template-rows: auto 1fr; height: 15cqw; overflow: hidden; border-radius: 0.8cqw; background: linear-gradient(180deg, #c3c9c0, #a9b1a6); color: #20251c; box-shadow: inset 0 0.5cqw 1.2cqw rgba(0,0,0,.35), 0 0 0 0.55cqw #22261a; }
+.lcd .st { padding-top: 1cqw; font: 700 max(8px, 2.6cqw)/1 var(--mono); }
+.lcd .t { display: grid; place-items: center; font: 700 max(15px, 5.6cqw)/1 var(--mono); letter-spacing: .06em; white-space: pre; }
+.lcd.off { background: linear-gradient(180deg, #858c81, #737a6f); }
+.lcd.off .st, .lcd.off .t { visibility: hidden; }
+.lcd.blink .t { animation: blink .6s steps(1, end) 1; }
+@keyframes blink { 0%, 100% { opacity: 1; } 35%, 65% { opacity: 0; } }
+.tbar { position: absolute; left: 0; bottom: 0; width: 0; height: 0.6cqw; background: #20251c; opacity: .55; }
+.tbar.run { animation: drain 7s linear forwards; }
+@keyframes drain { from { width: 100%; } to { width: 0; } }
+.keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4cqw; margin-top: 2.4cqw; }
+.key { display: grid; place-items: center; align-content: center; gap: 0.35cqw; min-height: 10cqw; padding: 0.6cqw 0.2cqw; border: 0; border-radius: 1.1cqw; cursor: pointer; color: #1b1d16; background: linear-gradient(180deg, #c4c7b0, #a2a68d); box-shadow: 0 0.5cqw 0 #343a26, inset 0 0.3cqw 0 rgba(255,255,255,.4); }
+.key:active, .key.down { transform: translateY(0.35cqw); background: linear-gradient(180deg, #b2b59d, #969a81); box-shadow: 0 0.15cqw 0 #343a26, inset 0 0.3cqw 0 rgba(255,255,255,.25); }
+.key .f { min-height: 1.9cqw; font: 700 max(7px, 1.95cqw)/1 var(--stencil); letter-spacing: .05em; }
+.key .d { font: 700 max(10px, 3.4cqw)/1 var(--stencil); }
+.key.w .f, .key.w .d { font-size: max(8px, 2.35cqw); letter-spacing: .05em; }
+.jacks { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9cqw; }
+.clab { font: 700 max(6.5px, 1.85cqw)/1 var(--stencil); letter-spacing: .05em; color: #e7e6d6; white-space: nowrap; }
+.conn { position: relative; width: 11.5cqw; height: 11.5cqw; border-radius: 50%; background: repeating-conic-gradient(#394028 0deg 6deg, #5d6644 6deg 12deg); box-shadow: 0 0.6cqw 1.1cqw rgba(0,0,0,.5); }
+.conn::before { content: ""; position: absolute; inset: 1.5cqw; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #c9ccc3, #80847b 60%, #4e514a); }
+.conn::after { content: ""; position: absolute; inset: 3.2cqw; border-radius: 50%; background: radial-gradient(circle, #1e1f1b 0 0.45cqw, transparent 0.55cqw) 0 0 / 1.7cqw 1.7cqw, #2b2d27; }
+.conn.blue::after { background: radial-gradient(circle, #4f86d6 0 0.5cqw, transparent 0.6cqw) 0 0 / 1.7cqw 1.7cqw, #2b2d27; }
+/* hardware: whip antenna on the antenna connector, H-250 handset on AUD/DATA, battery box under the RT.
+   A part that is not on yet is drawn dashed with a "+" tag; tap it to put it on. */
+.radio { margin-top: 16cqw; }
+.hw { padding: 0; border: 0; background: none; color: var(--accent); cursor: pointer; }
+.hw .tag { position: absolute; z-index: 4; display: none; padding: 0.7cqw 1.8cqw; border: 1px dashed var(--accent); border-radius: 999px; background: var(--surface); white-space: nowrap; font: 700 max(10px, 2.7cqw)/1.2 var(--ui); }
+.hw .tag small { font-weight: 500; color: var(--muted); }
+.hw.miss .tag { display: block; }
+.whip { position: absolute; left: 50%; bottom: 50%; z-index: 2; width: 10cqw; height: 28cqw; margin: 0 0 -2cqw -5cqw; }
+.whip::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 5cqw; width: 1.7cqw; margin-left: -0.85cqw; border-radius: 0.85cqw; background: linear-gradient(90deg, #111310, #41453a 45%, #0e0f0c); -webkit-mask-image: linear-gradient(transparent, #000 45%); mask-image: linear-gradient(transparent, #000 45%); }
+.whip::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 5.6cqw; height: 6.5cqw; margin-left: -2.8cqw; border-radius: 1.2cqw 1.2cqw 2.8cqw 2.8cqw; background: linear-gradient(90deg, #191b15, #4b4f42 45%, #13150f); box-shadow: 0 0.5cqw 0.9cqw rgba(0,0,0,.55); }
+.whip .tag { left: 100%; top: 2cqw; }
+.whip.miss::before { bottom: 14.5cqw; border: 0.45cqw dashed var(--accent); background: none; -webkit-mask-image: none; mask-image: none; }
+.whip.miss::after { display: none; }
+.bat { position: relative; display: block; width: calc(100% - 3cqw); height: 13cqw; margin: 0 auto; border-radius: 0 0 2.2cqw 2.2cqw; background: linear-gradient(180deg, #474f32, #363c25); box-shadow: inset 0 -0.6cqw 0 rgba(0,0,0,.25), 0 2cqw 3cqw -1.5cqw rgba(0,0,0,.5); }
+.bat::before, .bat::after { content: ""; position: absolute; top: 2.6cqw; width: 4.6cqw; height: 6.6cqw; border-radius: 0.8cqw; background: linear-gradient(180deg, #2b3120, #1c2015); box-shadow: inset 0 0.3cqw 0 rgba(255,255,255,.12); }
+.bat::before { left: 3cqw; }
+.bat::after { right: 22cqw; }
+.bat .plate { position: absolute; left: 10.5cqw; top: 3.6cqw; padding: 0.9cqw 1.6cqw; border-radius: 0.6cqw; background: #cfcdb0; color: #23271b; font: 700 max(8px, 2.5cqw)/1.15 var(--stencil); letter-spacing: .06em; }
+.bat .tag { left: 3cqw; top: 50%; transform: translateY(-50%); }
+.bat.miss { border: 2px dashed var(--accent); background: none; box-shadow: none; }
+@container (max-width: 340px) { .bat .tag small { display: none; } }
+.bat.miss::before, .bat.miss::after, .bat.miss .plate { display: none; }
+.hs { position: absolute; left: 50%; top: calc(50% + 32cqw); z-index: 3; width: 17cqw; margin-left: -8.5cqw; }
+.hs svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hs .body { fill: #22251b; }
+.hs .ptt { fill: #4a503d; }
+.hs.miss .body { fill: var(--surface); stroke: var(--accent); stroke-width: 3; stroke-dasharray: 7 5; }
+.hs.miss .ptt { display: none; }
+.hs .tag { right: 100%; top: 50%; margin-right: 1.5cqw; transform: translateY(-50%); }
+.plug, .cord { display: none; position: absolute; pointer-events: none; }
+.plugged .plug, .plugged .cord { display: block; }
+.plug { inset: 0.7cqw; z-index: 2; border-radius: 50%; background: radial-gradient(circle at 42% 38%, #4b5041, #22251b 58%, transparent 60%), repeating-conic-gradient(#14160f 0deg 7deg, #33372b 7deg 14deg); box-shadow: 0 0.7cqw 1.2cqw rgba(0,0,0,.55); }
+.cord { left: 50%; top: 50%; z-index: 1; width: 2.2cqw; height: 35cqw; margin-left: -1.1cqw; border-radius: 1.1cqw; background: repeating-linear-gradient(180deg, #11130e 0 0.55cqw, #3a3e31 0.55cqw 1.1cqw); }
+.hint { outline: 3px solid var(--hint) !important; outline-offset: 2px; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { outline-color: transparent; } }
+.readybar { display: flex; margin-top: 12px; }
+.readybar .btn { flex: 1; margin: 0; padding: 14px; font-size: 16px; }
+
+/* score sheet */
+.score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.m { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.num { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--line); border-radius: 50%; font: 700 12px/1 var(--mono); }
+.m.cur .num { border-color: var(--accent); color: var(--accent); }
+.m.done .num { border-color: var(--go); background: var(--go); color: var(--surface); }
+.mt { padding-top: 3px; font-weight: 650; }
+.subs { display: grid; gap: 3px; margin: 4px 0 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.subs li { position: relative; padding-left: 18px; }
+.subs li::before { content: "○"; position: absolute; left: 0; top: 0; font-size: 11px; line-height: 1.75; }
+.subs li.ok { color: var(--ink); }
+.subs li.ok::before { content: "✓"; color: var(--go); font-size: 13px; font-weight: 700; line-height: 1.45; }
+.subs li.now { color: var(--ink); font-weight: 650; }
+.subs li.now::before { content: "▸"; color: var(--accent); font-size: 13px; line-height: 1.45; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 5px; vertical-align: middle; }
+.chip { padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font: 600 11.5px/1.5 var(--mono); }
+.chip.ok { border-color: transparent; background: var(--go-soft); color: var(--go); }
+.scnote { margin: 12px 0 0; font-size: 13px; }
+
+/* buttons and modals */
+.txrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { padding: 10px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); font-weight: 650; cursor: pointer; }
+.btn.primary { margin-left: auto; border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); background: var(--scrim); }
+.mcard { position: relative; width: 100%; max-width: 760px; margin: auto 0; padding: 18px; border-radius: 16px; background: var(--surface); }
+.mcard h3 { margin: 18px 0 6px; font-size: 15px; }
+.mcard .x { position: absolute; right: 12px; top: 12px; }
+.mcard p, .mcard li { font-size: 14px; }
+.mcard ol, .mcard ul { margin: 6px 0; padding-left: 20px; }
+code { padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); font: 600 12.5px var(--mono); white-space: nowrap; }
+.tbl { overflow-x: auto; }
+.tbl table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th, .tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tbl th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.go { color: var(--go); font-weight: 700; }
+td.nogo { color: var(--nogo); font-weight: 700; }
+.fb { margin: 6px 0 0; padding-left: 18px; color: var(--nogo); font-size: 13.5px; }
+.verdict { display: inline-block; padding: 4px 12px; border-radius: 999px; font: 700 15px var(--mono); }
+.verdict.go { background: var(--go-soft); color: var(--go); }
+.verdict.nogo { background: var(--nogo-soft); color: var(--nogo); }
+fieldset { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+legend { padding: 0 4px; font-weight: 650; }
+.opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+.cust { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 0 26px; }
+.cust input { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: 600 15px var(--mono); }
+.err { color: var(--nogo); font-size: 13px; }
+/* Guided: wrong press. The pressed control shakes red; the right one bounces; a note says what to do. */
+.key.want, .pos.want { outline: 4px solid var(--hint) !important; outline-offset: 3px; z-index: 3; }
+.hw.want { outline: 4px solid var(--hint) !important; outline-offset: 3px; }
+.key.want, .whip.want, .hs.want { animation: want .8s ease-in-out 2; }
+.pos.want span { animation: want .8s ease-in-out 2; }
+.bat.want { animation: wantS .8s ease-in-out 2; }
+@keyframes want { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,197,61,.8); } 40% { transform: scale(1.14); box-shadow: 0 0 0 12px rgba(255,197,61,0); } }
+@keyframes wantS { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.04); } }
+.key.nope, .pos.nope { outline: 3px solid #e2432f !important; outline-offset: 2px; }
+.key.nope, .pos.nope span, .coach.shake { animation: nope .4s ease-in-out; }
+@keyframes nope { 20%, 60% { translate: -4px 0; } 40%, 80% { translate: 4px 0; } }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 45; pointer-events: none; width: max-content; max-width: min(92vw, 520px); padding: 12px 16px; border-radius: 14px; background: var(--ink); color: var(--bg); font-size: 15px; line-height: 1.35; box-shadow: 0 10px 30px rgba(0,0,0,.35); transform: translateX(-50%); }
+.toast b { color: var(--hint); }
+.toast.top { top: calc(env(safe-area-inset-top, 0px) + 64px); bottom: auto; }
+.toast.pop { animation: pop .25s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* NO-GO: recycled to Charlie Company */
+.modal.charlie { align-items: center; background: rgba(12, 14, 8, .82); }
+.ccard { position: relative; width: 100%; max-width: 460px; margin: auto 0; padding: 20px 18px 18px; overflow: hidden; border-radius: 18px; text-align: center; color: #f1efe0; background: radial-gradient(120% 90% at 50% 0%, #3d4628, #1c2112 70%); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.ccard .eyebrow { font: 700 11px/1 var(--ui); letter-spacing: .16em; text-transform: uppercase; color: #c9c7a4; }
+.guidon { display: block; width: 180px; max-width: 60%; height: auto; margin: 10px auto 0; overflow: visible; }
+.guidon .flag { transform-origin: 14px 56px; animation: wave 2.4s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-4deg) scaleX(.96); } }
+.ccard h2.ct { margin: 6px 0 2px; font: 800 30px/1.05 var(--stencil); letter-spacing: .04em; text-transform: uppercase; color: #fff; text-wrap: balance; }
+.ccard p { margin: 6px 0 0; font-size: 14.5px; color: #dcdac6; }
+.ccard .orders { margin: 12px auto 0; max-width: 34ch; padding: 10px 12px; border: 1px dashed rgba(241,239,224,.35); border-radius: 10px; font: 600 12.5px/1.5 var(--mono); color: #e9e7d4; text-align: left; }
+.stamp { position: absolute; right: 12px; top: 52px; padding: 4px 10px; border: 4px solid #e2432f; border-radius: 8px; color: #e2432f; font: 900 28px/1 var(--stencil); letter-spacing: .08em; transform: rotate(-14deg); opacity: .92; animation: slam .5s cubic-bezier(.2, 1.6, .4, 1) .25s both; }
+@keyframes slam { from { transform: rotate(-14deg) scale(2.6); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: .92; } }
+.ccard .txrow { justify-content: center; margin-top: 16px; }
+.ccard .btn { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #f1efe0; }
+.ccard .btn.primary { margin-left: 0; border-color: #e2432f; background: #e2432f; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .knob { transition: none; } .hint, .guidon .flag, .stamp, .key.want, .pos.want span, .key.nope, .pos.nope span, .coach.shake, .toast.pop, .hw.want { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../" title="All Bravo study tools">‹ ASIP<span class="bt"> Trainer</span><small>RT-1523E · load SC frequencies</small></a>
+  <div class="seg" role="group" aria-label="Practice mode">
+    <button id="mGuided" aria-pressed="true">Guided</button>
+    <button id="mExam" aria-pressed="false">Exam</button>
+  </div>
+  <div class="clock" id="clock">0:00</div>
+  <button class="ibtn" id="btnRef" aria-label="Cheat sheet">Ref</button>
+  <button class="ibtn" id="btnSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</header>
+
+<main class="wrap">
+  <section class="card" id="task" aria-label="Task card">
+    <div class="taskh"><h2>Task card</h2><button class="linkbtn" id="newCard">New card</button></div>
+    <div class="sets" id="sets"></div>
+    <div class="callf" id="callF"></div>
+  </section>
+
+  <section class="coach" id="coach" aria-live="polite">
+    <span class="lbl" id="cStep"></span>
+    <div class="do" id="cDo"></div>
+    <div class="how" id="cHow"></div>
+    <div class="warn" id="cWarn" hidden></div>
+  </section>
+
+  <section class="rcol" aria-label="AN/PRC-119F radio, RT-1523E front panel">
+    <div class="radio">
+      <i class="screw" style="left:1.3cqw;top:4cqw"></i><i class="screw" style="right:1.3cqw;top:4cqw"></i>
+      <i class="screw" style="left:1.3cqw;bottom:1.3cqw"></i><i class="screw" style="right:1.3cqw;bottom:1.3cqw"></i>
+      <div class="face">
+        <div class="lcol">
+          <span class="ant"><button class="hw whip miss" data-hw="ant"><span class="tag"><b>+ Antenna</b></span></button></span>
+          <div class="dial" id="dial">
+            <button class="knob" id="knob" aria-label="FCTN switch: drag to turn, or tap its right half to turn clockwise and its left half counterclockwise"></button>
+            <span class="dname">FCTN</span>
+          </div>
+        </div>
+        <div class="kdu">
+          <i class="screw" style="left:0.5cqw;top:0.5cqw"></i><i class="screw" style="right:0.5cqw;top:0.5cqw"></i>
+          <i class="screw" style="left:0.5cqw;bottom:0.5cqw"></i><i class="screw" style="right:0.5cqw;bottom:0.5cqw"></i>
+          <div class="lcdlab" aria-hidden="true"><span>PWR</span><span>MODE</span><span>CHAN</span><span>CMSC</span></div>
+          <div class="lcd" id="lcd" aria-live="polite">
+            <div class="st" id="lcdS"><span></span><span></span><span></span><span></span></div>
+            <span class="t" id="lcdT"></span>
+            <i class="tbar" id="tbar"></i>
+          </div>
+          <div class="keys" id="keys"></div>
+        </div>
+        <div class="jacks">
+          <span class="clab" aria-hidden="true">AUD/FILL</span>
+          <span class="conn blue" aria-hidden="true"></span>
+          <span class="clab" aria-hidden="true">AUD/DATA</span>
+          <span class="conn" id="audData"><i class="plug"></i><i class="cord"></i><button class="hw hs miss" data-hw="hs"><svg viewBox="0 0 120 50" aria-hidden="true"><path class="body" d="M10 15C10 7 15 3 24 3h12c6 0 8 4 8 9v5h32v-5c0-5 2-9 8-9h12c9 0 14 4 14 12v20c0 8-5 12-14 12H84c-6 0-8-4-8-9v-5H44v5c0 5-2 9-8 9H24c-9 0-14-4-14-12z"/><rect class="ptt" x="52" y="20" width="16" height="10" rx="3"/></svg><span class="tag"><b>+ Handset</b></span></button></span>
+          <span class="clab" aria-hidden="true">RXMT</span>
+        </div>
+      </div>
+    </div>
+    <button class="hw bat miss" data-hw="bat"><span class="plate">BATTERY BOX · BB-2590/U</span><span class="tag"><b>+ Battery</b> <small>BB-2590 · tap to install</small></span></button>
+    <div class="readybar" id="endBar" hidden><button class="btn" id="endExam">End exam and grade now</button></div>
+  </section>
+
+  <section class="card" id="scoreCard" aria-label="Score sheet">
+    <h2>Score sheet · Communicate by Tactical Radio</h2>
+    <ol class="score" id="score"></ol>
+    <p class="scnote muted">Measures 4–5 (radio check, 10–20 word message) are voice steps and are not part of this key drill.</p>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="assertive" hidden></div>
+
+<div class="modal" id="mIntro" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exT">
+    <h2 id="exT">Exam mode</h2>
+    <ul>
+      <li>One clock for the whole drill: <b>5:00</b>. It starts when you press Start.</li>
+      <li>No coach, no key highlights, no 7-second bar, no ✓ marks until the end.</li>
+      <li>Assemble the radio first, as you do in the real test: tap the battery, the antenna and the handset to put them on. No battery, no power. A part still missing at the end is a NO-GO.</li>
+      <li>The radio starts off. Set FCTN to load first; that turns it on. Mode SC, COMSEC PT and CHAN 1 can be set in any order; only the settings have to be right (mode and channel must be set before you load). Fastest: one pass through MENU, CHAN 1 → MODE SC → CMSC PT. Then for each of channels 1–3: Set CHAN → Press FREQ → Press CLR → Enter 5 digits → Press STO within 7 seconds. Then Set FCTN to SQ. ON. The grader gives you 1 of the 3 frequencies: set CHAN to that channel, and set power and volume to that setting. Using MENU before LD is an order error and a NO-GO. Any other slip can be fixed: go back (to LD if needed), correct it, and finish in SQ ON; only the final settings count.</li>
+      <li>Three channels (CH 1–3). The call frequency appears at step 3. The exam ends when the radio is set to communicate in SC mode, or at 5:00. A NO-GO sends you to Charlie Company.</li>
+    </ul>
+    <div class="txrow"><button class="btn" id="exBack">Back to Guided</button><button class="btn primary" id="exStart">Start exam</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRes" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="resT">
+    <h2 id="resT">Exam result</h2>
+    <div id="resBody"></div>
+    <div class="txrow" style="margin-top:14px"><button class="btn" data-close="mRes">Review radio</button><button class="btn" id="resGuided">Guided mode</button><button class="btn" id="resSame">Retry same card</button><button class="btn primary" id="resNew">New card</button></div>
+  </div>
+</div>
+
+<div class="modal charlie" id="mCharlie" hidden>
+  <div class="ccard" role="dialog" aria-modal="true" aria-labelledby="chT">
+    <div class="eyebrow">NO-GO · Recycle orders</div>
+    <svg class="guidon" viewBox="0 0 200 112" aria-hidden="true">
+      <rect x="8" y="4" width="6" height="106" rx="3" fill="#8a6a3c"/>
+      <circle cx="11" cy="6" r="6" fill="#d4b13c"/>
+      <g class="flag">
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="#b3261e"/>
+        <path d="M14 12 H192 L158 54 L192 96 H14 Z" fill="none" stroke="#ffffff" stroke-opacity=".2" stroke-width="2"/>
+        <text x="84" y="74" text-anchor="middle" font-family="DIN Condensed, Arial Narrow, Arial, sans-serif" font-weight="800" font-size="56" fill="#ffffff">C</text>
+      </g>
+    </svg>
+    <div class="stamp" aria-hidden="true">NO-GO</div>
+    <h2 class="ct" id="chT">Welcome to Charlie Company!</h2>
+    <p id="chStats"></p>
+    <div class="orders">REPORT TO: C Co, 3rd Platoon<br>TIME: 0430 tomorrow<br>BRING: ruck, ASIP, and a faster thumb on STO</div>
+    <div class="txrow"><button class="btn" id="chWhy">See what went wrong</button><button class="btn primary" id="chRetry">Recycle: try again</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mSet" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="setT">
+    <h2 id="setT">Settings</h2>
+    <button class="btn x" data-close="mSet" aria-label="Close">✕</button>
+    <fieldset>
+      <legend>Frequencies on the task card</legend>
+      <label class="opt"><input type="radio" name="fm" id="fmR" value="random"> Random each card</label>
+      <label class="opt"><input type="radio" name="fm" id="fmS" value="sheet"> Score sheet: 81.000 · 55.000 · 57.900</label>
+      <label class="opt"><input type="radio" name="fm" id="fmC" value="custom"> My own (5 digits, e.g. 81000):</label>
+      <div class="cust"><input id="cf1" inputmode="numeric" maxlength="5" aria-label="CH 1 frequency"><input id="cf2" inputmode="numeric" maxlength="5" aria-label="CH 2 frequency"><input id="cf3" inputmode="numeric" maxlength="5" aria-label="CH 3 frequency"></div>
+      <p class="err" id="setErr" hidden></p>
+    </fieldset>
+    <p class="muted" id="bestTxt"></p>
+    <div class="txrow"><button class="btn primary" id="setSave">Save · new card</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mRef" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="refT">
+    <h2 id="refT">Cheat sheet · AN/PRC-119F (RT-1523E ASIP)</h2>
+    <button class="btn x" data-close="mRef" aria-label="Close">✕</button>
+    <h3>Score-sheet steps and the keys for each</h3>
+    <ol>
+      <li><b>Obtained required SC frequencies.</b> The grader gives you 3 frequencies for 3 channels.
+        <ul>
+          <li>Assemble the radio (in the test you do this yourself): BB-2590 battery into the battery box, antenna onto the antenna connector, H-250 handset into <code>AUD/DATA</code>. Without the battery the radio is dead.</li>
+          <li>Prepare radio for Single Channel Frequencies loading.</li>
+          <li>Set FCTN to load: knob to <code>LD</code>.</li>
+          <li>Then one pass through MENU (VOL → CHAN → PWR → MODE → CMSC):</li>
+          <li>Set CHAN 1: <code>MENU</code> twice, press <code>1</code>.</li>
+          <li>Set mode to SC: <code>MENU</code> twice (past PWR), <code>CHG</code> twice (FH → FHM → SC).</li>
+          <li>Set COMSEC to PT: <code>MENU</code> once, <code>CHG</code> 3 times (CT → TD → RV → PT).</li>
+        </ul>
+        The radio starts off, at the TM defaults (CHAN not 1, PWR LO, MODE FH, COMSEC CT, VOL 5). Turning FCTN to LD turns it on. After LD, these three can be set in any order and only the settings count; following the MENU order is simply the fastest (5 MENU presses). Mode must be SC before you load, and CHAN must be the channel you are loading. Power and COMSEC don't affect loading. From the COMSEC screen you can press <code>FREQ</code> right away. Missed something, like CHAN 1? Go back (to LD if needed), fix it and load again; only the final settings count.</li>
+      <li><b>Load SC frequencies.</b>
+        <ul>
+          <li>Press FREQ: <code>FREQ</code> shows what the channel holds now.</li>
+          <li>Press CLR: <code>CLR</code> clears the display to <code>-----</code>.</li>
+          <li>Enter 5 digits SC frequencies: 81.000 is <code>81000</code>.</li>
+          <li>Store SC frequencies. Press STO within 7 seconds: <code>STO</code>; the display blinks once.</li>
+          <li>Stored Channels 1-3: <code>MENU</code> twice → <code>2</code> and repeat, then <code>MENU</code> twice → <code>3</code> and repeat.</li>
+        </ul></li>
+      <li><b>Prepare to Communicate.</b> The grader gives you 1 of the 3 frequencies to call the distant station.
+        <ul>
+          <li>Set FCTN to SQ. ON: knob to <code>SQ ON</code>.</li>
+          <li>Set CHAN to CHAN 1-3: <code>MENU</code> twice, then the channel that holds that frequency.</li>
+          <li>Set power and volume to that setting. Volume: <code>MENU</code> once, press the digit. Power: <code>MENU</code> to <code>PWR</code>, then <code>CHG</code> (LO → M → HI → PA; M is MED).</li>
+          <li>Communicate in SC Mode.</li>
+        </ul></li>
+    </ol>
+    <p>Score-sheet settings, all Single Channel Plain Text. Setting 1: CH 1, 81.000, power HI, vol 8. Setting 2: CH 2, 55.000, power HI, vol 5. Setting 3: CH 3, 57.900, power MED, vol 6. In this trainer power and volume are radio-wide, so they are graded on the setting the grader calls.</p>
+    <p class="muted">Steps 4–5 (radio check, 10–20 word message) are voice steps and are not drilled here. Standard: within 5 minutes, 100% accuracy.</p>
+    <h3>Notes</h3>
+    <p><code>MENU</code> and <code>CLR</code> share one key. If no key is pressed for 7 seconds, the display times out and drops what you typed.</p>
+    <p>FCTN knob: drag it, or tap its right half to turn clockwise and its left half counterclockwise. On a computer you can also type digits, <code>F</code> = FREQ, <code>C</code> or <code>M</code> = MENU/CLR, <code>S</code> = STO.</p>
+    <h3>Sources and limits</h3>
+    <p class="muted">Steps and order: the "Operate an ASIP Radio" score sheet. Key presses: TM 11-5820-890-10-8 (SINCGARS ASIP), Primary Operator Task 1 and Preparation Task 1. Display text is simplified.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const pad = (n, w) => String(n).padStart(w, '0');
+const fmt = f => f.slice(0, 2) + '.' + f.slice(2);
+const mmss = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60), 2)}`;
+
+/* ---------- radio data (TM 11-5820-890-10-8, SINCGARS ASIP) ---------- */
+const FCTN = [
+  { id: 'TST', a: 180 }, { id: 'LD', a: 216 }, { id: 'SQ ON', a: 252 }, { id: 'SQ OFF', a: 288 },
+  { id: 'RXMT', a: 324 }, { id: 'REM', a: 0 }, { id: 'Z-FH', a: 36, box: 1 }, { id: 'OFF', a: 72, box: 1 }, { id: 'STBY', a: 135, box: 1 },
+];
+const LIVE = ['LD', 'SQ ON', 'SQ OFF', 'RXMT'];
+const MENU = ['VOL', 'CHAN', 'PWR', 'MODE', 'CMSC'];
+const CYCLE = { PWR: ['LO', 'M', 'HI', 'PA'], MODE: ['SC', 'FH', 'FH-M'], CMSC: ['PT', 'CT', 'TD', 'RV'] };
+const CHANS = ['MAN', '1', '2', '3', '4', '5', '6', 'CUE'];
+/* hardware the operator puts on before using the radio */
+const HW = [
+  { id: 'bat', name: 'Battery', how: 'Tap the battery box to put the BB-2590 battery in. Without it the radio has no power.' },
+  { id: 'ant', name: 'Antenna', how: 'Tap the antenna to put it on the antenna connector.' },
+  { id: 'hs', name: 'Handset', how: 'Tap the handset to plug it into AUD/DATA.' },
+];
+const KEYS = [ // [id, upper legend, lower legend] as on the ASIP keypad
+  ['k1', 'CMSC', '1'], ['k2', 'RCU', '2'], ['k3', 'SYNC', '3'], ['FREQ', '☼', 'FREQ'],
+  ['k4', 'DATA', '4'], ['k5', 'GPS', '5'], ['k6', 'SA', '6'], ['ERF', 'ERF', 'OFST'],
+  ['k7', 'CHG', '7'], ['k8', 'CID', '8'], ['k9', 'LOUT', '9'], ['TIME', '***', 'TIME'],
+  ['CLR', 'MENU', 'CLR'], ['k0', 'LOAD', '0'], ['STO', '', 'STO'], ['BATT', 'BATT', 'CALL'],
+];
+const keyName = id => { const k = KEYS.find(x => x[0] === id); return id[0] === 'k' ? k[1] : [k[1], k[2]].filter(Boolean).join('/'); };
+/* SINCGARS SC range: 30.000-87.975 MHz in 25 kHz steps */
+const KHZ = ['000', '000', '000', '025', '050', '075', '100', '125', '250', '300', '350', '400', '500', '550', '600', '650', '700', '750', '800', '850', '900', '950', '975'];
+const randFreq = () => pad(30 + rnd(58), 2) + pick(KHZ);
+const validFreq = f => /^\d{5}$/.test(f) && +f >= 30000 && +f <= 87975 && +f % 25 === 0;
+
+/* ---------- settings (this browser only) ---------- */
+const STORE = 'asip-trainer-v2';
+const S = { freqMode: 'sheet', custom: ['81000', '55000', '57900'], best: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* storage blocked */ }
+if (typeof S.best !== 'number') S.best = null;
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* storage blocked */ } };
+
+/* ---------- run state ---------- */
+let MODE = 'guided', SC, R, P, DEV, NOTES, W, T0 = null, endAt = 0, ended = false;
+let tHandle, fHandle, testHandle, knobRot = null;
+const LIMIT = 300; // Exam clock in seconds (score-sheet standard: 5 minutes)
+
+function makeCard() {
+  const callCh = 1 + rnd(3), sheet = { freqs: ['81000', '55000', '57900'], pwr: ['HI', 'HI', 'M'], vol: [8, 5, 6], callCh };
+  if (S.freqMode === 'sheet') return sheet;
+  if (S.freqMode === 'custom' && S.custom.every(validFreq) && new Set(S.custom).size === 3) return { ...sheet, freqs: S.custom.slice() };
+  const freqs = [];
+  while (freqs.length < 3) { const f = randFreq(); if (!freqs.includes(f)) freqs.push(f); }
+  return { freqs, pwr: freqs.map(() => pick(['LO', 'M', 'HI'])), vol: freqs.map(() => 1 + rnd(9)), callCh };
+}
+/* Radio as handed over: off, battery, antenna and handset not on yet, TM default settings: MODE FH, COMSEC CT, PWR LO. */
+function freshRadio() {
+  const ch = {}, net = {};
+  CHANS.forEach(c => {
+    let f;
+    do { f = Math.random() < .3 ? '00000' : randFreq(); } while (SC.freqs.includes(f));
+    ch[c] = f; net[c] = pad(rnd(1000), 3);
+  });
+  return { fctn: 'OFF', mode: 'FH', cmsc: 'CT', pwr: 'LO', vol: 5, chan: pick(['MAN', '2', '3', '4', '5', '6', 'CUE']), ch, net, disp: 'off', menu: 0, entry: '', flash: '', after: 'idle', tried: new Set(), hw: { bat: false, ant: false, hs: false } };
+}
+
+/* ---------- radio behaviour ---------- */
+const on = () => R.hw.bat && LIVE.includes(R.fctn);
+const hwOK = () => HW.every(h => R.hw[h.id]);
+const modeTxt = m => m === 'FH-M' ? 'FHM' : m;
+function bar(run) {
+  const b = $('#tbar');
+  b.classList.remove('run');
+  if (run && MODE === 'guided') { void b.offsetWidth; b.classList.add('run'); }
+}
+function arm() { clearTimeout(tHandle); tHandle = setTimeout(timeout, 7000); bar(true); }
+function disarm() { clearTimeout(tHandle); tHandle = null; bar(false); }
+function timeout() {
+  const lost = R.disp === 'entry' && R.entry.length > 0;
+  disarm(); R.entry = ''; R.disp = 'idle';
+  event({ type: 'timeout', lost });
+}
+function flash(text, ms, after, blink, then) {
+  clearTimeout(fHandle);
+  R.flash = text; R.after = after; R.disp = 'flash';
+  const lcd = $('#lcd');
+  lcd.classList.remove('blink');
+  if (blink) { void lcd.offsetWidth; lcd.classList.add('blink'); }
+  fHandle = setTimeout(() => {
+    if (R.disp !== 'flash') return;
+    R.disp = after;
+    if (then) then();
+    renderAll();
+  }, ms);
+}
+/* Guided mode: a press that is not the highlighted control is ignored and the right one is shown. */
+let nudgeAt = 0, nudgeWas = '', toastT, nudgeT;
+const ctl = t => !t ? null : t.startsWith('pos:') ? $(`.pos[data-pos="${t.slice(4)}"]`) : t.startsWith('hw:') ? $(`.hw[data-hw="${t.slice(3)}"]`) : $(`.key[data-k="${t}"]`);
+function guided(want, el) {
+  if (MODE !== 'guided' || ended) return true;
+  const c = coachData();
+  /* the hardware may go on in any order */
+  if (!c.target || c.target === want || (want.startsWith('hw:') && c.target.startsWith('hw:'))) {
+    /* the right press clears the note and the cues */
+    clearTimeout(toastT); clearTimeout(nudgeT);
+    $('#toast').hidden = true;
+    $$('.want, .nope, .shake').forEach(e => e.classList.remove('want', 'nope', 'shake'));
+    return true;
+  }
+  /* a knob drag or a double tap repeats the same wrong press; show the cue once */
+  const now = Date.now();
+  if (now - nudgeAt < 500 && nudgeWas === want) return false;
+  nudgeAt = now; nudgeWas = want;
+  const right = ctl(c.target);
+  const els = [right, el, $('#coach')].filter(Boolean);
+  $$('.want, .nope, .shake').forEach(e => e.classList.remove('want', 'nope', 'shake'));
+  els.forEach(e => { void e.offsetWidth; });
+  if (el) el.classList.add('nope');
+  right.classList.add('want');
+  $('#coach').classList.add('shake');
+  const r = right.getBoundingClientRect(), off = r.top < 70 || r.bottom > innerHeight - 90;
+  if (off) right.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const toast = $('#toast');
+  /* keep the note away from the control it points to */
+  toast.classList.toggle('top', off || (r.top + r.bottom) / 2 > innerHeight / 2);
+  toast.innerHTML = `<b>Not that one.</b> ${esc(c.do)} ${esc(c.how)}`;
+  toast.hidden = false;
+  toast.classList.remove('pop'); void toast.offsetWidth; toast.classList.add('pop');
+  clearTimeout(toastT); toastT = setTimeout(() => { toast.hidden = true; }, 3200);
+  clearTimeout(nudgeT); nudgeT = setTimeout(() => els.forEach(e => e.classList.remove('want', 'nope', 'shake')), 1800);
+  return false;
+}
+function press(id) {
+  touch();
+  if (!guided(id, $(`.key[data-k="${id}"]`))) return;
+  if (!on()) return event({ type: 'dead' });
+  if (R.disp === 'flash') { clearTimeout(fHandle); R.disp = R.after; $('#lcd').classList.remove('blink'); }
+  const d = R.disp, dig = id[0] === 'k' ? id[1] : null, need = R.mode === 'SC' ? 5 : 3;
+  if (id === 'FREQ') { R.entry = ''; R.disp = 'freq'; arm(); return event({ type: 'freq' }); }
+  if (id === 'CLR') {
+    if (d === 'freq' || (d === 'entry' && R.entry)) {
+      if (R.fctn !== 'LD') { disarm(); R.disp = 'idle'; return event({ type: 'clrNoLd' }); }
+      R.entry = ''; R.disp = 'entry'; arm();
+      return event({ type: 'clr' });
+    }
+    if (d === 'entry' || (d === 'menu' && R.menu === MENU.length - 1)) { disarm(); R.disp = 'idle'; return event({ type: 'menuOut' }); }
+    R.menu = d === 'menu' ? R.menu + 1 : 0; R.disp = 'menu'; arm();
+    return event({ type: 'menu' });
+  }
+  if (id === 'STO') {
+    if (d !== 'entry' || R.fctn !== 'LD' || R.entry.length < need) return event({ type: 'stoNo' });
+    const v = R.entry;
+    R.entry = ''; disarm();
+    if (R.mode === 'SC' && !validFreq(v)) { flash('INVALID', 1400, 'entry', false, arm); return event({ type: 'invalid', v }); }
+    if (R.mode === 'SC') { R.ch[R.chan] = v; R.tried.add(R.chan); } else R.net[R.chan] = v;
+    flash(R.mode === 'SC' ? v : 'F ' + v, 1600, 'idle', true);
+    return event({ type: 'sto', chan: R.chan, v, sc: R.mode === 'SC' });
+  }
+  if (dig !== null && d === 'entry') { if (R.entry.length < need) R.entry += dig; arm(); return event({ type: 'digit' }); }
+  if (dig !== null && d === 'menu') {
+    const it = MENU[R.menu];
+    arm();
+    if (it === 'VOL') { R.vol = +dig; return event({ type: 'vol' }); }
+    if (it === 'CHAN') {
+      const c = dig === '0' ? 'MAN' : dig === '7' ? 'CUE' : (dig >= '1' && dig <= '6') ? dig : null;
+      if (!c || c === R.chan) return event({ type: 'noop' });
+      R.chan = c;
+      return event({ type: 'chan', v: c });
+    }
+    if (id === 'k7') {
+      const k = it.toLowerCase(), list = CYCLE[it];
+      R[k] = list[(list.indexOf(R[k]) + 1) % list.length];
+      return event({ type: k, v: R[k] });
+    }
+    return event({ type: 'noop' });
+  }
+  if (dig !== null && d === 'freq') return event({ type: 'needClr' });
+  return event({ type: 'other', id });
+}
+function setFctn(id) {
+  touch();
+  if (R.fctn === id || !guided('pos:' + id, $(`.pos[data-pos="${id}"]`))) return;
+  disarm(); clearTimeout(fHandle); clearTimeout(testHandle);
+  $('#lcd').classList.remove('blink');
+  R.fctn = id; R.entry = ''; R.menu = 0;
+  R.disp = { OFF: 'off', STBY: 'off', TST: 'test', REM: 'rem', 'Z-FH': 'zfh' }[id] || 'idle';
+  if (id === 'TST') testHandle = setTimeout(() => { if (R.fctn === 'TST') { R.disp = 'good'; renderAll(); } }, 1800);
+  event({ type: 'fctn', v: id });
+}
+function install(id) {
+  touch();
+  if (R.hw[id] || !guided('hw:' + id, $(`.hw[data-hw="${id}"]`))) return;
+  R.hw[id] = true;
+  event({ type: 'hw', v: id });
+}
+function lcdText() {
+  switch (R.disp) {
+    case 'off': return '';
+    case 'test': return 'TEST';
+    case 'good': return 'GOOD';
+    case 'rem': return 'REM';
+    case 'zfh': return 'Z-FH';
+    case 'flash': return R.flash;
+    case 'freq': return R.mode === 'SC' ? R.ch[R.chan] : 'F ' + R.net[R.chan];
+    case 'entry': return R.mode === 'SC' ? R.entry.padEnd(5, '-') : 'F ' + R.entry.padEnd(3, '-');
+    case 'menu': {
+      const it = MENU[R.menu];
+      if (it === 'VOL') return R.vol ? 'VOL ' + R.vol : 'WHSP';
+      if (it === 'CHAN') return 'CHAN ' + R.chan;
+      if (it === 'MODE') return 'MODE ' + modeTxt(R.mode);
+      return it + ' ' + R[it.toLowerCase()];
+    }
+    default: return '';
+  }
+}
+
+/* ---------- score-sheet order: one step at a time, in the sheet's sequence ---------- */
+const MEASURE = { 1: '1 · Obtained required SC frequencies', 2: '2 · Load SC frequencies', 3: '3 · Prepare to Communicate' };
+/* Three channels (CH 1-3). The only order rule: FCTN to load before any MENU setting. Everything else may be done in any
+   order and corrected later (go back to LD, fix, finish in SQ ON); the final settings are what count. */
+/* Steps follow the MENU order (VOL → CHAN → PWR → MODE → CMSC): one pass before loading, one pass after the grader names the setting. */
+const CHAN1 = 1, PREP = 3, LOAD = 4, SQ = 7, VOLS = 8, CALL = 9, PWRS = 10;
+const STEPS = [
+  { m: 1, label: 'Set FCTN to load', done: () => R.fctn === 'LD' },
+  { m: 1, label: 'Set CHAN 1', done: () => R.chan === '1' },
+  { m: 1, label: 'Set mode to SC', done: () => R.mode === 'SC' },
+  { m: 1, label: 'Set COMSEC to PT', done: () => R.cmsc === 'PT' },
+  { m: 2, label: 'Stored Channel 1', done: () => R.ch['1'] === SC.freqs[0] },
+  { m: 2, label: 'Stored Channel 2', done: () => R.ch['2'] === SC.freqs[1] },
+  { m: 2, label: 'Stored Channel 3', done: () => R.ch['3'] === SC.freqs[2] },
+  { m: 3, label: 'Set FCTN to SQ. ON', done: () => R.fctn === 'SQ ON' },
+  { m: 3, label: 'Set volume', done: () => R.vol === callVol() },
+  { m: 3, label: 'Set CHAN to CHAN 1-3', done: () => R.chan === String(SC.callCh) },
+  { m: 3, label: 'Set power', done: () => R.pwr === callPwr() },
+];
+/* The one order rule: these MENU settings come after FCTN to load. Power and volume wait for the called setting, so they are free. */
+function earlyStep(ev) {
+  if (ev.type === 'chan') return ['1', '2', '3'].includes(ev.v) ? `Set CHAN ${ev.v}` : null;
+  if (ev.type === 'mode') return ev.v === 'SC' ? 'Set mode to SC' : null;
+  if (ev.type === 'cmsc') return ev.v === 'PT' ? 'Set COMSEC to PT' : null;
+  return null;
+}
+/* first card channel that does not hold its frequency, or -1 */
+const chBad = () => SC.freqs.findIndex((f, i) => R.ch[i + 1] !== f);
+/* power and volume of the setting the grader calls */
+const callPwr = () => SC.pwr[SC.callCh - 1], callVol = () => SC.vol[SC.callCh - 1];
+const pwrTxt = p => p === 'M' ? 'MED' : p;
+const isReady = () => hwOK() && R.fctn === 'SQ ON' && R.mode === 'SC' && R.pwr === callPwr() && R.vol === callVol() && R.cmsc === 'PT' && R.chan === String(SC.callCh) && chBad() < 0;
+function event(ev) {
+  if (!ended) {
+    const early = P === 0 && R.fctn !== 'LD' ? earlyStep(ev) : null;
+    const dev = early && `${early} before ${STEPS[0].label}`;
+    if (dev && !DEV.length) DEV.push({ m: 1, text: dev });
+    while (P < STEPS.length && STEPS[P].done()) P++;
+    const r = react(ev, dev);
+    if (r || ['freq', 'clr', 'sto', 'fctn', 'chan', 'mode', 'pwr', 'vol', 'cmsc', 'hw'].includes(ev.type)) W = r;
+  }
+  renderAll();
+  if (!ended && P >= STEPS.length && isReady() && (MODE === 'guided' || T0)) finish('done');
+}
+function react(ev, dev) {
+  if (dev) return `Out of order: ${dev}. Follow the score-sheet order.`;
+  switch (ev.type) {
+    case 'dead': return R.hw.bat ? `FCTN is at ${R.fctn}, so the keys do nothing.` : 'No battery: the radio has no power. Put the battery in first.';
+    case 'needClr': return R.fctn === 'LD' ? 'Press CLR first. Digits go in only after the display shows -----.' : 'Frequencies load only with FCTN at LD.';
+    case 'stoNo': return 'STO works after FREQ → CLR → all 5 digits, with FCTN at LD.';
+    case 'invalid': return `${ev.v} is not a valid SC frequency (30000–87975, in steps of 25).`;
+    case 'timeout':
+      if (!ev.lost) return null;
+      NOTES.push('An entry timed out: STO was not pressed within 7 seconds.');
+      return 'Timed out: STO was not pressed within 7 seconds, so the entry was lost. Start again with FREQ.';
+    case 'freq': return R.mode === 'SC' ? null : 'F ### is the FH net ID, so MODE is not SC yet.';
+    case 'sto': {
+      if (!ev.sc) return 'MODE is not SC, so STO saved an FH net ID, not an SC frequency.';
+      const i = +ev.chan - 1;
+      if (!(i >= 0 && i < 3)) {
+        NOTES.push(`Stored ${ev.v} into channel ${ev.chan}, which is not on the card.`);
+        return `That went into channel ${ev.chan}. The card uses channels 1–3: set the right channel and load it again.`;
+      }
+      if (ev.v === SC.freqs[i]) return null;
+      NOTES.push(`Stored ${ev.v} in channel ${ev.chan} (card: ${SC.freqs[i]}).`);
+      return `Channel ${ev.chan} now holds ${ev.v}, but the card says ${SC.freqs[i]}. Load it again.`;
+    }
+    case 'mode': return ev.v === 'SC' || P <= 2 ? null : 'MODE must stay SC.';
+    case 'cmsc': return ev.v === 'PT' || P <= PREP ? null : 'COMSEC must stay PT.';
+    case 'fctn':
+      if (ev.v === 'SQ ON') return chBad() < 0 ? null : `Channel ${chBad() + 1} does not hold the card frequency yet. Turn back to LD and load it; fixing it is fine.`;
+      return ev.v === 'LD' ? null : `${ev.v} is not used on this sheet. The sheet uses LD (load) and SQ ON.`;
+    case 'other': return `${keyName(ev.id)} is not used on this sheet.`;
+  }
+  return null;
+}
+
+/* ---------- coach (Guided mode): the sheet's own words first, then how to do it on the ASIP ---------- */
+const inFreq = () => R.disp === 'freq' || R.disp === 'entry';
+const MENU_SET = { MODE: ['SC', 'Set mode to SC.'], CMSC: ['PT', 'Set COMSEC to PT.'] };
+const times = n => n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
+/* MENU presses from where the display is now to a menu item (past CMSC the menu closes, then starts at VOL) */
+function menuPath(item) {
+  const idx = MENU.indexOf(item);
+  if (R.disp !== 'menu') return `Press MENU ${times(idx + 1)} to reach ${item}${idx ? ` (${MENU.slice(0, idx + 1).join(' → ')})` : ''}`;
+  const n = idx > R.menu ? idx - R.menu : MENU.length - R.menu + idx + 1;
+  return `Press MENU ${times(n)} to reach ${item}`;
+}
+function menuGoal(item, val = MENU_SET[item][0], text = MENU_SET[item][1]) {
+  if (R.disp === 'menu' && MENU[R.menu] === item) {
+    const list = CYCLE[item], path = [R[item.toLowerCase()]];
+    while (path[path.length - 1] !== val) path.push(list[(list.indexOf(path[path.length - 1]) + 1) % list.length]);
+    return { do: text, how: `Press CHG (the 7 key) ${times(path.length - 1)}: ${path.map(modeTxt).join(' → ')}.`, target: 'k7' };
+  }
+  if (inFreq()) return { do: text, how: 'Press CLR to leave the frequency display, then MENU.', target: 'CLR' };
+  return { do: text, how: menuPath(item) + '.', target: 'CLR' };
+}
+function chanGoal(n, text) {
+  if (R.disp === 'menu' && MENU[R.menu] === 'CHAN') return { do: text, how: `Press ${n}.`, target: 'k' + n };
+  if (inFreq()) return { do: text, how: 'Press CLR to leave the frequency display, then MENU.', target: 'CLR' };
+  return { do: text, how: `${menuPath('CHAN')}, then press ${n}.`, target: 'CLR' };
+}
+function volGoal() {
+  const v = callVol(), text = `Set volume to ${v}.`;
+  if (R.disp === 'menu' && MENU[R.menu] === 'VOL') return { do: text, how: `Press ${v}.`, target: 'k' + v };
+  if (inFreq()) return { do: text, how: 'Press CLR to leave the frequency display, then MENU.', target: 'CLR' };
+  return { do: text, how: `${menuPath('VOL')}, then press ${v}.`, target: 'CLR' };
+}
+const pwrGoal = () => menuGoal('PWR', callPwr(), `Set power to ${pwrTxt(callPwr())}.`);
+const fctnGoal = (pos, text) => ({ do: text, how: `Turn the FCTN knob to ${pos}.`, target: 'pos:' + pos });
+function loadGoal(i) {
+  const n = String(i + 1), f = SC.freqs[i];
+  if (R.fctn !== 'LD') return fctnGoal('LD', 'Set FCTN to load.');
+  if (R.mode !== 'SC') return menuGoal('MODE');
+  if (R.chan !== n) return chanGoal(n, `Set CHAN ${n}.`);
+  if (R.disp === 'flash') return R.after === 'entry'
+    ? { do: 'Enter 5 digits SC frequencies.', how: `That was not a valid frequency. Enter ${f} again.`, target: null }
+    : { do: 'Store SC frequencies.', how: 'Stored. The display blinks once.', target: null };
+  if (R.disp === 'freq') return { do: 'Press CLR.', how: 'The display clears to -----.', target: 'CLR' };
+  if (R.disp === 'entry') {
+    if (!f.startsWith(R.entry)) return { do: 'Press CLR.', how: `${R.entry} is a typo. Clear it and enter ${f} again.`, target: 'CLR' };
+    if (R.entry.length < 5) return { do: 'Enter 5 digits SC frequencies.', how: `Type ${f} for ${fmt(f)}.`, target: 'k' + f[R.entry.length] };
+    return { do: 'Press STO within 7 seconds.', how: `This stores the frequency in channel ${n}. The display blinks once.`, target: 'STO' };
+  }
+  return { do: 'Press FREQ.', how: `${R.disp === 'menu' ? 'No need to leave MENU first. ' : ''}The display shows what channel ${n} holds now.`, target: 'FREQ' };
+}
+/* Every step was done once, but something changed afterwards. */
+function fixGoal() {
+  if (chBad() >= 0) return R.fctn === 'LD' ? loadGoal(chBad()) : fctnGoal('LD', 'Set FCTN to load.');
+  if (R.fctn !== 'SQ ON') return fctnGoal('SQ ON', 'Set FCTN to SQ. ON.');
+  if (R.mode !== 'SC') return menuGoal('MODE');
+  if (R.cmsc !== 'PT') return menuGoal('CMSC');
+  if (R.vol !== callVol()) return volGoal();
+  if (R.chan !== String(SC.callCh)) return chanGoal(String(SC.callCh), 'Set CHAN to CHAN 1-3.');
+  return pwrGoal();
+}
+function coachData() {
+  const call = String(SC.callCh), cf = fmt(SC.freqs[SC.callCh - 1]), cn = +R.chan, lead = `The grader gives you ${cf}: Setting ${call}. `;
+  if (ended) return { step: MEASURE[3], do: 'Communicate in SC Mode.', how: `Done in ${mmss(endAt)}: radio assembled, SC mode, COMSEC PT, power ${pwrTxt(callPwr())}, volume ${callVol()}, FCTN at SQ ON, CHAN ${call} on ${cf}. Try Exam mode next.`, target: null };
+  let step = MEASURE[STEPS[Math.min(P, STEPS.length - 1)].m], g;
+  if (P >= LOAD && P < SQ) step += ` · Channel ${P - LOAD + 1}: ${fmt(SC.freqs[P - LOAD])}`;
+  const loading = P >= 1 && R.fctn === 'LD' && R.mode === 'SC' && cn >= 1 && cn <= 3 && R.ch[R.chan] !== SC.freqs[cn - 1] && ['freq', 'entry', 'flash'].includes(R.disp);
+  if (!hwOK()) {
+    const h = HW.find(x => !R.hw[x.id]);
+    g = { do: 'Assemble the radio: battery, antenna, handset.', how: h.how, target: 'hw:' + h.id };
+  } else if (loading) g = loadGoal(cn - 1);
+  else if (P < STEPS.length && !on()) {
+    g = P >= 1 && P <= PREP ? { do: STEPS[P].label + '.', how: `FCTN is at ${R.fctn}. Turn the knob back to LD so MENU works.`, target: 'pos:LD' }
+      : P < SQ ? fctnGoal('LD', 'Set FCTN to load.') : fctnGoal('SQ ON', 'Set FCTN to SQ. ON.');
+  } else {
+    switch (P) {
+      case 0: g = fctnGoal('LD', 'Set FCTN to load.'); g.how += ' This turns the radio on.'; break;
+      case CHAN1: g = R.fctn === 'LD' ? chanGoal('1', 'Set CHAN 1.') : fctnGoal('LD', 'Set FCTN to load.'); break;
+      case 2: g = menuGoal('MODE'); break;
+      case PREP: g = menuGoal('CMSC'); break;
+      case LOAD: case LOAD + 1: case LOAD + 2: g = loadGoal(P - LOAD); break;
+      case SQ: g = fctnGoal('SQ ON', 'Set FCTN to SQ. ON.'); break;
+      case VOLS: g = volGoal(); g.how = `${lead}${g.how}`; break;
+      case CALL: g = chanGoal(call, 'Set CHAN to CHAN 1-3.'); g.how = `${lead}${g.how}`; break;
+      case PWRS: g = pwrGoal(); g.how = `${lead}${g.how}`; break;
+      default: g = fixGoal();
+    }
+  }
+  return { step, ...g };
+}
+
+/* ---------- rendering ---------- */
+function renderAll() {
+  renderRadio(); renderCoach(); renderTask(); renderScore();
+  const running = MODE === 'exam' && !!T0 && !ended;
+  $('#endBar').hidden = !running;
+  $('#btnRef').disabled = $('#btnSet').disabled = running;
+}
+function renderRadio() {
+  $('#lcd').classList.toggle('off', R.disp === 'off' || !R.hw.bat);
+  const vals = [R.pwr, modeTxt(R.mode), R.chan, R.cmsc];
+  $$('#lcdS span').forEach((el, i) => { el.textContent = vals[i]; });
+  $('#lcdT').textContent = R.hw.bat ? lcdText() : '';
+  HW.forEach(h => {
+    const b = $(`.hw[data-hw="${h.id}"]`);
+    b.classList.toggle('miss', !R.hw[h.id]);
+    b.setAttribute('aria-label', R.hw[h.id] ? `${h.name} installed` : `${h.name} not installed: tap to install`);
+  });
+  $('#audData').classList.toggle('plugged', R.hw.hs);
+  $$('.pos').forEach(b => b.classList.toggle('on', b.dataset.pos === R.fctn));
+  const a = FCTN.find(f => f.id === R.fctn).a;
+  if (knobRot === null) knobRot = a;
+  else { const cur = ((knobRot % 360) + 360) % 360; knobRot += ((a - cur + 540) % 360) - 180; }
+  $('#knob').style.transform = `rotate(${knobRot}deg)`;
+}
+function renderCoach() {
+  const box = $('#coach');
+  box.hidden = MODE !== 'guided';
+  $$('.hint').forEach(el => el.classList.remove('hint'));
+  if (box.hidden) return;
+  const c = coachData();
+  $('#cStep').textContent = c.step;
+  $('#cDo').textContent = c.do;
+  $('#cHow').textContent = c.how;
+  const w = $('#cWarn');
+  w.hidden = !W || ended;
+  w.textContent = W || '';
+  const el = ctl(c.target);
+  if (el) el.classList.add('hint');
+}
+function renderTask() {
+  const show = MODE === 'guided' || ended;
+  $('#sets').innerHTML = SC.freqs.map((f, i) => `<div class="set${show && R.ch[i + 1] === f ? ' ok' : ''}"><span class="lbl"><span class="wide">Setting ${i + 1} · </span>CH ${i + 1}</span><b>${fmt(f)}</b><span class="spec">${pwrTxt(SC.pwr[i])} · Vol ${SC.vol[i]}</span></div>`).join('')
+    + `<div class="setline">All three: Single Channel · Plain Text</div>`;
+  $('#callF').innerHTML = P >= SQ || ended || ['1', '2', '3'].every(c => R.tried.has(c))
+    ? `Grader: call the distant station on <b>${fmt(SC.freqs[SC.callCh - 1])}</b>`
+    : '<span class="muted">Call frequency: given at step 3.</span>';
+}
+const M2 = ['Press FREQ.', 'Press CLR.', 'Enter 5 digits SC frequencies.', 'Store SC frequencies.', 'Press STO within 7 seconds.'];
+function loadSub() {
+  if (P < LOAD || P >= SQ || R.fctn !== 'LD' || R.mode !== 'SC' || R.chan !== String(P - LOAD + 1)) return -1;
+  if (R.disp === 'freq') return 1;
+  if (R.disp === 'entry') return R.entry.length < 5 ? 2 : 4;
+  return 0;
+}
+function renderScore() {
+  const card = $('#scoreCard');
+  card.hidden = MODE === 'exam' && !ended;
+  if (card.hidden) return;
+  const loaded = chBad() < 0, ls = loadSub(), ok3 = isReady(), hw = hwOK(), call = String(SC.callCh), chOk = i => R.ch[i + 1] === SC.freqs[i];
+  const set = [P > 0 || R.fctn === 'LD', P > CHAN1 || R.chan === '1', R.mode === 'SC', R.cmsc === 'PT'];
+  const pv = R.pwr === callPwr() && R.vol === callVol(), m1 = hw && set.every(Boolean), sq = loaded && R.fctn === 'SQ ON', cur = !m1 ? 1 : !loaded ? 2 : 3;
+  const li = (t, done, now) => `<li class="${done ? 'ok' : now ? 'now' : ''}">${t}</li>`;
+  const m = (n, title, done, subs) => `<li class="m${done ? ' done' : cur === n ? ' cur' : ''}"><span class="num">${n}</span><div><div class="mt">${title}</div><ul class="subs">${subs}</ul></div></li>`;
+  $('#score').innerHTML =
+    m(1, 'Obtained required SC frequencies.', m1,
+      li(`Assemble the radio. <span class="chips">${HW.map(h => `<span class="chip${R.hw[h.id] ? ' ok' : ''}">${R.hw[h.id] ? '✓ ' : '+ '}${h.name}</span>`).join('')}</span>`, hw, !hw) +
+      li('Prepare radio for Single Channel Frequencies loading.', m1) +
+      STEPS.slice(0, PREP + 1).map((st, k) => li(st.label + '.' + (k === 1 ? ' <span class="muted">(these three: any order)</span>' : ''), set[k], hw && !set[k] && P === k)).join('')) +
+    m(2, 'Load SC frequencies.', loaded,
+      M2.map((t, i) => li(t, loaded, ls === i || (ls === 4 && i === 3))).join('') +
+      li(`Stored Channels 1-3. <span class="chips">${[0, 1, 2].map(i => `<span class="chip${chOk(i) ? ' ok' : ''}">CH ${i + 1}${chOk(i) ? ' ✓' : ''}</span>`).join('')}</span>`, loaded, P > LOAD && P < SQ)) +
+    m(3, 'Prepare to Communicate.', ok3,
+      li('Set FCTN to SQ. ON.', sq, loaded && !sq) + li('Set CHAN to CHAN 1-3.', sq && R.chan === call, sq && R.chan !== call) + li('Set power and volume for that setting.', sq && pv, sq && !pv) + li('Communicate in SC Mode.', ok3, sq && !ok3));
+}
+
+/* ---------- clock, finish and exam result ---------- */
+function touch() { if (!T0 && MODE === 'guided' && !ended) T0 = Date.now(); }
+const elapsed = () => T0 ? (Date.now() - T0) / 1000 : 0;
+function tick() {
+  const el = $('#clock');
+  if (MODE === 'exam') {
+    const left = Math.max(0, LIMIT - (ended ? endAt : elapsed()));
+    el.textContent = mmss(T0 ? left : LIMIT);
+    el.classList.toggle('warn', !!T0 && left < 60);
+    if (T0 && !ended && left <= 0) finish('time');
+  } else {
+    el.textContent = mmss(ended ? endAt : elapsed());
+    el.classList.remove('warn');
+  }
+}
+function finish(why) {
+  if (ended) return;
+  ended = true; endAt = elapsed();
+  disarm();
+  if (MODE === 'exam') results(why);
+  renderAll(); tick();
+}
+function results(why) {
+  const dev = m => DEV.filter(d => d.m === m).map(d => `Out of order: ${d.text}.`);
+  const call = String(SC.callCh), m1 = [], prep = [];
+  const miss = HW.filter(h => !R.hw[h.id]).map(h => h.name.toLowerCase());
+  if (miss.length) m1.push(`Not assembled: ${miss.join(', ')}.`);
+  if (P === 0) m1.push('Not completed: Set FCTN to load.');
+  if (R.mode !== 'SC') m1.push(`MODE is ${R.mode}, not SC.`);
+  if (R.cmsc !== 'PT') m1.push(`COMSEC is ${R.cmsc}, not PT.`);
+  const m2 = SC.freqs.map((f, i) => R.ch[i + 1] === f ? '' : `Channel ${i + 1} holds ${R.ch[i + 1]}; the card says ${f}.`).filter(Boolean);
+  if (R.fctn !== 'SQ ON') prep.push(`FCTN is at ${R.fctn}, not SQ ON.`);
+  if (R.chan !== call) prep.push(`CHAN is ${R.chan}; the call frequency ${fmt(SC.freqs[SC.callCh - 1])} is in CHAN ${call}.`);
+  if (R.pwr !== callPwr()) prep.push(`PWR is ${pwrTxt(R.pwr)}; Setting ${call} is ${pwrTxt(callPwr())}.`);
+  if (R.vol !== callVol()) prep.push(`Volume is ${R.vol}; Setting ${call} is ${callVol()}.`);
+  const rows = [
+    [1, 'Obtained required SC frequencies.', 'Assemble battery, antenna, handset → Set FCTN to load first (turns the radio on) → CHAN 1, mode SC, COMSEC PT (any order; final settings count)', !m1.length && !dev(1).length, [...m1, ...dev(1)]],
+    [2, 'Load SC frequencies.', 'Press FREQ → Press CLR → Enter 5 digits → Press STO within 7 seconds → Stored Channels 1-3', !m2.length && !dev(2).length, [...m2, ...dev(2)]],
+    [3, 'Prepare to Communicate.', 'Set FCTN to SQ. ON → Set CHAN to CHAN 1-3 → Set power and volume for that setting → Communicate in SC Mode', !prep.length && !dev(3).length, [...prep, ...dev(3)]],
+  ];
+  const timeOk = why === 'done' && endAt <= LIMIT, go = rows.every(r => r[3]) && timeOk;
+  if (go && (!S.best || endAt < S.best)) { S.best = endAt; save(); }
+  $('#resBody').innerHTML = `<p><span class="verdict ${go ? 'go' : 'nogo'}">${go ? 'GO' : 'NO-GO'}</span>&nbsp; Time ${mmss(endAt)} <span class="muted">(limit ${mmss(LIMIT)}${S.best ? ` · your best GO ${mmss(S.best)}` : ''})</span></p>
+    <div class="tbl"><table><tr><th>#</th><th>Performance measure</th><th>Result</th></tr>
+    ${rows.map(r => `<tr><td>${r[0]}</td><td><b>${esc(r[1])}</b><div class="muted">${esc(r[2])}</div>${r[4].length ? `<ul class="fb">${r[4].map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</td><td class="${r[3] ? 'go' : 'nogo'}">${r[3] ? 'GO' : 'NO-GO'}</td></tr>`).join('')}
+    <tr><td>⏱</td><td><b>Performed within ${mmss(LIMIT)}.</b>${why === 'time' ? '<ul class="fb"><li>Time ran out.</li></ul>' : ''}</td><td class="${timeOk ? 'go' : 'nogo'}">${timeOk ? 'GO' : 'NO-GO'}</td></tr></table></div>
+    ${NOTES.length ? `<h3>Notes (not scored)</h3><ul>${NOTES.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}`;
+  if (go) return openModal('mRes');
+  const gos = rows.filter(r => r[3]).length + (timeOk ? 1 : 0);
+  $('#chStats').textContent = (why === 'time' ? `Time ran out at ${mmss(LIMIT)}` : `Time ${mmss(endAt)} (limit ${mmss(LIMIT)})`) + ` · ${gos} of 4 GO`;
+  openModal('mCharlie');
+}
+
+/* ---------- runs, modes, settings ---------- */
+function openModal(id) { $('#' + id).hidden = false; document.body.classList.add('locked'); }
+function closeModal(id) {
+  $('#' + id).hidden = true;
+  if (!$$('.modal').some(m => !m.hidden)) document.body.classList.remove('locked');
+}
+function newRun(card) {
+  [tHandle, fHandle, testHandle].forEach(clearTimeout);
+  SC = card || makeCard();
+  R = freshRadio(); P = 0; DEV = []; NOTES = []; W = null; T0 = null; endAt = 0; ended = false;
+  bar(false); $('#lcd').classList.remove('blink');
+  $('#toast').hidden = true;
+  renderAll(); tick();
+}
+function setMode(m) {
+  MODE = m;
+  $('#mGuided').setAttribute('aria-pressed', String(m === 'guided'));
+  $('#mExam').setAttribute('aria-pressed', String(m === 'exam'));
+  newRun();
+  if (m === 'exam') openModal('mIntro');
+}
+function startExam(card) { newRun(card); T0 = Date.now(); renderAll(); tick(); }
+function openSettings() {
+  $('#fm' + { random: 'R', sheet: 'S', custom: 'C' }[S.freqMode]).checked = true;
+  ['cf1', 'cf2', 'cf3'].forEach((id, i) => { $('#' + id).value = S.custom[i] || ''; });
+  $('#setErr').hidden = true;
+  $('#bestTxt').textContent = S.best ? `Best Exam GO time on this device: ${mmss(S.best)}` : 'No Exam GO recorded on this device yet.';
+  openModal('mSet');
+}
+function saveSettings() {
+  const fm = $('input[name="fm"]:checked').value;
+  const cust = ['cf1', 'cf2', 'cf3'].map(id => $('#' + id).value.replace(/\D/g, ''));
+  if (fm === 'custom' && (!cust.every(validFreq) || new Set(cust).size < 3)) {
+    const e = $('#setErr');
+    e.hidden = false;
+    e.textContent = 'Enter three different 5-digit SC frequencies from 30000 to 87975, in steps of 25 (e.g. 81000).';
+    return;
+  }
+  S.freqMode = fm;
+  if (fm === 'custom') S.custom = cust;
+  save(); closeModal('mSet');
+  newRun();
+  if (MODE === 'exam') openModal('mIntro');
+}
+
+/* ---------- build and bind ---------- */
+function buildRadio() {
+  const dial = $('#dial');
+  FCTN.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'pos' + (f.box ? ' box' : '');
+    b.dataset.pos = f.id;
+    b.style.setProperty('--a', f.a + 'deg');
+    b.setAttribute('aria-label', 'FCTN ' + f.id);
+    b.innerHTML = `<span>${f.id.replace(' ', '<br>')}</span>`;
+    b.addEventListener('click', () => setFctn(f.id));
+    dial.appendChild(b);
+  });
+  /* the knob turns like the real one: drag it, or tap its right/left half for one click CW/CCW */
+  const knob = $('#knob'), order = FCTN.slice().sort((x, y) => x.a - y.a);
+  const step = dir => setFctn(order[(order.findIndex(f => f.id === R.fctn) + dir + order.length) % order.length].id);
+  const angleAt = e => { const r = knob.getBoundingClientRect(); return (Math.atan2(e.clientX - r.left - r.width / 2, r.top + r.height / 2 - e.clientY) * 180 / Math.PI + 360) % 360; };
+  const nearest = a => order.reduce((b, f) => { const d = Math.abs(((a - f.a + 540) % 360) - 180); return d < b.d ? { id: f.id, d } : b; }, { id: R.fctn, d: 999 }).id;
+  let drag = null;
+  knob.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, moved: false }; try { knob.setPointerCapture(e.pointerId); } catch (err) { /* older browser */ } });
+  knob.addEventListener('pointermove', e => {
+    if (!drag || (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6)) return;
+    drag.moved = true;
+    const id = nearest(angleAt(e));
+    if (id !== R.fctn) setFctn(id);
+  });
+  knob.addEventListener('pointerup', e => {
+    if (drag && !drag.moved) { const r = knob.getBoundingClientRect(); step(e.clientX >= r.left + r.width / 2 ? 1 : -1); }
+    drag = null;
+  });
+  knob.addEventListener('pointercancel', () => { drag = null; });
+  knob.addEventListener('click', e => { if (e.detail === 0) step(1); });
+  knob.addEventListener('keydown', e => {
+    const dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (dir) { e.preventDefault(); e.stopPropagation(); step(dir); }
+  });
+  $('#keys').innerHTML = KEYS.map(([id, f, d]) => `<button class="key${id[0] === 'k' ? '' : ' w'}" data-k="${id}" aria-label="${esc([f, d].filter(Boolean).join(' '))}"><span class="f">${esc(f)}</span><span class="d">${esc(d)}</span></button>`).join('');
+  $('#keys').addEventListener('click', e => { const b = e.target.closest('.key'); if (b) press(b.dataset.k); });
+  $$('.hw').forEach(b => b.addEventListener('click', () => install(b.dataset.hw)));
+}
+function onKey(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'Escape') { $$('.modal').forEach(m => { if (!m.hidden && !['mIntro', 'mCharlie'].includes(m.id)) closeModal(m.id); }); return; }
+  if ($$('.modal').some(m => !m.hidden) || e.target.closest('input')) return;
+  const k = e.key.toLowerCase();
+  const id = /^[0-9]$/.test(k) ? 'k' + k : k === 'f' ? 'FREQ' : (k === 'c' || k === 'm') ? 'CLR' : k === 's' ? 'STO' : null;
+  if (!id) return;
+  e.preventDefault();
+  const b = $(`.key[data-k="${id}"]`);
+  b.classList.add('down');
+  setTimeout(() => b.classList.remove('down'), 120);
+  press(id);
+}
+function bind() {
+  $('#mGuided').addEventListener('click', () => { if (MODE !== 'guided') setMode('guided'); });
+  $('#mExam').addEventListener('click', () => { if (MODE !== 'exam') setMode('exam'); else if (ended) { newRun(); openModal('mIntro'); } });
+  $('#exStart').addEventListener('click', () => { closeModal('mIntro'); startExam(SC); });
+  $('#exBack').addEventListener('click', () => { closeModal('mIntro'); setMode('guided'); });
+  $('#endExam').addEventListener('click', () => finish('done'));
+  $('#newCard').addEventListener('click', () => { newRun(); if (MODE === 'exam') openModal('mIntro'); });
+  $('#resSame').addEventListener('click', () => { closeModal('mRes'); startExam(SC); });
+  $('#resNew').addEventListener('click', () => { closeModal('mRes'); startExam(); });
+  $('#resGuided').addEventListener('click', () => { closeModal('mRes'); setMode('guided'); });
+  $('#btnRef').addEventListener('click', () => openModal('mRef'));
+  $('#btnSet').addEventListener('click', openSettings);
+  $('#setSave').addEventListener('click', saveSettings);
+  ['cf1', 'cf2', 'cf3'].forEach(id => $('#' + id).addEventListener('focus', () => { $('#fmC').checked = true; }));
+  $$('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+  $$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m && !['mIntro', 'mCharlie'].includes(m.id)) closeModal(m.id); }));
+  $('#chWhy').addEventListener('click', () => { closeModal('mCharlie'); openModal('mRes'); });
+  $('#chRetry').addEventListener('click', () => { closeModal('mCharlie'); startExam(SC); });
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('touchstart', () => {}, { passive: true });
+}
+
+buildRadio();
+bind();
+newRun();
+setInterval(tick, 250);
+})();
+</script>
+
+</body>
+</html>
