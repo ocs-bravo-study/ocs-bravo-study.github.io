@@ -473,7 +473,7 @@ legend { padding: 0 4px; font-weight: 650; }
     <ol>
       <li><b>Start position:</b> the evaluator gives a 6-digit grid. Find the square (read right, then up), then the tenths inside it, and mark ◎ on the map. Grid line numbers are the yellow circles; a big green number is a training area, not a grid number.</li>
       <li><b>Direction:</b> the 3D view has a mil scale across its top (0–6400, magnetic). Read the number straight above the target (TGT n in the yellow circle) and add the G-M angle 70 mils = grid direction, to the nearest 10 mils → line 2 Direction (6370 + 70 = 6440 → 0040). 1° = 17.78 mils, because 360° = 6400 mils.</li>
-      <li><b>Mark ✕:</b> match what you see in the 3D view (crossroads, railroad, small hills, cut, big hill) to the map, set <b>Tap marks</b> to ✕ Target and tap where the target is.</li>
+      <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. Find its landmark on the map, set <b>Tap marks</b> to ✕ Target and tap next to it.</li>
       <li><b>Distance:</b> the protractor's range scale ◎→✕ lies from ◎ through ✕, a tick every 100 m: read where ✕ sits, nearest 100 m → DISTANCE.</li>
       <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
       <li>Read <b>Grid</b> (protractor on ✕) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
@@ -811,11 +811,6 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     return true;
   }
-  function nearestLm(w, x, y) {
-    let b = null, bd = 1e9;
-    for (const l of w.lms) { const d = Math.hypot(x - l.x, y - l.y); if (d < bd) { bd = d; b = l; } }
-    return { lm: b, d: bd, dir: DIR8[Math.round(azOf(x - b.x, y - b.y) / 800) % 8] };
-  }
   function visibleSet(w, c) {
     const op = w.op, eye = w.eyeZ, a = c.az * MIL, u = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
     const chk = (rng, lat, hh) => {
@@ -828,18 +823,6 @@ legend { padding: 0 4px; font-weight: 650; }
     for (const lat of [-170, 170]) if (!chk(0, lat, 5)) return false;
     for (const p of [[-250, -120], [250, 120], [-120, 100], [120, -100]]) if (!chk(p[0], p[1], 5)) return false;
     return true;
-  }
-  // where a line from the start crosses the railroad, the roads and the stream: distances along the line, nearest first
-  function lineMarks(w, az) {
-    const op = w.op, out = [];
-    if (!w.featP) w.featP = w.feat.map(([name, pts]) => [name, pts.map(([x, y]) => [azOf(x - op.x, y - op.y), Math.hypot(x - op.x, y - op.y)])]);
-    for (const [name, P] of w.featP) for (let i = 1; i < P.length; i++) {
-      const a0 = dm(P[i - 1][0], az), a1 = dm(P[i][0], az);
-      if ((a0 > 0) === (a1 > 0) || Math.abs(a0 - a1) > 200) continue;
-      const d = P[i - 1][1] + (P[i][1] - P[i - 1][1]) * a0 / (a0 - a1);
-      if (!out.some(m => m.name === name && Math.abs(m.d - d) < 80)) out.push({ name, d });
-    }
-    return out.sort((a, b) => a.d - b.d);
   }
   // the five things the observer matches are all in front and in sight: the big hill (highest point), the small hills (the trees on top),
   // the crossroads, and the cut as a notch on the skyline (the ridge beside it is the skyline, what shows through it is lower)
@@ -862,31 +845,32 @@ legend { padding: 0 4px; font-weight: 650; }
     // a number 10.5, a KNP 21, the target's circle 17 (its circle sits low, so a number just under it needs the room)
     const scr = (x, y, r) => ({ x, y, r, az: azOf(x - op.x, y - op.y), el: (groundAt(w, x, y) - w.eyeZ) / Math.hypot(x - op.x, y - op.y) / MIL });
     const apart = (p, q) => Math.hypot(q.x - p.x, q.y - p.y) >= 150 && (Math.abs(dm(p.az, q.az)) >= p.r + q.r || Math.abs(p.el - q.el) >= 0.85 * (p.r + q.r));
-    for (let y = 1300; y <= 3000; y += 40) for (let x = 200; x <= 5800; x += 40) {
-      const dx = x - op.x, dy = y - op.y, d = Math.hypot(dx, dy);
-      if (d < 850 || d > 1450) continue;
-      const az = azOf(dx, dy);
-      if (Math.abs(dm(az, w.fw)) > 600) continue;
-      if (!openAround(w, x, y, 70)) continue;
-      const gx = (groundAt(w, x + 15, y) - groundAt(w, x - 15, y)) / 30, gy = (groundAt(w, x, y + 15) - groundAt(w, x, y - 15)) / 30;
-      if (Math.hypot(gx, gy) > 0.13) continue;
-      const nl = nearestLm(w, x, y);
-      if (nl.d > 600 || nl.d < 90) continue;
-      // open ground you can find on your direction line: the line crosses the railroad (in sight), and the nearest crossing is within 450 m
-      const mk = lineMarks(w, az), rc = mk.find(m => m.name === 'the railroad' && m.d > 250 && m.d < d + 500);
-      if (!rc || !mk.some(m => Math.abs(m.d - d) <= 450)) continue;
-      const rx = op.x + Math.sin(az * MIL) * rc.d, ry = op.y + Math.cos(az * MIL) * rc.d;
-      if (!los(w, op.x, op.y, w.eyeZ, rx, ry, groundAt(w, rx, ry) + 1)) continue;
-      cand.push({ x, y, d, az, s: r() });
+    const far = l => Math.hypot(l.x - op.x, l.y - op.y), front = p => Math.abs(dm(azOf(p.x - op.x, p.y - op.y), w.fw)) <= 600;
+    const steep = (x, y) => Math.hypot(groundAt(w, x + 15, y) - groundAt(w, x - 15, y), groundAt(w, x, y + 15) - groundAt(w, x, y - 15)) / 30 > 0.13;
+    // the landmarks a numbered point stands next to (11-22: a few points, each next to one you can tell in the 3D view and on the map),
+    // in front of you: not the crossroads (KNP2) nor the church beside it, not the bridge or the embankment over the stream (the stream
+    // does not show in the view), not the small hills (their trees cover 60 m round the top); a farm only with 2 of its buildings standing
+    const lms = w.lms.filter(l => l !== w.lms[0] && !/church|bridge|stream|small hill/.test(l.name) && front(l) && (!/farm/.test(l.name) || w.bl.filter(b => Math.hypot(b.x - l.x, b.y - l.y) < 60).length >= 2));
+    // spots next to a landmark on a 10 m lattice, within rad m of it, nearest first
+    const near = (l, rad) => { const out = []; for (let dy = -rad; dy <= rad; dy += 10) for (let dx = -rad; dx <= rad; dx += 10) if (dx * dx + dy * dy <= rad * rad) out.push({ x: l.x + dx, y: l.y + dy, k: dx * dx + dy * dy }); return out.sort((a, b) => a.k - b.k); };
+    // the target: next to the landmark closest to 1,200 m (800–2,000 m out), the tank within 60 m of it (checked below: it stands up to
+    // 9 m off the spot), on open ground the tank fits (25 m round), not steep. Not by a farm (its few small buildings hardly show that far out,
+    // in the view or on the map). A railroad crossing with the dirt road crossing the railroad 40–460 m from it (a look-alike on the map
+    // 100–400 m from the target: a tap there would miss it) comes last
+    const lx = w.lms.filter(l => /railroad crossing/.test(l.name));
+    const twin = l => /railroad crossing/.test(l.name) && w.DR.some(([x, y]) => { const d = Math.hypot(x - l.x, y - l.y); return d > 40 && d < 460 && w.rq[cellOf(x, y)] < 40; });
+    for (const l of lms.filter(l => far(l) > 740 && far(l) < 2060 && !/farm/.test(l.name)).sort((p, q) => twin(p) - twin(q) || Math.abs(far(p) - 1200) - Math.abs(far(q) - 1200))) for (const s of near(l, 60)) {
+      const { x, y } = s, d = far(s);
+      if (d < 810 || d > 1990 || !front(s) || !openAround(w, x, y, 25) || steep(x, y)) continue;
+      cand.push({ x, y, d, az: azOf(x - op.x, y - op.y), lm: l });
     }
-    cand.sort((a, b) => a.s - b.s);
     const jS = scr(w.J.x, w.J.y, 21);
-    for (const c of cand.slice(0, 500)) {
+    for (const c of cand) {
       if (!visibleSet(w, c)) continue;
       // KNP2 (the crossroads) clear of the target's circle: beside it, above it (its label ends low) or below it
       const cS = scr(c.x, c.y, 17), dEl = jS.el - cS.el;
       if (Math.abs(dm(cS.az, jS.az)) < 36 && dEl < 19 && dEl > -25) continue;
-      // always 1 tank (the real exam). The r() calls of the old random type, count and group stay, so each seed keeps its world.
+      // always 1 tank (the real exam). The r() calls of the old random type, count and group stay, so the values after them come in the same order.
       r(); const n = 2 + Math.floor(r() * 3);
       const a = c.az * MIL, u = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
       const veh = [], sp = 32 + r() * 8;
@@ -897,7 +881,12 @@ legend { padding: 0 4px; font-weight: 650; }
         veh.push({ x, y, z: groundAt(w, x, y), head, dead: false });
       }
       const cx = veh.reduce((s, v) => s + v.x, 0) / n, cy = veh.reduce((s, v) => s + v.y, 0) / n;
-      w.tgt = { x: cx, y: cy, ty: 'T72', n: 1, veh: [{ x: cx, y: cy, z: groundAt(w, cx, cy), head: veh[0].head, dead: false }] };
+      // the tank, a few m off the spot, must not stand on steep ground either, and within 60 m of the landmark (else the next spot);
+      // by where the dirt road leaves the main road with a railroad crossing within 60 m of the tank, it stands by that crossing (the view
+      // shows the crossing there, not the dirt road)
+      const lm = (/dirt road leaves/.test(c.lm.name) && lx.find(q => Math.hypot(q.x - cx, q.y - cy) <= 60)) || c.lm;
+      if (steep(cx, cy) || Math.hypot(cx - lm.x, cy - lm.y) > 60) continue;
+      w.tgt = { x: cx, y: cy, ty: 'T72', n: 1, lm, veh: [{ x: cx, y: cy, z: groundAt(w, cx, cy), head: veh[0].head, dead: false }] };
       const r2 = w.r2;
       w.fo = FOS[Math.floor(r() * 5)];
       w.fdcCs = FDCS[Math.floor(r() * 5)];
@@ -917,27 +906,25 @@ legend { padding: 0 4px; font-weight: 650; }
       for (const [i, j] of [[2, 3], [1, 2], [0, 1], [1, 3], [0, 3], [0, 2]]) { const q = d4.split(''); [q[i], q[j]] = [q[j], q[i]]; const v = w.tn.slice(0, 2) + q.join(''); if (v !== w.tn && !tnX.includes(v) && tnX.length < 2) tnX.push(v); }
       while (tnX.length < 2) tnX.push(w.tn.slice(0, 2) + (1000 + (+d4 + 1234 * (tnX.length + 1)) % 9000));
       w.opts = { cs: mix([w.fo, w.fdcCs, csX]), unit: mix([w.bty, ...mix(UNITS.filter(v => v !== w.bty)).slice(0, 2)]), tn: mix([w.tn, ...tnX]) };
-      // the screen's red points: KNP2 on the crossroads, KNP1 on the farthest landmark near the target's line, then up to 28 numbered
-      // points (the target holds w.tgtNo), all in sight (a KNP 6 m up, like the crossroads check), off woods and buildings, at least 150 m apart
-      // (assumption: 0.9–2.8 km, ±200 mils)
-      const seen = (x, y, h = 2) => los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + h), far = l => Math.hypot(l.x - op.x, l.y - op.y);
+      // the screen's red points: KNP2 on the crossroads, KNP1 on the farthest landmark near the target's line, then the numbered points:
+      // the target (w.tgtNo) and 2–5 more, each within 60 m of another landmark (nearest the target's line first, so most are in the start
+      // view), on open ground, in sight (a KNP 6 m up, like the crossroads check), at least 150 m from the others with the labels apart;
+      // not by a landmark within 120 m of the target (a tap on it would pass for the target); by a farm only with one of its buildings
+      // within 50 m of the point and 2,150 m of you (the view draws buildings out to 2.2 km), its roof in sight; and when the target gets
+      // fewer than 2 of them, the next spot for the target
+      const seen = (x, y, h = 2) => los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + h);
+      const farm = p => w.bl.some(b => { const x = b.x - 5 + b.wc * 5, y = b.y - 5 + b.dc * 5; return Math.hypot(x - p.x, y - p.y) < 50 && far({ x, y }) < 2150 && seen(x, y, b.h); });
       const tS = scr(w.tgt.x, w.tgt.y, 17);
       const k1 = w.lms.filter(l => Math.hypot(l.x - w.J.x, l.y - w.J.y) > 600 && Math.abs(dm(azOf(l.x - op.x, l.y - op.y), c.az)) < 400 && seen(l.x, l.y, 6) && apart(scr(l.x, l.y, 21), tS) && apart(scr(l.x, l.y, 21), jS)).sort((p, q) => far(q) - far(p))[0] || w.hill;
       w.knp = [{ x: k1.x, y: k1.y, n: 'KNP1' }, { x: w.J.x, y: w.J.y, n: 'KNP2' }].filter(p => seen(p.x, p.y, 6));
-      const pc = [];
-      for (let y = 50; y < S; y += 50) for (let x = 50; x < S; x += 50) {
-        const px = x + (r2() - 0.5) * 30, py = y + (r2() - 0.5) * 30, d = Math.hypot(px - op.x, py - op.y), t = w.LC[cellOf(px, py)];
-        if (d >= 900 && d <= 2800 && t !== 1 && t !== 4 && Math.abs(dm(azOf(px - op.x, py - op.y), c.az)) <= 200) pc.push({ x: px, y: py, s: r2() });
-      }
       const used = [tS, ...w.knp.map(p => scr(p.x, p.y, 21))], nums = mix(Array.from({ length: 29 }, (_, i) => i + 1).filter(v => v !== w.tgtNo));
       w.pts = [];
-      for (const c2 of pc.sort((a, b) => a.s - b.s)) {
-        if (w.pts.length >= nums.length) break;
-        const p = scr(c2.x, c2.y, 10.5);
-        if (!used.every(q => apart(p, q)) || !seen(p.x, p.y)) continue;
-        used.push(p); w.pts.push({ x: p.x, y: p.y, n: String(nums[w.pts.length]) });
+      for (const l of lms.filter(l => l !== lm && Math.hypot(l.x - w.tgt.x, l.y - w.tgt.y) >= 120).sort((p, q) => Math.abs(dm(azOf(p.x - op.x, p.y - op.y), c.az)) - Math.abs(dm(azOf(q.x - op.x, q.y - op.y), c.az)))) {
+        if (w.pts.length >= 5) break;
+        const p = near(l, 60).map(s => scr(s.x, s.y, 10.5)).find(p => front(p) && openAround(w, p.x, p.y, 10) && used.every(q => apart(p, q)) && seen(p.x, p.y) && (!/farm/.test(l.name) || farm(p)));
+        if (p) { used.push(p); w.pts.push({ x: p.x, y: p.y, n: String(nums[w.pts.length]), lm: l }); }
       }
-      return true;
+      if (w.pts.length >= 2) return true;
     }
     return false;
   }
@@ -1468,22 +1455,23 @@ legend { padding: 0 4px; font-weight: 650; }
     const gs = guidedOn() ? gStep() : '';
     // Guided step 1: a dashed ring where the evaluator's start grid is
     if (gs === 'op') { g.strokeStyle = '#e09a00'; g.lineWidth = 2.5 * u; g.setLineDash([7 * u, 5 * u]); g.beginPath(); g.arc(X(w.op.x), Y(w.op.y), Math.max(12 * u, 60 * sc), 0, 7); g.stroke(); g.setLineDash([]); }
-    // Guided, mark ✕: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area, as you would draw them
+    // Guided, mark ✕: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area (the target's landmark), as you would draw them
     if (gs === 'plot') {
-      const o = st.opMark || w.op, a0 = (st.az - FOV0 / 2) * MIL, a1 = (st.az + FOV0 / 2) * MIL, bx = Math.round(w.tgt.x / 1000) * 1000 - 1000, by = Math.round(w.tgt.y / 1000) * 1000 + 1000;
+      const o = st.opMark || w.op, a0 = (st.az - FOV0 / 2) * MIL, a1 = (st.az + FOV0 / 2) * MIL, L = w.tgt.lm, bx = Math.round(L.x / 1000) * 1000 - 1000, by = Math.round(L.y / 1000) * 1000 + 1000;
       g.save(); g.fillStyle = 'rgba(20,50,100,.07)'; g.strokeStyle = 'rgba(20,50,100,.45)'; g.lineWidth = 1.2 * u; g.setLineDash([6 * u, 4 * u]);
       g.beginPath(); g.moveTo(X(o.x), Y(o.y));
       for (let k = 0; k <= 16; k++) { const a = a0 + (a1 - a0) * k / 16; g.lineTo(X(o.x + Math.sin(a) * 5000), Y(o.y + Math.cos(a) * 5000)); }
       g.closePath(); g.fill(); g.stroke(); g.setLineDash([]);
       g.strokeStyle = '#111'; g.lineWidth = 1.4 * u; g.strokeRect(X(bx), Y(by), 2000 * sc, 2000 * sc);
       g.font = `italic 600 ${Math.round(12 * u)}px system-ui, sans-serif`; g.fillStyle = '#111';
-      // the label goes in the inside corner of the box farthest from the line ◎ → the box's centre (the ground you look for), on screen
+      // the label goes in the inside corner of the box farthest from the line ◎ → the box's centre (the ground you look for), on screen,
+      // clear of the big green training-area numbers when a corner is (a number ~330 × 240 m on the sheet)
       const la = azOf(bx + 1000 - o.x, by - 1000 - o.y), dx = Math.sin(la * MIL), dy = Math.cos(la * MIL), tw = g.measureText('likely area').width, k = 4 * u;
       let best = null;
       for (const [cx, cy, al, bl] of [[X(bx) + k, Y(by) + k, 'left', 'top'], [X(bx + 2000) - k, Y(by) + k, 'right', 'top'], [X(bx) + k, Y(by - 2000) - k, 'left', 'bottom'], [X(bx + 2000) - k, Y(by - 2000) - k, 'right', 'bottom']]) {
         const mx = al === 'left' ? cx + tw / 2 : cx - tw / 2, my = bl === 'top' ? cy + 7 * u : cy - 7 * u, d = Math.abs(dx * (my - Y(o.y)) + dy * (mx - X(o.x)));
-        const on = mx - tw / 2 > 26 * u && mx + tw / 2 < Wd && my > 27 * u && my < Hd - 27 * u;
-        if (!best || (on && !best.on) || (on === best.on && d > best.d)) best = { cx, cy, al, bl, d, on };
+        const on = mx - tw / 2 > 26 * u && mx + tw / 2 < Wd && my > 27 * u && my < Hd - 27 * u, clr = !w.ta.nums.some(a => Math.abs(X(a.x) - mx) < tw / 2 + 85 * a.n.length * sc && Math.abs(Y(a.y) - my) < 7 * u + 120 * sc), k2 = on * 2 + clr;
+        if (!best || k2 > best.k2 || (k2 === best.k2 && d > best.d)) best = { cx, cy, al, bl, d, on, k2 };
       }
       g.textAlign = best.al; g.textBaseline = best.bl; if (best.on) g.fillText('likely area', best.cx, best.cy); g.restore();
     }
@@ -1858,10 +1846,11 @@ legend { padding: 0 4px; font-weight: 650; }
 
   // ---------- FDC: it reads back every line that ends OVER; everything it sends that ends OVER needs your answer
   function newFdc() {
-    // the first round lands off target (unknown firing errors, as in the class simulator); corrections take it out
+    // the first round lands off target (unknown firing errors, as in the class simulator); corrections take it out. Line 2 picks where it
+    // lands (F.bs): the drawn side, or when that hides the burst's base (5 m up, as visibleSet() checks) the other side in range, then in deviation
     const rr = mulberry32(st.seed * 7 + 3), th = truth().az * MIL, rg = (rr() < 0.5 ? -1 : 1) * (160 + rr() * 220), lat = (rr() < 0.5 ? -1 : 1) * (20 + rr() * 70);
-    const bias = cfg.firstOff ? { x: Math.sin(th) * rg + Math.cos(th) * lat, y: Math.cos(th) * rg - Math.sin(th) * lat } : { x: 0, y: 0 };
-    F = { phase: 'cff', aim: null, dir: null, inFlight: false, busy: false, waitRx: false, pend: null, lastBurst: null, spots: [], lastMag: 0, bracketed: false, adj: 0, killed: 0, bias };
+    const off = ([g, l]) => ({ x: Math.sin(th) * g + Math.cos(th) * l, y: Math.cos(th) * g - Math.sin(th) * l }), bs = cfg.firstOff ? [[rg, lat], [-rg, lat], [rg, -lat], [-rg, -lat]].map(off) : [{ x: 0, y: 0 }];
+    F = { phase: 'cff', aim: null, dir: null, inFlight: false, busy: false, waitRx: false, pend: null, lastBurst: null, spots: [], lastMag: 0, bracketed: false, adj: 0, killed: 0, bias: bs[0], bs };
     R = { t0: performance.now(), l1: null, l2: null, l3: false, l1Ack: false, l2Ack: false, l3Ack: false, mtoRx: false, mto: null, rows: [], eom: null, sayAgain: [], replies: [], ffeAim: null, lastN: 8, nMsg: 0 };
   }
   const fdcSay = t => logLine('fdc', t);
@@ -1940,7 +1929,7 @@ legend { padding: 0 4px; font-weight: 650; }
     logLine('fo', m.text);
     let then = null;
     if (id === 'L1') { R.l1 = { a: w.fdcCs, b: w.fo, m: 'AF', text: m.text }; R.lastN = 8; then = () => { R.l1Ack = true; }; }
-    else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: num(s.gAlt), dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.dir = R.l2.dir; R.lastN = 9; then = () => { R.l2Ack = true; }; }
+    else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: num(s.gAlt), dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.bias = F.bs.find(b => { const x = F.aim.x + b.x, y = F.aim.y + b.y; return los(w, w.op.x, w.op.y, w.eyeZ, x, y, groundAt(w, x, y) + 5); }) || F.bs[0]; F.dir = R.l2.dir; R.lastN = 9; then = () => { R.l2Ack = true; }; }
     else if (id === 'L3') {
       R.l3 = true; R.lastN = 10;
       then = () => { R.l3Ack = true; F.waitRx = true; later(2000 * K(), () => { F.waitRx = false; R.mtoRx = true; fdcOver(`MESSAGE TO OBSERVER, ${w.bty}, ${roundsTxt(w.rounds)}, TARGET NUMBER ${w.tn}, OVER`, 'mto', 'mto', 11); }); };
@@ -2117,20 +2106,14 @@ legend { padding: 0 4px; font-weight: 650; }
       case 'op': return { title: 'Mark your start position', tip: `Tap here: <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
       case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''}`, bullets: [`3D view: the scale across the top is in mils, 0–6400. Read the number straight above the yellow circle (TGT ${w.tgtNo}).`, 'Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. Here: add 70. Nobody reminds you in the exam (it is not in the Given box): remember it.'] };
       case 'plot': {
-        // where the target is, in words: what your line of sight crosses just before it (or just beyond), in sight from ◎ (at the
-        // crossing or 60 m beside it) and within 800 m of the target, and the nearest landmark
-        const op = w.op, a0 = t.az * MIL, n = `TGT ${w.tgtNo}`, r50 = v => Math.max(50, Math.round(v / 50) * 50);
-        const seen = m => [0, -60, 60].some(o => { const x = op.x + Math.sin(a0) * m.d + Math.cos(a0) * o, y = op.y + Math.cos(a0) * m.d - Math.sin(a0) * o; return los(w, op.x, op.y, w.eyeZ, x, y, groundAt(w, x, y) + 1); });
-        const all = lineMarks(w, t.az).filter(seen), pick = l => [l.filter(m => m.d < t.d && m.d > t.d - 800).pop(), l.find(m => m.d > t.d && m.d < t.d + 800)];
-        // the stream hardly shows in the view: use it only when no road or railroad is near the target
-        let [b, a] = pick(all.filter(m => m.name !== 'the stream')); if (!b && !a) [b, a] = pick(all);
-        const nl = nearestLm(w, T.x, T.y), along = b ? `about ${r50(t.d - b.d)} m beyond ${b.name}, ` : a ? `about ${r50(a.d - t.d)} m short of ${a.name}, ` : '';
-        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: ${along}about ${r50(nl.d)} m ${nl.dir} of ${nl.lm.name}`, bullets: [`3D view: see what lies just in front of ${n} and just beyond it, and which landmark is near it.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same features there and tap ✕.', 'The view squeezes far ground: halfway on the ground shows above the middle of the gap on the screen.'] };
+        // where the target is, in words: the landmark it stands next to, how far and which way from it
+        const n = `TGT ${w.tgtNo}`, L = T.lm;
+        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
       }
       case 'dist': {
         // your own ◎ → ✕ on the range scale, to the nearest 10 m (or 1 m where that would round to another 100 or sit on the half)
         const c = sheetCheck(), d = c.myD != null ? c.myD : t.d, want = c.myDist != null ? c.myDist : t.dist, m1 = Math.round(d), shown = r10(d) % 100 !== 50 && Math.round(r10(d) / 100) * 100 === want ? r10(d) : m1 % 100 === 50 ? m1 + (want > d ? 1 : -1) : m1;
-        return { title: 'Measure the distance', tip: `DISTANCE → <b>${want}</b>: ✕ sits at about ${shown} m on the range scale → nearest 100`, bullets: ['Protractor ◎→✕: its edge runs from ◎ through ✕, a tick every 100 m, a number every 500 m (every 100 m zoomed in).', 'Count the ticks from the last number to ✕; past the half (50 m) rounds up.'] };
+        return { title: 'Measure the distance', tip: `DISTANCE → <b>${want}</b>: ✕ sits at about ${shown} m on the range scale → nearest 100`, bullets: ['Protractor ◎→✕: its edge runs from ◎ through ✕, a tick every 100 m, a number every 500 m (every 1000 m when the map is zoomed far out, every 100 m zoomed in).', 'Count the ticks from the last number to ✕; past the half (50 m) rounds up.'] };
       }
       case 'ot': { const d = num(st.sheet.wDist) || t.dist, ot = Math.max(1, Math.round(d / 1000)); return { title: 'OT factor', tip: `OT FACTOR → <b>${ot}</b> = ${d} ÷ 1000 = ${(d / 1000).toFixed(1)} → nearest whole number`, bullets: [] }; }
       case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 6)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up. 6 digits = 100 m; 8 digits also work.'] }; }
@@ -2415,7 +2398,7 @@ legend { padding: 0 4px; font-weight: 650; }
 
   // ---------- cards, modes, clock
   function newCard(seed) {
-    clearTimers(); closeAll();
+    clearTimers(); closeAll(); clearTimeout(note.t); $('toast').hidden = true;
     st.seed = seed != null ? seed : Math.floor(Math.random() * 90000) + 10000;
     $('busy').hidden = false;
     setTimeout(() => {
@@ -2427,9 +2410,11 @@ legend { padding: 0 4px; font-weight: 650; }
       newFdc();
       const tr = truth();
       st.bino = false; st.lastAim = null; $('binoBtn').setAttribute('aria-pressed', 'false');
-      // start 80–170 mils off the target (inside the 400-mil view); the target at 2/3 height, lower if needed to keep a band of sky
-      // under the azimuth scale (so the red points near the horizon start clear of it)
-      const off = (w.r() < 0.5 ? -1 : 1) * (80 + w.r() * 90), el = (groundAt(w, w.tgt.x, w.tgt.y) + 1 - w.eyeZ) / tr.d, fH = V.W ? V.H / camF() : 0.24, bR = V.W ? BAND * (V.sc || 1) / camF() : 0;
+      // start 80–170 mils off the target (inside the 400-mil view), turned to the side that shows more of the numbered points (when neither
+      // shows one, 170 mils off if that shows one); the target at 2/3 height, lower if needed to keep a band of sky under the azimuth scale
+      // (so the red points near the horizon start clear of it)
+      const s0 = w.r() < 0.5 ? -1 : 1, m0 = 80 + w.r() * 90, nIn = o => w.pts.filter(p => Math.abs(dm(azOf(p.x - w.op.x, p.y - w.op.y), tr.az + o)) < FOV0 / 2 - 10).length;
+      const o1 = (nIn(-s0 * m0) > nIn(s0 * m0) ? -s0 : s0) * m0, o2 = nIn(-170) > nIn(170) ? -170 : 170, off = nIn(o1) || !nIn(o2) ? o1 : o2, el = (groundAt(w, w.tgt.x, w.tgt.y) + 1 - w.eyeZ) / tr.d, fH = V.W ? V.H / camF() : 0.24, bR = V.W ? BAND * (V.sc || 1) / camF() : 0;
       V.aimK = clamp(0.22 + (0.78 * bR - el) / fH, 0.66, 0.9);
       setView(tr.az + off, el);
       renderMission();
@@ -2449,7 +2434,7 @@ legend { padding: 0 4px; font-weight: 650; }
   function renderIntro() {
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
-      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target (match the terrain; "Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
+      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark; find the target\'s landmark on the map by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
       'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, changes, rounds and TGT #, then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
       'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10, none under 30 m; range Add/Drop 400 → 200 → 100 → 50FFE, and a burst within 25 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target (assumption).',
@@ -2522,9 +2507,9 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   function exp() {
     const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
-    return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n })), knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) }, marks: lineMarks(w, t.gdir) };
+    return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n, lm: { x: q.lm.x, y: q.lm.y, name: q.lm.name } })), lm: { x: T.lm.x, y: T.lm.y, name: T.lm.name }, knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) } };
   }
-  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, lineMarks, visibleSet, openAround, nearestLm, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
+  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
   newCard(QS.get('seed') ? +QS.get('seed') : undefined);
 })();
 </script>
