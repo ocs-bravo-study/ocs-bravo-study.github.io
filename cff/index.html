@@ -473,7 +473,7 @@ legend { padding: 0 4px; font-weight: 650; }
     <ol>
       <li><b>Start position:</b> the evaluator gives a 6-digit grid. Find the square (read right, then up), then the tenths inside it, and mark ◎ on the map. Grid line numbers are the yellow circles; a big green number is a training area, not a grid number.</li>
       <li><b>Direction:</b> the 3D view has a mil scale across its top (0–6400, magnetic). Read the number straight above the target (TGT n in the yellow circle) and add the G-M angle 70 mils = grid direction, to the nearest 10 mils → line 2 Direction (6370 + 70 = 6440 → 0040). 1° = 17.78 mils, because 360° = 6400 mils.</li>
-      <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. Find its landmark on the map, set <b>Tap marks</b> to ✕ Target and tap next to it.</li>
+      <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. The map draws your Direction from ◎ as your protractor line: find the target's landmark along it, set <b>Tap marks</b> to ✕ Target and tap next to it.</li>
       <li><b>Distance:</b> the protractor's range scale ◎→✕ lies from ◎ through ✕, a tick every 100 m: read where ✕ sits, nearest 100 m → DISTANCE.</li>
       <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
       <li>Read <b>Grid</b> (protractor on ✕) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
@@ -1417,6 +1417,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const tx = clamp(w.hill.x < S / 2 ? w.hill.x + 1900 : w.hill.x - 1900, 1000, S - 1000), ty = Math.min(S - 300, yRC(tx) + 600);
     g.fillStyle = '#7c1d18'; g.font = '800 64px Arial, Helvetica, sans-serif';
     g.fillText('IMPACT AREA', tx * MK, (S - ty) * MK - 38); g.fillText('(OFF LIMITS)', tx * MK, (S - ty) * MK + 38);
+    c.tops = tops; // (the spot heights: the Direction's label keeps off them)
     return c;
   }
   function sizeMap() {
@@ -1452,7 +1453,7 @@ legend { padding: 0 4px; font-weight: 650; }
     for (let y = 0; y <= S; y += 1000) { g.moveTo(X(0), Y(y)); g.lineTo(X(S), Y(y)); }
     g.stroke();
     gridBubbles(g, X, Y, u, Wd, Hd);
-    const gs = guidedOn() ? gStep() : '';
+    const gs = guidedOn() ? gStep() : ''; let laBox = null;
     // Guided step 1: a dashed ring where the evaluator's start grid is
     if (gs === 'op') { g.strokeStyle = '#e09a00'; g.lineWidth = 2.5 * u; g.setLineDash([7 * u, 5 * u]); g.beginPath(); g.arc(X(w.op.x), Y(w.op.y), Math.max(12 * u, 60 * sc), 0, 7); g.stroke(); g.setLineDash([]); }
     // Guided, mark ✕: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area (the target's landmark), as you would draw them
@@ -1473,7 +1474,16 @@ legend { padding: 0 4px; font-weight: 650; }
         const on = mx - tw / 2 > 26 * u && mx + tw / 2 < Wd && my > 27 * u && my < Hd - 27 * u, clr = !w.ta.nums.some(a => Math.abs(X(a.x) - mx) < tw / 2 + 85 * a.n.length * sc && Math.abs(Y(a.y) - my) < 7 * u + 120 * sc), k2 = on * 2 + clr;
         if (!best || k2 > best.k2 || (k2 === best.k2 && d > best.d)) best = { cx, cy, al, bl, d, on, k2 };
       }
-      g.textAlign = best.al; g.textBaseline = best.bl; if (best.on) g.fillText('likely area', best.cx, best.cy); g.restore();
+      g.textAlign = best.al; g.textBaseline = best.bl; if (best.on) { g.fillText('likely area', best.cx, best.cy); laBox = [best.al === 'left' ? best.cx : best.cx - tw, best.bl === 'top' ? best.cy : best.cy - 12 * u, best.al === 'left' ? best.cx + tw : best.cx, best.bl === 'top' ? best.cy + 12 * u : best.cy]; } g.restore();
+    }
+    // your Direction (line 2) laid from ◎ as with the protractor: a thin blue line from just outside ◎, no ticks (its value goes on last);
+    // it stops at the yellow circles, so their grid numbers stay clean
+    const dl = MV.dl = dirLine();
+    if (dl && dl.len > 11 * u / sc) {
+      const r0 = 11 * u / sc; g.save(); g.beginPath(); g.rect(0, 0, Wd, Hd);
+      for (const q of MV.yelP) { g.moveTo(q[0] + 11 * u, q[1]); g.arc(q[0], q[1], 11 * u, 0, Math.PI * 2); }
+      g.clip('evenodd'); g.strokeStyle = DLINK; g.lineWidth = 1.6 * u; g.beginPath();
+      g.moveTo(X(dl.o.x + dl.sx * r0), Y(dl.o.y + dl.sy * r0)); g.lineTo(X(dl.o.x + dl.sx * dl.len), Y(dl.o.y + dl.sy * dl.len)); g.stroke(); g.restore();
     }
     // your start ◎ and your ✕ on the target (black pen)
     // (lab: with its "OP" label; the range scale draws ◎ again over its body, label and all)
@@ -1502,6 +1512,7 @@ legend { padding: 0 4px; font-weight: 650; }
     else if (st.pro === 'rng') drawRange(g, X, Y, u, sc, mark);
     // the contour values near ✕: Guided only (in the exam you count the lines)
     const px = plotPoint(); if (px && !st.examOn && st.pro !== 'rng' && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
+    if (dl) dirLabel(g, X, Y, u, dl, laBox);
     mapRulers(g, X, Y, u, Wd, Hd);
     const ta = zoomed() ? 'none' : 'pan-y';
     if (MV.cv.style.touchAction !== ta) MV.cv.style.touchAction = ta;
@@ -1511,6 +1522,47 @@ legend { padding: 0 4px; font-weight: 650; }
   // your ✕: the point you tapped on the map where the 3D view shows the target
   function plotPoint() { return st.xMark; }
   function proPoint() { return st.pro === 'op' ? (st.opMark || (guidedOn() && gStep() === 'op' ? st.w.op : null)) : st.pro === 'x' ? plotPoint() : null; }
+  // your Direction (line 2) from ◎, as you lay it with the protractor: grid mils (the map is grid north up), right or wrong, out to
+  // 3000 m (past the farthest target) or the sheet's edge. None until ◎ is marked and the box holds a whole number, 0–6400 (6400 = 0000),
+  // read as the sheet reads it (num: 60.0 = 60)
+  const DLINK = '#1e3c6e';
+  function dirLine() {
+    const o = st.opMark, v = num(st.sheet.gDir);
+    if (!o || v == null || v % 1 || v > 6400) return null;
+    const a = v * MIL, sx = Math.sin(a), sy = Math.cos(a), out = (p, s) => s > 1e-9 ? (S - p) / s : s < -1e-9 ? -p / s : 1e9;
+    return { v: v % 6400, o, sx, sy, len: Math.max(0, Math.min(3000, out(o.x, sx), out(o.y, sy))) };
+  }
+  // its value beside it, as you write it by a protractor line: the spot nearest the line's far end that shows (left of the line, then
+  // right; past the targets, which stand within 2000 m, so off the ground you search) on the map face, clear of ◎ and OP, ✕, the yellow
+  // circles, HILL nnn, the big green training-area numbers (as the likely area label), the likely area label, the contour values, the
+  // protractor tool out, the spot heights and every numbered point, KNP and their landmarks (all alike: no hint); left out when no spot is clear
+  function dirLabel(g, X, Y, u, dl, la) {
+    const w = st.w, sc = MV.scale, ox = X(dl.o.x), oy = Y(dl.o.y), P = plotPoint(), t = fmt4(dl.v), ex = dl.sx, ey = -dl.sy;
+    const b = (st.pro === 'op' || st.pro === 'x') && proPoint() ? MV.proBox : null, rg = st.pro === 'rng' && P ? MV.rng : null;
+    g.save(); g.font = `700 ${Math.round(12 * u)}px ui-monospace, Menlo, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const hw = g.measureText(t).width / 2 + 2 * u, hh = 8 * u, hx = X(w.hill.x), hy = Y(w.hill.y), hn = (16 + 7 * w.hill.name.length) * u;
+    // the label at (x, y) touches the box l, t, r, b
+    const hit = (x, y, l, tp, r, bt) => x + hw > l && x - hw < r && y + hh > tp && y - hh < bt, sp = [w.tgt, w.tgt.lm, ...w.knp, ...w.pts.flatMap(p => [p, p.lm])];
+    // the range scale's body: on screen its edge runs along ◎ → ✕ and the body lies on the edge's right (see drawRange)
+    const inRng = (x, y) => {
+      if (!rg) return false;
+      const d = Math.hypot(P.x - dl.o.x, P.y - dl.o.y) || 1, rx = (P.x - dl.o.x) / d, ry = (P.y - dl.o.y) / d, a = (x - ox) * rx - (y - oy) * ry, n = (x - ox) * ry + (y - oy) * rx, ea = hw * Math.abs(rx) + hh * Math.abs(ry), en = hw * Math.abs(ry) + hh * Math.abs(rx);
+      return a + ea > -8 * u && a - ea < rg.len * sc && n + en > 0 && n - en < rg.bw;
+    };
+    const clear = (x, y, mg) => x - hw > 28 * u && x + hw < MV.W - 2 * u && y - hh > 22 * u && y + hh < MV.H - 22 * u && !hit(x, y, ox - 12 * u, oy - 12 * u, ox + 41 * u, oy + 11 * u)
+      && !(P && hit(x, y, X(P.x) - 10 * u, Y(P.y) - 10 * u, X(P.x) + 10 * u, Y(P.y) + 10 * u)) && !MV.yelP.some(q => hit(x, y, q[0] - 11 * u, q[1] - 11 * u, q[0] + 11 * u, q[1] + 11 * u))
+      && !hit(x, y, hx - hn, hy - 9 * u, hx + hn, hy + 9 * u) && !w.ta.nums.some(a => hit(x, y, X(a.x) - 85 * a.n.length * sc, Y(a.y) - 120 * sc, X(a.x) + 85 * a.n.length * sc, Y(a.y) + 120 * sc)) && !(la && hit(x, y, ...la)) && !MV.cLabXY.some(c => hit(x, y, c[3] - 12 * u, c[4] - 7 * u, c[3] + 12 * u, c[4] + 7 * u))
+      && !(b && (hit(x, y, b.l, b.cy, b.r, b.b) || hit(x, y, b.cx, b.t, b.r, b.cy))) && !inRng(x, y)
+      && !sp.some(p => hit(x, y, X(p.x) - mg, Y(p.y) - mg, X(p.x) + mg, Y(p.y) + mg)) && !MV.img.tops.some(q => hit(x, y, X(q[0]) - 4 * u, Y(q[1]) - 6 * u, X(q[0] + 34 / MK) + 2 * u, Y(q[1]) + 6 * u));
+    // the label's centre this far off the line, so its box just clears it (and this far back from the line's end); 10 px from the
+    // numbered points and landmarks, else 6 px (the Exam's Fit on a small phone has little room)
+    const off = hw * Math.abs(ey) + hh * Math.abs(ex) + 3 * u, ah = hw * Math.abs(ex) + hh * Math.abs(ey);
+    let at = null;
+    for (const mg of [10 * u, 6 * u]) for (let k = dl.len * sc - ah; k >= 14 * u && !at; k -= 4 * u) for (const sd of [-1, 1]) { const x = ox + ex * k - sd * ey * off, y = oy + ey * k + sd * ex * off; if (clear(x, y, mg)) { at = [x, y]; break; } }
+    if (at) { g.lineWidth = 3 * u; g.strokeStyle = 'rgba(255,255,255,.92)'; g.strokeText(t, at[0], at[1]); g.fillStyle = DLINK; g.fillText(t, at[0], at[1]); }
+    g.restore();
+    dl.lab = at && { t, x: at[0], y: at[1], hw, hh };
+  }
   function proRead(P) {
     const x0 = Math.floor(P.x / 1000) * 1000, y0 = Math.floor(P.y / 1000) * 1000, w = st.w;
     return { sqE: String(((w.E0 + x0) / 1000) % 100).padStart(2, '0'), sqN: String(((w.N0 + y0) / 1000) % 100).padStart(2, '0'), e: String(Math.floor((P.x - x0) / 10)).padStart(2, '0'), n: String(Math.floor((P.y - y0) / 10)).padStart(2, '0'), x0, y0 };
@@ -2108,7 +2160,7 @@ legend { padding: 0 4px; font-weight: 650; }
       case 'plot': {
         // where the target is, in words: the landmark it stands next to, how far and which way from it
         const n = `TGT ${w.tgtNo}`, L = T.lm;
-        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
+        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: on your direction line, next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, `The blue line from ◎ is your Direction (${fmt4(t.gdir)}), laid as with the protractor: follow it out from ◎ to the target's landmark.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
       }
       case 'dist': {
         // your own ◎ → ✕ on the range scale, to the nearest 10 m (or 1 m where that would round to another 100 or sit on the half)
@@ -2434,7 +2486,7 @@ legend { padding: 0 4px; font-weight: 650; }
   function renderIntro() {
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
-      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark; find the target\'s landmark on the map by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
+      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
       'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, changes, rounds and TGT #, then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
       'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10, none under 30 m; range Add/Drop 400 → 200 → 100 → 50FFE, and a burst within 25 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target (assumption).',
@@ -2509,7 +2561,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
     return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n, lm: { x: q.lm.x, y: q.lm.y, name: q.lm.name } })), lm: { x: T.lm.x, y: T.lm.y, name: T.lm.name }, knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) } };
   }
-  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
+  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, dl: MV.dl, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
   newCard(QS.get('seed') ? +QS.get('seed') : undefined);
 })();
 </script>
