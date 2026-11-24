@@ -480,15 +480,14 @@ legend { padding: 0 4px; font-weight: 650; }
     </ol>
     <h3>Phase 2 · Call: three lines, each ends OVER</h3>
     <p><code>HAMMER 3, THIS IS STEEL 2, ADJUST FIRE, OVER</code><br><code>GRID GA 6521 2143, ALT 160, DIRECTION 5620, OVER</code><br><code>1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH, OVER</code></p>
-    <p>The FDC reads each line back ending OVER: answer <code>THAT IS CORRECT, OUT</code>. Rule: every FDC message that ends OVER needs an answer; OUT needs none.</p>
+    <p>Send lines 1, 2 and 3 one after another: the FDC does not read them back. Rule: every FDC message that ends OVER needs an answer; OUT needs none.</p>
     <h3>Phase 3 · Message to observer</h3>
     <p>Write Unit to Fire, # of Rounds and TGT # (Changes to CFF is printed N/A), then read it back ending OUT. Then <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code> (SPLASH = 5 s to impact, 2 s on Fast: eyes on the target).</p>
     <h3>Phase 4 · Adjust: one row per round</h3>
     <ul>
-      <li><b>Spotting:</b> mils from the vertical line to the burst, and (L) or (R).</li>
-      <li><b>Deviation correction:</b> OT factor × spotting, the opposite side, nearest 10 m. 25 m or less: leave it blank (close enough left/right), so a correction is at least 30 m.</li>
+      <li><b>Deviation correction:</b> count the mils from the vertical line to the burst × OT factor, nearest 10 m, written <b>XX L</b> or <b>XX R</b> (the side opposite the burst). 25 m or less: leave it blank (close enough left/right), so a correction is at least 30 m; once a row is blank, no more L/R corrections for the mission.</li>
       <li><b>Range correction:</b> burst more than 50 m short (in front) → Add, more than 50 m over (beyond) → Drop. 800 is struck out: the first range correction is 400, then each one is half of the last: 200, 100, 50FFE. 50FFE = fire for effect. In class that is 4 rows: L/R + 400, 200, 100, 50FFE.</li>
-      <li>The FDC reads each row back ending OVER → <code>THAT IS CORRECT, OUT</code>. 5 rows: rows 1–4 can adjust; fire for effect (50FFE) on row 5 at the latest.</li>
+      <li>No read-back: the FDC fires at once: <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code>. 5 rows: rows 1–4 can adjust; fire for effect (50FFE) on row 5 at the latest.</li>
       <li>A burst within 50 m of the target's range (range correct) → leave Add/Drop blank and tap 50FFE.</li>
     </ul>
     <h3>Phase 5 · End of mission</h3>
@@ -1270,8 +1269,7 @@ legend { padding: 0 4px; font-weight: 650; }
   function binoCaption() {
     const s = guidedOn() ? gStep() : '';
     if (s === 'dir') return `The mil scale is on the naked-eye view: press Binoculars to close them, then read it above TGT ${st.w.tgtNo}.`;
-    if (s === 'spot') return spotOut() ? 'The burst is past the edge of the binoculars: press Binoculars to see it with the naked eye.' : 'Vertical line = your line to the target. Count to the burst: each number = 10 mils, ticks = 5.';
-    if (s === 'corr') return 'More than 50 m beyond = OVER → Drop · in front = SHORT → Add.';
+    if (s === 'corr') return spotOut() ? 'The burst is past the edge of the binoculars: press Binoculars to see it with the naked eye.' : 'Count the mils from the vertical line to the burst (number = 10, tick = 5) · more than 50 m beyond → Drop, in front → Add.';
     if (s === 'wait' || s === 'reply' || s === 'ffe') return 'Keep the vertical line on the target.';
     return st.bursts.some(b => performance.now() - b.t0 < 30000) ? 'Vertical line = your line to the target.' : `TGT ${st.w.tgtNo} is in the yellow circle · tap to center on it.`;
   }
@@ -1776,12 +1774,12 @@ legend { padding: 0 4px; font-weight: 650; }
   function chipSet(id, v) { $(id).querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
   const inp = (id, cls, ml, ph) => `<input id="${id}"${cls ? ` class="${cls}"` : ''} inputmode="numeric" maxlength="${ml}" placeholder="${ph}" ${NA}>`;
   const snd = (id, end) => `<button type="button" class="snd" id="${id}" data-end="${end}">${end}</button>`;
-  const ROWS = 5, LR = [['L', '(L)'], ['R', '(R)']], LRT = { L: '(L)', R: '(R)' }, ADT = { A: '(Add)', D: '(Drop)' };
+  const ROWS = 5, LR = [['L', 'L'], ['R', 'R']], LRT = { L: 'L', R: 'R' }, ADT = { A: '(Add)', D: '(Drop)' };
   const LNAME = k => k[0] === 'R' ? `row ${+k.slice(1) + 1}` : { L1: 'line 1', L2: 'line 2', L3: 'line 3', LM: 'the MTO', OD: 'DISTANCE', LE: 'End of Mission' }[k];
   function renderSheet() {
     const w = st.w, o = w.opts, tn = o.tn.map(v => [v, v]);
     let rows = '';
-    for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="cell">${inp('sp' + i, 'spi', 3, 'mils')}${chipRow('ss' + i, LR)}</span><span class="cell">${chipRow('ds' + i, LR)}${inp('dv' + i, 'dvi', 4, 'm')}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
+    for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="cell">${inp('dv' + i, 'dvi', 4, 'm')}${chipRow('ds' + i, LR)}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
     $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
       <div class="sbox">
         <div class="wl" id="L1"><span class="n">1.</span><span class="csn"><small>FDC call sign</small><span class="pen">${w.fdcCs}</span></span><span class="pr">(de) this is</span><span class="csn"><small>Your call sign</small><span class="pen">${w.fo}</span></span><span class="pr">AF/FFE</span><span class="pen">Adjust Fire</span>${snd('x1', 'Over')}</div>
@@ -1790,7 +1788,7 @@ legend { padding: 0 4px; font-weight: 650; }
         <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s><span class="pen">N/A</span><s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
       </div>
       <div class="wl od" id="OD"><span class="pr">OT FACTOR</span>${inp('wOt', '', 2, '#')}<span class="pr">DISTANCE</span>${inp('wDist', '', 5, 'm')}</div>
-      <div class="ch"><span>Spotting</span><span>Deviation Correction</span><span>Range Correction</span></div>
+      <div class="ch"><span>Deviation Correction</span><span>Range Correction</span></div>
       ${rows}
       <div class="nt"><span>(OT Factor x Spotting = Correction)</span><span><s>800</s>, 400, 200, 100, 50FFE (Fire for Effect)</span></div>
       <div class="wl" id="LE"><span class="pr">End of Mission TGT#</span>${chipRow('eT', tn)}<span class="prt">1 Tank Destroyed/Neutralized, Estimated 3 Casualties</span>${snd('xE', '')}</div>
@@ -1898,7 +1896,7 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   $('rxBtns').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) reply(b.dataset.v, b); });
 
-  // ---------- FDC: it reads back every line that ends OVER; everything it sends that ends OVER needs your answer
+  // ---------- FDC: no read-backs (user 11-23); everything it sends that ends OVER needs your answer
   function newFdc() {
     // where the rounds land (landing(), at line 2), from its own generator so every card keeps its r()/r2() order: over or short (g)
     // and left or right (l) first, how far (fg, fl: 0–1) and the small left/right of bursts 2–4 (lm, mils)
@@ -1978,7 +1976,7 @@ legend { padding: 0 4px; font-weight: 650; }
       return { text: `END OF MISSION, TARGET NUMBER ${s.eT}, ${EOMTXT}, OVER` };
     }
     const k = id.slice(1), ds = s['ds' + k], dv = num(s['dv' + k]), rk = s['rk' + k], rm = s['rm' + k], part = [];
-    if (ds || s['dv' + k]) { if (!ds || !dv || dv > 3000) return { err: 'Deviation: (L) or (R) and the meters, or leave both blank.', el: ds ? 'dv' + k : 'ds' + k }; part.push(`${ds === 'L' ? 'LEFT' : 'RIGHT'} ${Math.round(dv)}`); }
+    if (ds || s['dv' + k]) { if (!ds || !dv || dv > 3000) return { err: 'Deviation: the meters and L or R, or leave both blank.', el: ds ? 'dv' + k : 'ds' + k }; part.push(`${ds === 'L' ? 'LEFT' : 'RIGHT'} ${Math.round(dv)}`); }
     if (rk && !rm) return { err: 'Range: Add or Drop, and how much.', el: 'rm' + k };
     if (rm && rm !== '50' && !rk) return { err: 'Range: Add or Drop?', el: 'rk' + k };
     if (rk) part.push(`${rk === 'A' ? 'ADD' : 'DROP'} ${rm}`);
@@ -1993,7 +1991,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, s = st.sheet, row = id[0] === 'R', k = row ? +id.slice(1) : -1, m = lineMsg(id);
     if (guidedOn()) {
       const gs = gStep(), need = row ? 'corr' : LINE_STEP[id];
-      if (gs !== need && !(row && gs === 'spot')) { note(`First: ${coachData().title}.`); return; }
+      if (gs !== need) { note(`First: ${coachData().title}.`); return; }
       if (id === 'L2' && !(st.gOk.dir && st.gOk.grid)) { note('First: Grid and Direction from Phase 1.'); return; }
       const f = stepWant(row ? 'corr' : gs), bad = f && Object.keys(f).find(i => fieldBad(i, f[i]));
       if (bad) { note(`${badWhy(bad)} ${coachData().tip}`); const el = hintEl(bad, f[bad]) || $(bad); shake(el); want(el); return; }
@@ -2019,15 +2017,14 @@ legend { padding: 0 4px; font-weight: 650; }
     else if (id === 'LE') { const tn = s.eT; R.eom = { tn }; F.phase = 'done'; later(1100 * K(), () => { fdcSay(`END OF MISSION, TARGET NUMBER ${tn}, ${EOMTXT}, OUT`); later(1500, finish); }); refresh(); return; }
     else {
       const e = expCorr(), dv = num(s['dv' + k]), ds = s['ds' + k], rk = s['rk' + k], rm = s['rm' + k], dev = ds && dv ? (ds === 'L' ? -dv : dv) : 0, rng = rk ? (rk === 'A' ? 1 : -1) * +rm : 0, ffe = rm === '50';
-      R.rows.push({ sp: num(s['sp' + k]), ss: s['ss' + k], ds, dv, rk, rm, exp: e && { spot: e.spot, side: e.side, dev: e.dev, rng: e.rng, ffe: e.ffe, ot: e.ot, raw: e.raw, why: e.why, devM: e.sp.devM, range: e.sp.range } });
+      R.rows.push({ ds, dv, rk, rm, exp: e && { spot: e.spot, side: e.side, dev: e.dev, rng: e.rng, ffe: e.ffe, ot: e.ot, raw: e.raw, why: e.why, devM: e.sp.devM, range: e.sp.range, lock: e.lock } });
       F.aim = aimMove(F.aim, dev, rng);
       if (rng) F.lastMag = Math.abs(rng);
-      F.busy = true; R.lastN = 13;
+      F.busy = true; R.lastN = 12;
       then = () => later(1200 * K(), () => ffe ? fireFFE() : fireAdj());
     }
-    F.waitRx = true;
-    const kind = row ? 'corr' : 'call', n = R.lastN;
-    later(1100 * K(), () => { F.waitRx = false; fdcOver(m.rb, OK_RB, kind, n, then); });
+    // no read-back (user 11-23): the FDC copies it and goes on (rows: SHOT and SPLASH)
+    if (then) then();
     refresh();
   }
   function splashBinos() {
@@ -2068,15 +2065,15 @@ legend { padding: 0 4px; font-weight: 650; }
     const th = azOf(cx - w.op.x, cy - w.op.y) * MIL, rt = [Math.cos(th), -Math.sin(th)], u = [Math.sin(th), Math.cos(th)], pts = [];
     for (let n = 0; n < nr; n++) { const lat = ((n % 4) - 1.5) * 18 + (Math.random() - 0.5) * 10, lon = (Math.random() - 0.5) * 30; pts.push([cx + rt[0] * lat + u[0] * lon, cy + rt[1] * lat + u[1] * lon]); }
     const go = () => {
-      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 14); splashBinos(); });
+      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 13); splashBinos(); });
       pts.forEach((p, n) => later(TOF() + n * 230, () => addBurst(p[0], p[1], 'he')));
       later(TOF() + nr * 230 + 400, () => {
         for (const v of w.tgt.veh) if (hit || pts.some(p => Math.hypot(p[0] - v.x, p[1] - v.y) <= 50)) { v.dead = true; F.killed++; }
         F.inFlight = false; kick(); refresh();
       });
-      later(TOF() + nr * 230 + 3200 * K(), () => { F.phase = 'eom'; fdcOver('ROUNDS COMPLETE, OVER', 'ROUNDS COMPLETE, OUT', 'rc', 14); });
+      later(TOF() + nr * 230 + 3200 * K(), () => { F.phase = 'eom'; fdcOver('ROUNDS COMPLETE, OVER', 'ROUNDS COMPLETE, OUT', 'rc', 13); });
     };
-    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 14, guidedOn() ? go : null);
+    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 13, guidedOn() ? go : null);
     if (!guidedOn()) go();
   }
   function spotOf(b) {
@@ -2091,7 +2088,8 @@ legend { padding: 0 4px; font-weight: 650; }
     const t = truth(); if (!b) return null;
     const sp = spotOf(b), n = Math.round(Math.abs(sp.devM)), side = n <= 2 ? '*' : sp.devM > 0 ? 'R' : 'L';
     const otIn = num(st.sheet.wOt), ot = Number.isInteger(otIn) && otIn >= 1 && otIn <= 9 ? otIn : t.otf, raw = ot * n, dv = r10(raw);
-    const dev = raw > 25 ? { k: sp.devM > 0 ? 'L' : 'R', m: dv } : null;
+    // once a row had no L/R correction (25 m or less), no more L/R corrections for the mission (lock = that row's number)
+    const lock = R.rows.findIndex(r => r.exp && !r.exp.dev) + 1, dev = !lock && raw > 25 ? { k: sp.devM > 0 ? 'L' : 'R', m: dv } : null;
     let rng = null, ffe = false, why;
     if (sp.range === 'RC') { ffe = true; why = 'within 50 m of the target\'s range = range correct: leave Add/Drop blank, 50FFE = fire for effect'; }
     else {
@@ -2100,12 +2098,11 @@ legend { padding: 0 4px; font-weight: 650; }
       rng = { k, m: c };
       if (c === 50) { ffe = true; why += ' = 50FFE, fire for effect'; }
     }
-    return { sp, spot: n, side, ot, raw, dv, dev, rng, ffe, why, t };
+    return { sp, spot: n, side, ot, raw, dv, dev, rng, ffe, why, t, lock };
   }
 
-  // ---------- Guided coach: 16 steps in 5 phases (Orient / Call / MTO / Adjust / End)
+  // ---------- Guided coach: 15 steps in 5 phases (Orient / Call / MTO / Adjust / End)
   const guidedOn = () => st.mode === 'guided' && !st.examOn && !st.ended;
-  function spotOk() { const f = stepWant('spot'); return !!f && !Object.keys(f).some(id => fieldBad(id, f[id])); }
   // the burst lies outside the binoculars' field when their vertical line is on the target
   function spotOut() { const e = expCorr(); return !!e && Math.abs(e.sp.devM) > (V.fieldM || 62); }
   function gStep() {
@@ -2116,13 +2113,13 @@ legend { padding: 0 4px; font-weight: 650; }
     if (!R.l2) return 'l2';
     if (!R.l3) return 'l3';
     if (!R.mto) return 'rx';
-    if (F.phase === 'adjust') return F.busy || F.inFlight ? 'wait' : spotOk() ? 'corr' : 'spot';
+    if (F.phase === 'adjust') return F.busy || F.inFlight ? 'wait' : 'corr';
     if (F.phase === 'ffe') return 'ffe';
     if (F.phase === 'eom') return 'eom';
     return 'done';
   }
-  const GN = { op: 1, dir: 2, plot: 3, dist: 4, ot: 5, grid: 6, l1: 7, l2: 8, l3: 9, mto: 10, wait: 11, spot: 12, corr: 13, ffe: 14, eom: 15, done: 16 };
-  const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 16;
+  const GN = { op: 1, dir: 2, plot: 3, dist: 4, ot: 5, grid: 6, l1: 7, l2: 8, l3: 9, mto: 10, wait: 11, corr: 12, ffe: 13, eom: 14, done: 15 };
+  const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 15;
   const PHN = ['Orient', 'Call', 'MTO', 'Adjust', 'End', 'Done'];
   // what each field of the step should hold now
   function stepWant(s) {
@@ -2133,10 +2130,9 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 8) } : null; }
     if (s === 'mto') return { mU: w.bty, mN: String(w.rounds), mT: w.tn };
     if (s === 'eom') return { eT: w.tn };
-    if (s === 'spot' || s === 'corr') {
+    if (s === 'corr') {
       const e = expCorr(); if (!e) return null;
-      const f = { ['sp' + k]: e.spot, ['ss' + k]: e.side };
-      return s === 'spot' ? f : Object.assign(f, { ['ds' + k]: e.dev ? e.dev.k : '', ['dv' + k]: e.dev ? e.dev.m : '', ['rk' + k]: e.rng ? e.rng.k : '', ['rm' + k]: e.rng ? String(e.rng.m) : '50' });
+      return Object.assign({}, { ['ds' + k]: e.dev ? e.dev.k : '', ['dv' + k]: e.dev ? e.dev.m : '', ['rk' + k]: e.rng ? e.rng.k : '', ['rm' + k]: e.rng ? String(e.rng.m) : '50' });
     }
     return null;
   }
@@ -2163,8 +2159,8 @@ legend { padding: 0 4px; font-weight: 650; }
     if (id === 'gGrid') { const P = plotPoint(), g = P ? digits(worldToGrid(P.x, P.y, 8)) : ''; return digits(v).length !== 8 ? 'Grid: 8 digits (4 right, then 4 up).' : digits(v) === g.slice(4) + g.slice(0, 4) ? 'Read right first, then up.' : 'Read it at ✕ with the protractor.'; }
     if (/^sp/.test(id)) return 'Count again from the vertical line to the burst.';
     if (/^ss/.test(id)) return `The burst is ${e.side === 'L' ? 'left' : 'right'} of the vertical line.`;
-    if (/^ds/.test(id)) return !e.dev ? `OT ${e.ot} × ${e.spot} mils = ${e.raw} m: 25 m or less, leave the deviation blank.` : 'The deviation goes to the side opposite the burst.';
-    if (/^dv/.test(id)) return !e.dev ? `OT ${e.ot} × ${e.spot} mils = ${e.raw} m: 25 m or less, leave it blank.` : x % 10 ? 'Round it to the nearest 10 m.' : x < 30 ? 'Minimum deviation correction: 30 m.' : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m.`;
+    if (/^ds/.test(id)) return !e.dev ? (e.lock ? `Left/right was within 25 m in row ${e.lock}: no more L/R corrections.` : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m: 25 m or less, leave the deviation blank.`) : 'The deviation goes to the side opposite the burst.';
+    if (/^dv/.test(id)) return !e.dev ? (e.lock ? `Left/right was within 25 m in row ${e.lock}: no more L/R corrections.` : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m: 25 m or less, leave it blank.`) : x % 10 ? 'Round it to the nearest 10 m.' : x < 30 ? 'Minimum deviation correction: 30 m.' : `OT ${e.ot} × ${e.spot} mils = ${e.raw} m.`;
     if (/^rk/.test(id)) return !e.rng ? 'Within 50 m of the target\'s range: leave Add/Drop blank.' : e.rng.k === 'A' ? 'The burst is more than 50 m short (in front): Add.' : 'The burst is more than 50 m over (beyond): Drop.';
     if (/^rm/.test(id)) return !e.rng ? 'Within 50 m of the target\'s range: 50FFE.' : F.lastMag ? `Half of the last one (${F.lastMag}): ${e.rng.m === 50 ? '50FFE' : e.rng.m}.` : 'The first range correction is 400.';
     if (/^m[UNT]$/.test(id)) return 'Copy it from the FDC\'s MTO under the view.';
@@ -2199,10 +2195,10 @@ legend { padding: 0 4px; font-weight: 650; }
       case 'mto': return { title: 'Write the message to observer', tip: `<b>${w.bty}</b> · N/A (printed) · <b>${w.rounds} Round${w.rounds > 1 ? 's' : ''}</b> · <b>${w.tn}</b> → <strong>Send (Out)</strong>`, bullets: ['From the FDC\'s MTO under the view. Changes to CFF is printed N/A: nothing to choose.', 'Reading it back ends OUT: nothing more to answer.'] };
       case 'rx': return { title: 'Wait for the FDC', tip: 'The FDC is answering', bullets: [] };
       case 'wait': return { title: 'Round on the way', tip: `Watch the target: SPLASH = ${(TOF() - SPL()) / 1000} s to impact`, bullets: [] };
-      case 'spot': { const e = expCorr(); return { title: `Row ${k + 1}: spot the burst`, tip: `Spotting → <b>${e.spot}${e.side === '*' ? '' : ' ' + LRT[e.side]}</b>: burst ${e.side === '*' ? 'on the vertical line (2 mils or less: no side)' : `${e.spot} mils ${e.side === 'R' ? 'right' : 'left'} of the vertical line`}${spotOut() ? ', past the edge of the binoculars: close them to see it' : ''}`, bullets: ['Each number on the reticle = 10 mils, each small tick = 5.'] }; }
       case 'corr': {
         const e = expCorr();
-        const dv = e.dev ? `Deviation → <b>${LRT[e.dev.k]} ${e.dev.m}</b> = OT ${e.ot} × ${e.spot} mils = ${e.raw} → nearest 10, opposite side` : `Deviation → <b>leave blank</b>: OT ${e.ot} × ${e.spot} = ${e.raw} m, 25 m or less`;
+        const bs = e.side === '*' ? 'on the vertical line' : `${e.spot} mils ${e.side === 'R' ? 'right' : 'left'}`;
+        const dv = e.dev ? `Deviation → <b>${e.dev.m} ${LRT[e.dev.k]}</b>: burst ${bs} × OT ${e.ot} = ${e.raw} m → nearest 10, opposite side` : e.lock ? `Deviation → <b>leave blank</b>: left/right was within 25 m in row ${e.lock}, so no more L/R corrections` : `Deviation → <b>leave blank</b>: burst ${bs} × OT ${e.ot} = ${e.raw} m, 25 m or less`;
         const rg = e.rng ? `Range → <b>${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}</b>: ${e.why}` : `Range → <b>50FFE</b> only: ${e.why}`;
         return { title: `Row ${k + 1}: correct it`, tip: `${dv}<br>${rg} → <strong>Send (OVER)</strong>`, bullets: [] };
       }
@@ -2213,7 +2209,7 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], plot: ['viewCard', 'in'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
   // sideways the box of a map tap (◎, ✕) goes above the map: under it, it would sit below the screen
-  const tipAt = s => s === 'spot' || s === 'corr' ? ['R' + R.rows.length, 'after'] : (s === 'op' || s === 'plot') && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
+  const tipAt = s => s === 'corr' ? ['R' + R.rows.length, 'after'] : (s === 'op' || s === 'plot') && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
   // why each step matters, in one line under the action
   const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid and DISTANCE come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: OT × mils to the opposite side (25 m or less: blank); more than 50 m off in range: 400, then 200, 100, 50FFE = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
   function placeTip(cd) {
@@ -2227,7 +2223,7 @@ legend { padding: 0 4px; font-weight: 650; }
     else if (at[1] === 'before') { if (tip.nextElementSibling !== el) el.before(tip); }
     else if (tip.previousElementSibling !== el) el.after(tip);
     // sideways the view and the row do not fit on one screen: let the burst show for a moment before the row comes up
-    if (key !== st.tipStep) { const first = !st.tipStep; st.tipStep = key; if (!first) setTimeout(showTip, LAND.matches && step === 'spot' ? 2500 : 120); }
+    if (key !== st.tipStep) { const first = !st.tipStep; st.tipStep = key; if (!first) setTimeout(showTip, LAND.matches && step === 'corr' ? 2500 : 120); }
   }
   // phones held sideways: the stage does not pin (no room), answers pop up in a bar at the bottom
   const LAND = matchMedia('(max-width: 1099px) and (max-height: 639px)');
@@ -2303,12 +2299,12 @@ legend { padding: 0 4px; font-weight: 650; }
   // at least 30 m
   function rowGrade(r) {
     const e = r.exp; if (!e) return { sp: false, dv: false, rg: false };
-    const tol = e.ot >= 3 ? 20 : 10, sp = r.sp != null && Math.abs(r.sp - e.spot) <= 5 && (e.side === '*' || r.ss === e.side || (r.sp === 0 && !r.ss));
-    const mine = sp && e.ot * r.sp > 25 ? { k: r.ss === 'R' ? 'L' : r.ss === 'L' ? 'R' : '', m: r10(e.ot * r.sp) } : null;
+    const tol = e.ot >= 3 ? 20 : 10, sp = true, near = !e.lock && Math.abs(e.raw - 25) <= e.ot * 5;
+    const mine = near ? (e.dev ? null : { k: e.devM > 0 ? 'L' : 'R', m: 30 }) : undefined;
     const dvOk = d => d ? r.ds === d.k && r.dv != null && r.dv % 10 === 0 && r.dv >= 30 && Math.abs(r.dv - d.m) <= tol : !r.ds && !r.dv;
     return {
       sp,
-      dv: dvOk(e.dev) || (sp && dvOk(mine)),
+      dv: dvOk(e.dev) || (mine !== undefined && dvOk(mine)),
       rg: e.rng ? r.rk === e.rng.k && r.rm === String(e.rng.m) : !r.rk && r.rm === '50'
     };
   }
@@ -2327,16 +2323,14 @@ legend { padding: 0 4px; font-weight: 650; }
       { t: 'Call for fire (lines 1–3)', subs: [
         { txt: 'Line 1: FDC (de) you, Adjust Fire', ok: !!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF' },
         { txt: 'Lines 2 and 3 sent', ok: !!R.l2 && R.l3 },
-        { txt: 'Each read-back answered THAT IS CORRECT, OUT', ok: R.l3Ack && rep(['call']) },
         { txt: 'No SAY AGAIN on lines 1–3', ok: R.l3 && !R.sayAgain.some(x => /^L[123]$/.test(x.line)) }] },
       { t: 'Message to observer', subs: [
         { txt: 'Unit to Fire, # of Rounds and TGT # written right (Changes to CFF printed N/A)', ok: mtoOk },
         { txt: 'MTO read back (Out)', ok: !!R.mto }] },
       { t: 'Adjust fire (one row per round)', subs: [
-        { txt: 'Spotting within 5 mils, right side (assumption)', ok: all('sp') },
-        { txt: 'Deviation: OT × spotting, opposite side, nearest 10 (±10 m); 25 m or less blank', ok: all('dv') },
+        { txt: 'Deviation: XX L / XX R = OT × the burst\'s mils, opposite side, nearest 10 (±10 m); 25 m or less blank, then no more L/R corrections', ok: all('dv') },
         { txt: 'Range: more than 50 m short Add, over Drop: 400, then half of the last (200, 100, 50FFE); within 50 m 50FFE', ok: all('rg') },
-        { txt: 'Every read-back, SHOT and SPLASH answered right', ok: rep(['corr', 'shot']) }] },
+        { txt: 'SHOT and SPLASH answered right', ok: rep(['shot']) }] },
       { t: 'Fire for effect', subs: [
         { txt: 'Fire for effect on row 5 at the latest (rows 1–4 adjust)', ok: !!R.ffeAim },
         { txt: 'Fire for effect within 50 m of the target in range and in deviation (assumption)', ok: !!fe && fe.max <= 50 },
@@ -2367,9 +2361,9 @@ legend { padding: 0 4px; font-weight: 650; }
     add(mOk, `MTO: you wrote ${m ? `${m.u} / N/A / ${roundsTxt(m.n)} / ${m.tn}` : 'nothing'} · correct ${w.bty} / N/A / ${roundsTxt(w.rounds)} / ${w.tn} (Changes to CFF printed N/A)`);
     R.rows.forEach((r, i) => {
       const gr = rowGrade(r), e = r.exp; if (!e) return;
-      const mine = `${r.sp != null ? r.sp : '—'} ${LRT[r.ss] || ''} | ${r.ds ? `${LRT[r.ds]} ${r.dv}` : 'blank'} | ${r.rk ? `${ADT[r.rk]} ` : ''}${r.rm ? (r.rm === '50' ? '50FFE' : r.rm) : 'blank'}`;
-      const right = `${e.spot} ${e.side === '*' ? '' : LRT[e.side]} | ${e.dev ? `${LRT[e.dev.k]} ${e.dev.m}` : 'blank'} (OT ${e.ot} × ${e.spot} = ${e.raw} → ${e.dev ? 'nearest 10, opposite side' : '25 m or less: blank'}) | ${e.rng ? `${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}` : '50FFE'} (${e.why})`;
-      add(gr.sp && gr.dv && gr.rg, `Row ${i + 1}: you wrote ${mine} · correct ${right}`);
+      const mine = `${r.ds ? `${r.dv} ${LRT[r.ds]}` : 'blank'} | ${r.rk ? `${ADT[r.rk]} ` : ''}${r.rm ? (r.rm === '50' ? '50FFE' : r.rm) : 'blank'}`;
+      const right = `${e.dev ? `${e.dev.m} ${LRT[e.dev.k]}` : 'blank'} (${e.lock ? `left/right within 25 m in row ${e.lock}: no more L/R corrections` : `burst ${e.spot} mils ${e.side === '*' ? '' : e.side === 'R' ? 'right ' : 'left '}× OT ${e.ot} = ${e.raw} → ${e.dev ? 'nearest 10, opposite side' : '25 m or less: blank'}`}) | ${e.rng ? `${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}` : '50FFE'} (${e.why})`;
+      add(gr.dv && gr.rg, `Row ${i + 1}: you wrote ${mine} · correct ${right}`);
     });
     if (R.ffeAim) { const fe = axisErr(R.ffeAim); add(fe.max <= 50, `Fire for effect after ${R.rows.length} row(s), ${Math.round(fe.d)} m from the target (range ${Math.round(Math.abs(fe.rng))} m ${fe.rng > 0 ? 'over' : 'short'}, deviation ${Math.round(Math.abs(fe.dev))} m) · standard ≤ 50 m in range and in deviation (assumption)`); }
     else add(false, R.rows.length >= ROWS ? 'No fire for effect by row 5 (rows 1–4 adjust; row 5 at the latest is 50FFE).' : `No fire for effect: the mission ended after ${R.rows.length} row(s).`);
@@ -2444,7 +2438,7 @@ legend { padding: 0 4px; font-weight: 650; }
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   function phaseIdx() {
     if (st.ended) return 5;
-    if (guidedOn()) { const n = stepNo(gStep()); return n <= 6 ? 0 : n <= 9 ? 1 : n <= 11 && !F.adj ? 2 : n <= 14 ? 3 : 4; }
+    if (guidedOn()) { const n = stepNo(gStep()); return n <= 6 ? 0 : n <= 9 ? 1 : n <= 11 && !F.adj ? 2 : n <= 13 ? 3 : 4; }
     return !R.l1 ? 0 : !R.l3Ack ? 1 : !F.adj ? 2 : F.phase === 'eom' || F.phase === 'done' ? 4 : 3;
   }
   function refresh() {
@@ -2455,7 +2449,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const gs = guidedOn() ? gStep() : '';
     if (gs && gs !== st.stageStep) { st.stageStep = gs; if (STAGE[gs] && STAGE[gs] !== st.stage) setStage(STAGE[gs]); if (st.tab !== 'locate') setTab('locate'); stepEnter(gs); }
     const cd = coachData(), pi = phaseIdx();
-    $('cStep').textContent = gs ? `Step ${stepNo(gs)} of 16 · ${PHN[pi]}` : cd.lbl;
+    $('cStep').textContent = gs ? `Step ${stepNo(gs)} of 15 · ${PHN[pi]}` : cd.lbl;
     $('cDo').textContent = cd.title; $('cHow').innerHTML = (cd.bullets || []).map(b => `<li>${b}</li>`).join('');
     placeTip(cd);
     // phones: the line is often below the fold, so the coach card has a jump button to it
@@ -2507,9 +2501,9 @@ legend { padding: 0 4px; font-weight: 650; }
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
       'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read the Grid at your ✕, 8 digits: within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it). ALT is printed: 160.',
-      'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
+      'Phase 2 · Call: send lines 1, 2 and 3 one after another; the FDC does not read them back. Every FDC message that ends OVER needs its answer (SHOT, OUT; SPLASH, OUT; ROUNDS COMPLETE, OUT): if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, rounds and TGT # (Changes to CFF is printed N/A), then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
-      'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10; 25 m or less → leave blank. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
+      'Phase 4 · Adjust: one row per round, no read-back. Deviation = the burst\'s mils from the vertical line × OT, opposite side, nearest 10, written XX L or XX R; 25 m or less → leave blank, and after a blank row no more L/R corrections. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
       'Phase 5 · End: ROUNDS COMPLETE, OUT, then End of Mission with the TGT # from the MTO.',
       'No coach, no highlights, no ✓ marks, no Ref until the end. Any NO-GO sends you to Charlie Company.'
     ];
