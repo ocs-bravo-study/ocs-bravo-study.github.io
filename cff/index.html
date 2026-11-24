@@ -180,7 +180,7 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .csn { display: inline-flex; flex-direction: column; line-height: 1.25; }
 .csn small { color: #555; font-size: 11px; }
 .wl input { min-width: 0; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: #13284f; font: 700 16px var(--mono); }
-#gGrid { width: 7.4em; } #gAlt { width: 3.4em; } #gDir { width: 3.6em; } #wOt { width: 2.4em; } #wDist { width: 3.6em; }
+#gGrid { width: 7.4em; } #gDir { width: 3.6em; } #wOt { width: 2.4em; } #wDist { width: 3.6em; }
 .wr input.spi { width: 2.6em; } .wr input.dvi { width: 3.2em; }
 .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .chip { min-height: 34px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font: 700 12.5px var(--mono); cursor: pointer; }
@@ -476,10 +476,10 @@ legend { padding: 0 4px; font-weight: 650; }
       <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. The map draws your Direction from ◎ as your protractor line: find the target's landmark along it, set <b>Tap marks</b> to ✕ Target and tap next to it.</li>
       <li><b>Distance:</b> the protractor's range scale ◎→✕ lies from ◎ through ✕, a tick every 100 m: read where ✕ sits, nearest 100 m → DISTANCE.</li>
       <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
-      <li>Read <b>Grid</b> (protractor on ✕) and <b>ALT</b> (contours, nearest 5 m) at ✕ → line 2.</li>
+      <li>Read the <b>Grid</b> at ✕ with the protractor, <b>8 digits</b> (4 right, then 4 up) → line 2. <b>ALT</b> is printed: 160.</li>
     </ol>
     <h3>Phase 2 · Call: three lines, each ends OVER</h3>
-    <p><code>HAMMER 3, THIS IS STEEL 2, ADJUST FIRE, OVER</code><br><code>GRID GA 652 214, ALT 345, DIRECTION 5620, OVER</code><br><code>1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH, OVER</code></p>
+    <p><code>HAMMER 3, THIS IS STEEL 2, ADJUST FIRE, OVER</code><br><code>GRID GA 6521 2143, ALT 160, DIRECTION 5620, OVER</code><br><code>1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH, OVER</code></p>
     <p>The FDC reads each line back ending OVER: answer <code>THAT IS CORRECT, OUT</code>. Rule: every FDC message that ends OVER needs an answer; OUT needs none.</p>
     <h3>Phase 3 · Message to observer</h3>
     <p>Write Unit to Fire, # of Rounds and TGT # (Changes to CFF is printed N/A), then read it back ending OUT. Then <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code> (SPLASH = 5 s to impact, 2 s on Fast: eyes on the target).</p>
@@ -546,7 +546,7 @@ legend { padding: 0 4px; font-weight: 650; }
   // ---------- the target (always 1 tank, as on the real sheet) and the fixed texts
   const VEH = { T72: { L: 6.9, H: 2.2, Wd: 3.6, hull: 1.35, tur: 0.85, turW: 2.7, gun: 4.2, armor: true } };
   const GM = 70; // G-M angle 70 mils: the 3D view's scale (magnetic) + 70 = grid
-  const L3TXT = '1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH';
+  const L3TXT = '1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH', ALTV = 160; // ALT is printed 160 (user 11-23)
   const EOMTXT = '1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES';
   const OK_RB = 'THAT IS CORRECT, OUT';
   // neutral call signs and unit names (never the real sheet's)
@@ -1479,14 +1479,16 @@ legend { padding: 0 4px; font-weight: 650; }
       }
       g.textAlign = best.al; g.textBaseline = best.bl; if (best.on) { g.fillText('likely area', best.cx, best.cy); laBox = [best.al === 'left' ? best.cx : best.cx - tw, best.bl === 'top' ? best.cy : best.cy - 12 * u, best.al === 'left' ? best.cx + tw : best.cx, best.bl === 'top' ? best.cy + 12 * u : best.cy]; } g.restore();
     }
-    // your Direction (line 2) laid from ◎ as with the protractor: a thin blue line from just outside ◎, no ticks (its value goes on last);
+    // your Direction (line 2) laid from ◎ as with the protractor: a bold violet line with a white edge (no map line has that colour),
+    // from just outside ◎, no ticks (its value goes on last);
     // it stops at the yellow circles, so their grid numbers stay clean
     const dl = MV.dl = dirLine();
     if (dl && dl.len > 11 * u / sc) {
       const r0 = 11 * u / sc; g.save(); g.beginPath(); g.rect(0, 0, Wd, Hd);
       for (const q of MV.yelP) { g.moveTo(q[0] + 11 * u, q[1]); g.arc(q[0], q[1], 11 * u, 0, Math.PI * 2); }
-      g.clip('evenodd'); g.strokeStyle = DLINK; g.lineWidth = 1.6 * u; g.beginPath();
-      g.moveTo(X(dl.o.x + dl.sx * r0), Y(dl.o.y + dl.sy * r0)); g.lineTo(X(dl.o.x + dl.sx * dl.len), Y(dl.o.y + dl.sy * dl.len)); g.stroke(); g.restore();
+      g.clip('evenodd'); g.lineCap = 'round'; g.beginPath();
+      g.moveTo(X(dl.o.x + dl.sx * r0), Y(dl.o.y + dl.sy * r0)); g.lineTo(X(dl.o.x + dl.sx * dl.len), Y(dl.o.y + dl.sy * dl.len));
+      g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 6 * u; g.stroke(); g.strokeStyle = DLINK; g.lineWidth = 3 * u; g.stroke(); g.restore();
     }
     // your start ◎ and your ✕ on the target (black pen)
     // (lab: with its "OP" label; the range scale draws ◎ again over its body, label and all)
@@ -1528,7 +1530,7 @@ legend { padding: 0 4px; font-weight: 650; }
   // your Direction (line 2) from ◎, as you lay it with the protractor: grid mils (the map is grid north up), right or wrong, out to
   // 3000 m (past the farthest target) or the sheet's edge. None until ◎ is marked and the box holds a whole number, 0–6400 (6400 = 0000),
   // read as the sheet reads it (num: 60.0 = 60)
-  const DLINK = '#1e3c6e';
+  const DLINK = '#8a2be2';
   function dirLine() {
     const o = st.opMark, v = num(st.sheet.gDir);
     if (!o || v == null || v % 1 || v > 6400) return null;
@@ -1783,7 +1785,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
       <div class="sbox">
         <div class="wl" id="L1"><span class="n">1.</span><span class="csn"><small>FDC call sign</small><span class="pen">${w.fdcCs}</span></span><span class="pr">(de) this is</span><span class="csn"><small>Your call sign</small><span class="pen">${w.fo}</span></span><span class="pr">AF/FFE</span><span class="pen">Adjust Fire</span>${snd('x1', 'Over')}</div>
-        <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '6 or 8')}<span class="pr">ALT</span>${inp('gAlt', '', 4, 'm')}<span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</div>
+        <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '8 digits')}<span class="pr">ALT</span><span class="pen">${ALTV}</span><span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</div>
         <div class="wl" id="L3"><span class="n">3.</span><s>Target Description</s><span class="pen">${L3TXT}</span>${snd('x3', 'Over')}</div>
         <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s><span class="pen">N/A</span><s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
       </div>
@@ -1810,13 +1812,10 @@ legend { padding: 0 4px; font-weight: 650; }
     const pNear = !!P && Math.hypot(P.x - T.x, P.y - T.y) <= 100; g.plot = pNear;
     const dist = num(s.wDist); g.dist = dist != null && dist === myDist; x.dist = dist != null && dist % 100 === 0 && Math.abs(dist - t.dist) <= 100;
     const ot = num(s.wOt), otMine = dist ? Math.max(1, Math.round(dist / 1000)) : null; g.ot = ot != null && ot === otMine; x.ot = ot != null && ot === otMine;
-    // Exam: Grid within 100 m of the target; Grid and ALT also count when read right at your own ✕ and ✕ is within
-    // 100 m of the target (a 6-digit square centre can sit just over 100 m away; a small error in ✕ does not fail ALT too)
+    // Exam: an 8-digit Grid within 100 m of the target; it also counts when read right at your own ✕ and ✕ is within 100 m of the target
     const gc = gridCenter(s.gGrid), gd = gc ? Math.hypot(gc.x - T.x, gc.y - T.y) : null, gx = gc && P ? Math.hypot(gc.x - P.x, gc.y - P.y) : null;
-    g.grid = !!P && !!gc && [6, 8].some(n => digits(s.gGrid) === digits(worldToGrid(P.x, P.y, n))); x.grid = gd != null && (gd <= 100 || (g.grid && pNear));
-    const alt = num(s.gAlt), altX = pNear ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : null;
-    g.alt = alt != null && alt % 5 === 0 && (Math.abs(alt - t.alt) <= 10 || (altX != null && Math.abs(alt - altX) <= 10)); x.alt = g.alt;
-    return { g, x, opd, dir, dist, ot, otMine, gd, gx, alt, altX, myD, myDist };
+    g.grid = !!P && !!gc && digits(s.gGrid) === digits(worldToGrid(P.x, P.y, 8)); x.grid = gd != null && digits(s.gGrid).length === 8 && (gd <= 100 || (g.grid && pNear));
+    return { g, x, opd, dir, dist, ot, otMine, gd, gx, myD, myDist };
   }
   // what a tap on the map marks: ◎ (your start) or ✕ (the target)
   function setTap(k) { st.tap = k; $('tapOp').setAttribute('aria-pressed', String(k === 'op')); $('tapX').setAttribute('aria-pressed', String(k === 'x')); }
@@ -1905,7 +1904,7 @@ legend { padding: 0 4px; font-weight: 650; }
     // and left or right (l) first, how far (fg, fl: 0–1) and the small left/right of bursts 2–4 (lm, mils)
     const rr = mulberry32(st.seed * 7 + 3), pat = { g: rr() < 0.5 ? -1 : 1, fg: rr(), l: rr() < 0.5 ? -1 : 1, fl: rr(), lm: [0, 1, 2].map(() => (rr() < 0.5 ? -1 : 1) * (1 + 2 * rr())) };
     F = { phase: 'cff', aim: null, dir: null, inFlight: false, busy: false, waitRx: false, pend: null, lastBurst: null, lastMag: 0, adj: 0, killed: 0, bias: { x: 0, y: 0 }, bs: [{ x: 0, y: 0 }], pat };
-    R = { t0: performance.now(), l1: null, l2: null, l3: false, l1Ack: false, l2Ack: false, l3Ack: false, mtoRx: false, mto: null, rows: [], eom: null, sayAgain: [], replies: [], ffeAim: null, lastN: 8, nMsg: 0 };
+    R = { t0: performance.now(), l1: null, l2: null, l3: false, l1Ack: false, l2Ack: false, l3Ack: false, mtoRx: false, mto: null, rows: [], eom: null, sayAgain: [], replies: [], ffeAim: null, lastN: 7, nMsg: 0 };
   }
   // where each round lands: the FDC's aim + F.bs[round] (F.bias, set as it fires; a 5th round and the fire for effect use the last one).
   // First round off target, as in class, with a grid within 175 m of the target (any grid the exam grades GO: ✕ within 100 m + half the
@@ -1964,11 +1963,10 @@ legend { padding: 0 4px; font-weight: 650; }
     const s = st.sheet;
     if (id === 'L1') { const w = st.w; return { text: `${w.fdcCs}, THIS IS ${w.fo}, ADJUST FIRE, OVER`, rb: `${w.fo}, THIS IS ${w.fdcCs}, ADJUST FIRE, OVER` }; }
     if (id === 'L2') {
-      const gd = digits(s.gGrid), alt = num(s.gAlt), dir = num(s.gDir);
-      if (![6, 8].includes(gd.length)) return { err: 'Grid: 6 or 8 digits.', el: 'gGrid' };
-      if (alt == null || alt > 3000) return { err: 'ALT: the altitude in meters.', el: 'gAlt' };
+      const gd = digits(s.gGrid), dir = num(s.gDir);
+      if (gd.length !== 8) return { err: 'Grid: 8 digits.', el: 'gGrid' };
       if (dir == null || dir > 6400) return { err: 'Direction: 0 to 6400 mils.', el: 'gDir' };
-      const t = `GRID GA ${gridTxt(gd)}, ALT ${Math.round(alt)}, DIRECTION ${fmt4(dir)}, OVER`; return { text: t, rb: t };
+      const t = `GRID GA ${gridTxt(gd)}, ALT ${ALTV}, DIRECTION ${fmt4(dir)}, OVER`; return { text: t, rb: t };
     }
     if (id === 'L3') { const t = `${L3TXT}, OVER`; return { text: t, rb: t }; }
     if (id === 'LM') {
@@ -1996,7 +1994,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (guidedOn()) {
       const gs = gStep(), need = row ? 'corr' : LINE_STEP[id];
       if (gs !== need && !(row && gs === 'spot')) { note(`First: ${coachData().title}.`); return; }
-      if (id === 'L2' && !(st.gOk.dir && st.gOk.grid && st.gOk.alt)) { note('First: Grid, ALT and Direction from Phase 1.'); return; }
+      if (id === 'L2' && !(st.gOk.dir && st.gOk.grid)) { note('First: Grid and Direction from Phase 1.'); return; }
       const f = stepWant(row ? 'corr' : gs), bad = f && Object.keys(f).find(i => fieldBad(i, f[i]));
       if (bad) { note(`${badWhy(bad)} ${coachData().tip}`); const el = hintEl(bad, f[bad]) || $(bad); shake(el); want(el); return; }
     }
@@ -2012,19 +2010,19 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     logLine('fo', m.text);
     let then = null;
-    if (id === 'L1') { R.l1 = { a: w.fdcCs, b: w.fo, m: 'AF', text: m.text }; R.lastN = 8; then = () => { R.l1Ack = true; }; }
-    else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: num(s.gAlt), dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.dir = R.l2.dir; F.bs = landing(); F.bias = F.bs[0]; R.lastN = 9; then = () => { R.l2Ack = true; }; }
+    if (id === 'L1') { R.l1 = { a: w.fdcCs, b: w.fo, m: 'AF', text: m.text }; R.lastN = 7; then = () => { R.l1Ack = true; }; }
+    else if (id === 'L2') { R.l2 = { grid: digits(s.gGrid), alt: ALTV, dir: num(s.gDir) % 6400 }; F.aim = gridCenter(s.gGrid); F.dir = R.l2.dir; F.bs = landing(); F.bias = F.bs[0]; R.lastN = 8; then = () => { R.l2Ack = true; }; }
     else if (id === 'L3') {
-      R.l3 = true; R.lastN = 10;
-      then = () => { R.l3Ack = true; F.waitRx = true; later(2000 * K(), () => { F.waitRx = false; R.mtoRx = true; fdcOver(`MESSAGE TO OBSERVER, ${w.bty}, ${roundsTxt(w.rounds)}, TARGET NUMBER ${w.tn}, OVER`, 'mto', 'mto', 11); }); };
-    } else if (id === 'LM') { R.mto = { u: s.mU, n: s.mN, tn: s.mT }; F.pend = null; R.lastN = 11; F.waitRx = true; later(2500 * K(), () => { F.waitRx = false; fireAdj(); }); refresh(); return; }
+      R.l3 = true; R.lastN = 9;
+      then = () => { R.l3Ack = true; F.waitRx = true; later(2000 * K(), () => { F.waitRx = false; R.mtoRx = true; fdcOver(`MESSAGE TO OBSERVER, ${w.bty}, ${roundsTxt(w.rounds)}, TARGET NUMBER ${w.tn}, OVER`, 'mto', 'mto', 10); }); };
+    } else if (id === 'LM') { R.mto = { u: s.mU, n: s.mN, tn: s.mT }; F.pend = null; R.lastN = 10; F.waitRx = true; later(2500 * K(), () => { F.waitRx = false; fireAdj(); }); refresh(); return; }
     else if (id === 'LE') { const tn = s.eT; R.eom = { tn }; F.phase = 'done'; later(1100 * K(), () => { fdcSay(`END OF MISSION, TARGET NUMBER ${tn}, ${EOMTXT}, OUT`); later(1500, finish); }); refresh(); return; }
     else {
       const e = expCorr(), dv = num(s['dv' + k]), ds = s['ds' + k], rk = s['rk' + k], rm = s['rm' + k], dev = ds && dv ? (ds === 'L' ? -dv : dv) : 0, rng = rk ? (rk === 'A' ? 1 : -1) * +rm : 0, ffe = rm === '50';
       R.rows.push({ sp: num(s['sp' + k]), ss: s['ss' + k], ds, dv, rk, rm, exp: e && { spot: e.spot, side: e.side, dev: e.dev, rng: e.rng, ffe: e.ffe, ot: e.ot, raw: e.raw, why: e.why, devM: e.sp.devM, range: e.sp.range } });
       F.aim = aimMove(F.aim, dev, rng);
       if (rng) F.lastMag = Math.abs(rng);
-      F.busy = true; R.lastN = 14;
+      F.busy = true; R.lastN = 13;
       then = () => later(1200 * K(), () => ffe ? fireFFE() : fireAdj());
     }
     F.waitRx = true;
@@ -2049,10 +2047,10 @@ legend { padding: 0 4px; font-weight: 650; }
   function fireAdj() {
     F.busy = false; F.inFlight = true; F.phase = 'adjust'; F.bias = F.bs[Math.min(F.adj, F.bs.length - 1)];
     const go = () => {
-      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 12); splashBinos(); });
+      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 11); splashBinos(); });
       later(TOF(), impact);
     };
-    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 12, guidedOn() ? go : null);
+    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 11, guidedOn() ? go : null);
     if (!guidedOn()) go();
   }
   function impact() {
@@ -2070,15 +2068,15 @@ legend { padding: 0 4px; font-weight: 650; }
     const th = azOf(cx - w.op.x, cy - w.op.y) * MIL, rt = [Math.cos(th), -Math.sin(th)], u = [Math.sin(th), Math.cos(th)], pts = [];
     for (let n = 0; n < nr; n++) { const lat = ((n % 4) - 1.5) * 18 + (Math.random() - 0.5) * 10, lon = (Math.random() - 0.5) * 30; pts.push([cx + rt[0] * lat + u[0] * lon, cy + rt[1] * lat + u[1] * lon]); }
     const go = () => {
-      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 15); splashBinos(); });
+      later(SPL(), () => { fdcOver('SPLASH, OVER', 'SPLASH, OUT', 'shot', 14); splashBinos(); });
       pts.forEach((p, n) => later(TOF() + n * 230, () => addBurst(p[0], p[1], 'he')));
       later(TOF() + nr * 230 + 400, () => {
         for (const v of w.tgt.veh) if (hit || pts.some(p => Math.hypot(p[0] - v.x, p[1] - v.y) <= 50)) { v.dead = true; F.killed++; }
         F.inFlight = false; kick(); refresh();
       });
-      later(TOF() + nr * 230 + 3200 * K(), () => { F.phase = 'eom'; fdcOver('ROUNDS COMPLETE, OVER', 'ROUNDS COMPLETE, OUT', 'rc', 15); });
+      later(TOF() + nr * 230 + 3200 * K(), () => { F.phase = 'eom'; fdcOver('ROUNDS COMPLETE, OVER', 'ROUNDS COMPLETE, OUT', 'rc', 14); });
     };
-    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 15, guidedOn() ? go : null);
+    fdcOver('SHOT, OVER', 'SHOT, OUT', 'shot', 14, guidedOn() ? go : null);
     if (!guidedOn()) go();
   }
   function spotOf(b) {
@@ -2105,7 +2103,7 @@ legend { padding: 0 4px; font-weight: 650; }
     return { sp, spot: n, side, ot, raw, dv, dev, rng, ffe, why, t };
   }
 
-  // ---------- Guided coach: 17 steps in 5 phases (Orient / Call / MTO / Adjust / End)
+  // ---------- Guided coach: 16 steps in 5 phases (Orient / Call / MTO / Adjust / End)
   const guidedOn = () => st.mode === 'guided' && !st.examOn && !st.ended;
   function spotOk() { const f = stepWant('spot'); return !!f && !Object.keys(f).some(id => fieldBad(id, f[id])); }
   // the burst lies outside the binoculars' field when their vertical line is on the target
@@ -2114,7 +2112,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const g = st.gOk || {};
     if (F.pend) return F.pend.want === 'mto' ? 'mto' : 'reply';
     if (F.waitRx) return 'rx';
-    if (!R.l1) return !g.op ? 'op' : !g.dir ? 'dir' : !g.plot ? 'plot' : !g.dist ? 'dist' : !g.ot ? 'ot' : !g.grid ? 'grid' : !g.alt ? 'alt' : 'l1';
+    if (!R.l1) return !g.op ? 'op' : !g.dir ? 'dir' : !g.plot ? 'plot' : !g.dist ? 'dist' : !g.ot ? 'ot' : !g.grid ? 'grid' : 'l1';
     if (!R.l2) return 'l2';
     if (!R.l3) return 'l3';
     if (!R.mto) return 'rx';
@@ -2123,8 +2121,8 @@ legend { padding: 0 4px; font-weight: 650; }
     if (F.phase === 'eom') return 'eom';
     return 'done';
   }
-  const GN = { op: 1, dir: 2, plot: 3, dist: 4, ot: 5, grid: 6, alt: 7, l1: 8, l2: 9, l3: 10, mto: 11, wait: 12, spot: 13, corr: 14, ffe: 15, eom: 16, done: 17 };
-  const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 17;
+  const GN = { op: 1, dir: 2, plot: 3, dist: 4, ot: 5, grid: 6, l1: 7, l2: 8, l3: 9, mto: 10, wait: 11, spot: 12, corr: 13, ffe: 14, eom: 15, done: 16 };
+  const stepNo = s => s === 'reply' ? F.pend.n : s === 'rx' ? R.lastN : GN[s] || 16;
   const PHN = ['Orient', 'Call', 'MTO', 'Adjust', 'End', 'Done'];
   // what each field of the step should hold now
   function stepWant(s) {
@@ -2132,8 +2130,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'dir') return { gDir: t.gdir };
     if (s === 'dist') { const m = sheetCheck().myDist; return { wDist: m != null ? m : t.dist }; }
     if (s === 'ot') { const d = num(st.sheet.wDist); return { wOt: d ? Math.max(1, Math.round(d / 1000)) : t.otf }; }
-    if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 6) } : null; }
-    if (s === 'alt') { const P = plotPoint(); return { gAlt: P ? Math.round(groundAt(w, P.x, P.y) / 5) * 5 : t.alt }; }
+    if (s === 'grid') { const P = plotPoint(); return P ? { gGrid: worldToGrid(P.x, P.y, 8) } : null; }
     if (s === 'mto') return { mU: w.bty, mN: String(w.rounds), mT: w.tn };
     if (s === 'eom') return { eT: w.tn };
     if (s === 'spot' || s === 'corr') {
@@ -2149,8 +2146,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (e.classList.contains('chips')) return chipVal(id) !== String(v);
     const raw = String(e.value).trim(), x = num(raw);
     if (v === '') return raw !== '';
-    if (id === 'gGrid') { const P = plotPoint(); return !P || ![6, 8].some(n => digits(raw) === digits(worldToGrid(P.x, P.y, n))); }
-    if (id === 'gAlt') return x == null || x % 5 !== 0 || (Math.abs(x - v) > 10 && Math.abs(x - truth().alt) > 10);
+    if (id === 'gGrid') { const P = plotPoint(); return !P || digits(raw) !== digits(worldToGrid(P.x, P.y, 8)); }
     if (/^sp/.test(id)) return x == null || Math.abs(x - v) > 5;
     if (/^dv/.test(id)) return x == null || x % 10 !== 0 || x < 30 || Math.abs(x - v) > (expCorr().ot >= 3 ? 20 : 10);
     if (id === 'gDir') return x == null || x > 6400 || x % 6400 !== +v;
@@ -2160,12 +2156,11 @@ legend { padding: 0 4px; font-weight: 650; }
   function badWhy(id) {
     const v = st.sheet[id], x = num(v), t = truth(), e = /^(sp|ss|ds|dv|rk|rm)\d$/.test(id) && expCorr();
     if (v == null || v === '') return '';
-    if (x == null && /^(gDir|wDist|wOt|gAlt|sp\d|dv\d)$/.test(id)) return 'Write digits only (no spaces, commas or other signs).';
+    if (x == null && /^(gDir|wDist|wOt|sp\d|dv\d)$/.test(id)) return 'Write digits only (no spaces, commas or other signs).';
     if (id === 'gDir') return x > 6400 ? 'Past 6400: take 6400 off (6440 → 0040).' : Math.abs(dm(x, t.mag)) <= 5 ? `${x === 6400 ? x : fmt4(x)} is the scale reading: add 70.` : Math.abs(dm(x, t.mag - 70)) <= 5 ? 'Add 70, do not subtract it.' : x % 10 ? 'Round it to the nearest 10 mils.' : '';
     if (id === 'wDist') return x % 100 ? 'Round it to the nearest 100 m.' : `${x > sheetCheck().myDist ? 'Too far' : 'Too short'}: read where ✕ sits on the range scale again.`;
     if (id === 'wOt') return 'OT FACTOR = DISTANCE ÷ 1000, to the nearest whole number.';
-    if (id === 'gGrid') { const P = plotPoint(), g = P ? digits(worldToGrid(P.x, P.y, 6)) : ''; return digits(v) === g.slice(3) + g.slice(0, 3) ? 'Read right first, then up.' : 'Read it at ✕ with the protractor.'; }
-    if (id === 'gAlt') return x % 5 ? 'Round it to the nearest 5 m.' : 'More than 10 m off: read the contours at ✕.';
+    if (id === 'gGrid') { const P = plotPoint(), g = P ? digits(worldToGrid(P.x, P.y, 8)) : ''; return digits(v).length !== 8 ? 'Grid: 8 digits (4 right, then 4 up).' : digits(v) === g.slice(4) + g.slice(0, 4) ? 'Read right first, then up.' : 'Read it at ✕ with the protractor.'; }
     if (/^sp/.test(id)) return 'Count again from the vertical line to the burst.';
     if (/^ss/.test(id)) return `The burst is ${e.side === 'L' ? 'left' : 'right'} of the vertical line.`;
     if (/^ds/.test(id)) return !e.dev ? `OT ${e.ot} × ${e.spot} mils = ${e.raw} m: 25 m or less, leave the deviation blank.` : 'The deviation goes to the side opposite the burst.';
@@ -2181,14 +2176,14 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, T = w.tgt, t = truth();
     if (st.examOn) return { lbl: st.ended ? 'Exam over' : 'Exam', title: st.ended ? 'See your result' : 'No coach in the exam', bullets: ['Orient → lines 1, 2, 3 → MTO → one row per round → End of Mission.', 'Answer every FDC message that ends OVER.', '10 minutes for the whole mission: the exam stops at 10:00.'] };
     if (st.ended) return { lbl: 'Done', title: 'Mission complete', bullets: ['Press New card for another target, or switch to Exam.'] };
-    const s = gStep(), k = R.rows.length, sq = P => { const r = proRead(P); return `square <b>${r.sqE}|${r.sqN}</b>, ${r.e[0]}/10 right, ${r.n[0]}/10 up`; };
+    const s = gStep(), k = R.rows.length, sq = P => { const r = proRead(P); return `square <b>${r.sqE}|${r.sqN}</b>, ${r.e}/100 right, ${r.n}/100 up`; };
     switch (s) {
       case 'op': return { title: 'Mark your start position', tip: `Tap here: <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
       case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''}`, bullets: [`3D view: the scale across the top is in mils, 0–6400. Read the number straight above the yellow circle (TGT ${w.tgtNo}).`, 'Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. Here: add 70. Nobody reminds you in the exam (it is not in the Given box): remember it.'] };
       case 'plot': {
         // where the target is, in words: the landmark it stands next to, how far and which way from it
         const n = `TGT ${w.tgtNo}`, L = T.lm;
-        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: on your direction line, next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, `The blue line from ◎ is your Direction (${fmt4(t.gdir)}), laid as with the protractor: follow it out from ◎ to the target's landmark.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
+        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: on your direction line, next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, `The violet line from ◎ is your Direction (${fmt4(t.gdir)}), laid as with the protractor: follow it out from ◎ to the target's landmark.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
       }
       case 'dist': {
         // your own ◎ → ✕ on the range scale, to the nearest 10 m (or 1 m where that would round to another 100 or sit on the half)
@@ -2196,8 +2191,7 @@ legend { padding: 0 4px; font-weight: 650; }
         return { title: 'Measure the distance', tip: `DISTANCE → <b>${want}</b>: ✕ sits at about ${shown} m on the range scale → nearest 100`, bullets: ['Protractor ◎→✕: its edge runs from ◎ through ✕, a tick every 100 m, a number every 500 m (every 1000 m when the map is zoomed far out, every 100 m zoomed in).', 'Count the ticks from the last number to ✕; past the half (50 m) rounds up.'] };
       }
       case 'ot': { const d = num(st.sheet.wDist) || t.dist, ot = Math.max(1, Math.round(d / 1000)); return { title: 'OT factor', tip: `OT FACTOR → <b>${ot}</b> = ${d} ÷ 1000 = ${(d / 1000).toFixed(1)} → nearest whole number`, bullets: [] }; }
-      case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 6)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up. 6 digits = 100 m; 8 digits also work.'] }; }
-      case 'alt': { const P = plotPoint(), h = P ? groundAt(w, P.x, P.y) : t.h, lo = Math.floor(h / 10) * 10; return { title: 'Read the altitude', tip: `ALT → <b>${Math.round(h / 5) * 5}</b>: the ground at ✕ is between the ${lo} and ${lo + 10} m contours (about ${Math.round(h)}) → nearest 5`, bullets: ['Zoomed in on ✕, the map prints the value of each contour near it (Guided only: the exam prints none, so there you count the lines). Contours every 10 m; the darker ones every 50 m.'] }; }
+      case 'grid': { const P = plotPoint(); return { title: 'Read the target grid', tip: `Grid → <b>${worldToGrid(P.x, P.y, 8)}</b>: ${sq(P)} (protractor on ✕)`, bullets: ['Read right, then up: 8 digits = 10 m (4 right, then 4 up).'] }; }
       case 'l1': return { title: 'Line 1: who and what', tip: `Line 1 is printed: <b>${w.fdcCs}</b> (FDC call sign) (de) this is <b>${w.fo}</b> (your call sign) · Adjust Fire → <strong>Send (Over)</strong>`, bullets: ['The FDC\'s call sign first, then yours (Given box). A grid mission starts with Adjust Fire.'] };
       case 'l2': return { title: 'Line 2: where', tip: 'Line 2 is filled from Phase 1 → <strong>Send (Over)</strong>', bullets: [] };
       case 'l3': return { title: 'Line 3: what', tip: 'Line 3 is printed → <strong>Send (Over)</strong>', bullets: [] };
@@ -2217,11 +2211,11 @@ legend { padding: 0 4px; font-weight: 650; }
       default: return { title: 'Mission complete', bullets: [] };
     }
   }
-  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], plot: ['viewCard', 'in'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], alt: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
+  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], plot: ['viewCard', 'in'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
   // sideways the box of a map tap (◎, ✕) goes above the map: under it, it would sit below the screen
   const tipAt = s => s === 'spot' || s === 'corr' ? ['R' + R.rows.length, 'after'] : (s === 'op' || s === 'plot') && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
   // why each step matters, in one line under the action
-  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid, ALT and DISTANCE all come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', alt: 'Altitude lets the FDC correct for height.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: OT × mils to the opposite side (25 m or less: blank); more than 50 m off in range: 400, then 200, 100, 50FFE = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
+  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid and DISTANCE come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: OT × mils to the opposite side (25 m or less: blank); more than 50 m off in range: 400, then 200, 100, 50FFE = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
   function placeTip(cd) {
     const tip = $('gtip'), step = guidedOn() ? gStep() : '', at = tipAt(step), key = step + R.rows.length + (F.pend ? F.pend.key : '');
     if (!at || !cd.tip) { tip.hidden = true; st.tipStep = key; return; }
@@ -2277,7 +2271,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (!gs || gs === st.typeStep) return;
     st.jumpT = setTimeout(() => {
       if (document.activeElement !== el || gStep() !== gs) return;
-      const e = gs === 'corr' && expCorr(), nx = { ot: 'wOt', alt: 'gAlt' }[gs] || (e && e.dev ? 'dv' + R.rows.length : '');
+      const e = gs === 'corr' && expCorr(), nx = { ot: 'wOt' }[gs] || (e && e.dev ? 'dv' + R.rows.length : '');
       if (nx && $(nx) && !$(nx).readOnly) { $(nx).focus(); st.typeStep = gs; }
       else { el.blur(); setTimeout(showTip, 150); }
     }, 1200);
@@ -2329,8 +2323,7 @@ legend { padding: 0 4px; font-weight: 650; }
         { txt: 'Direction: the scale reading as a grid direction, nearest 10 (±10 mils, assumption)', ok: c.x.dir },
         { txt: 'DISTANCE to the nearest 100 m, at most one 100 m step off the true distance', ok: c.x.dist },
         { txt: 'OT FACTOR = DISTANCE ÷ 1000, nearest whole number', ok: c.x.ot },
-        { txt: 'Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of the target)', ok: c.x.grid },
-        { txt: 'ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target)', ok: c.x.alt }] },
+        { txt: 'Grid, 8 digits, within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of the target)', ok: c.x.grid }] },
       { t: 'Call for fire (lines 1–3)', subs: [
         { txt: 'Line 1: FDC (de) you, Adjust Fire', ok: !!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF' },
         { txt: 'Lines 2 and 3 sent', ok: !!R.l2 && R.l3 },
@@ -2363,8 +2356,7 @@ legend { padding: 0 4px; font-weight: 650; }
     add(c.x.dir, `Direction: you wrote ${yw(s.gDir)} · correct ${fmt4(t.gdir)} = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''} · ±10 mils (assumption)`);
     add(c.x.dist, `DISTANCE: you wrote ${yw(s.wDist)}${c.myD != null ? ` (your ◎ → ✕ ${Math.round(c.myD)} m)` : ''} · true ${Math.round(t.d)} m → ${t.dist} (nearest 100) · standard ${t.dist} ±100 (${t.dist - 100}, ${t.dist} or ${t.dist + 100})`);
     add(c.x.ot, `OT FACTOR: you wrote ${yw(s.wOt)} · correct ${c.otMine != null ? `${c.otMine} = ${c.dist} ÷ 1000 = ${(c.dist / 1000).toFixed(1)}` : `${t.otf} = ${t.dist} ÷ 1000`} → nearest whole number`);
-    add(c.x.grid, `Grid: you wrote ${s.gGrid ? 'GA ' + gridTxt(s.gGrid) : 'blank'}${c.gd != null ? `, ${m100(c.gd)} m from the target${c.gx != null ? ` (${Math.round(c.gx)} m from your ✕; your ✕ is ${m100(Math.hypot(P.x - T.x, P.y - T.y))} m from the target)` : ''}` : ''} · target GA ${worldToGrid(T.x, T.y, 6)} · standard ≤ 100 m from the target (or read right at your ✕ when ✕ is within 100 m of it)`);
-    add(c.x.alt, `ALT: you wrote ${yw(s.gAlt)} · correct ${t.alt} (ground at the target ${Math.round(t.h)} m → nearest 5)${c.altX != null && c.altX !== t.alt ? ` or ${c.altX} at your ✕ (✕ is within 100 m of the target)` : ''} · standard ±10 m`);
+    add(c.x.grid, `Grid: you wrote ${s.gGrid ? 'GA ' + gridTxt(s.gGrid) : 'blank'}${c.gd != null ? `, ${m100(c.gd)} m from the target${c.gx != null ? ` (${Math.round(c.gx)} m from your ✕; your ✕ is ${m100(Math.hypot(P.x - T.x, P.y - T.y))} m from the target)` : ''}` : ''} · target GA ${worldToGrid(T.x, T.y, 8)} · standard 8 digits, ≤ 100 m from the target (or read right at your ✕ when ✕ is within 100 m of it)`);
     add(!!R.l1 && R.l1.a === w.fdcCs && R.l1.b === w.fo && R.l1.m === 'AF', `Line 1: you sent ${R.l1 ? R.l1.text : 'nothing'} · correct ${w.fdcCs}, THIS IS ${w.fo}, ADJUST FIRE, OVER`);
     if (!R.l2) add(false, 'Line 2 was never sent.');
     if (!R.l3) add(false, 'Line 3 was never sent.');
@@ -2417,7 +2409,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('mapNote').textContent = `Map: grid squares 1,000 m (yellow circle = grid line number) · contours 10 m · big green number = training area, not a grid number · pink/red = impact area · card #${st.seed}`;
   }
   // the stage at the top shows what the step needs: the 3D view or the map
-  const STAGE = { op: 'map', dir: 'view', dist: 'map', ot: 'map', plot: 'map', grid: 'map', alt: 'map', l1: 'view', l2: 'view', l3: 'view', mto: 'view', wait: 'view', spot: 'view', corr: 'view', ffe: 'view', eom: 'view' };
+  const STAGE = { op: 'map', dir: 'view', dist: 'map', ot: 'map', plot: 'map', grid: 'map', l1: 'view', l2: 'view', l3: 'view', mto: 'view', wait: 'view', spot: 'view', corr: 'view', ffe: 'view', eom: 'view' };
   function setStage(m) {
     st.stage = m;
     $('paneView').hidden = m !== 'view'; $('paneMap').hidden = m !== 'map';
@@ -2434,10 +2426,6 @@ legend { padding: 0 4px; font-weight: 650; }
       setTap('x'); st.pro = null; MV.scale = clamp(Math.min(MV.W, MV.H) / 3100, minScale(), maxScale()); MV.cx = o.x + Math.sin(a) * 1150; MV.cy = o.y + Math.cos(a) * 1150; proOn(null);
     } else if (gs === 'dist') proOn('rng', true);
     else if (gs === 'grid') proOn('x', true);
-    else if (gs === 'alt') {
-      // ALT: ✕ in the middle, close enough that the contour values round it are printed
-      const P = plotPoint(); if (P) { MV.scale = clamp(Math.min(MV.W, MV.H) / 900, minScale(), maxScale()); MV.cx = P.x; MV.cy = P.y; proOn(null); }
-    }
   }
   // the pinned stage changes height (map, binoculars, radio strip) and the top bar is taller on phones: keep the stage just under
   // the bar and the scroll offset below the stage in step
@@ -2456,7 +2444,7 @@ legend { padding: 0 4px; font-weight: 650; }
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   function phaseIdx() {
     if (st.ended) return 5;
-    if (guidedOn()) { const n = stepNo(gStep()); return n <= 7 ? 0 : n <= 10 ? 1 : n <= 12 && !F.adj ? 2 : n <= 15 ? 3 : 4; }
+    if (guidedOn()) { const n = stepNo(gStep()); return n <= 6 ? 0 : n <= 9 ? 1 : n <= 11 && !F.adj ? 2 : n <= 14 ? 3 : 4; }
     return !R.l1 ? 0 : !R.l3Ack ? 1 : !F.adj ? 2 : F.phase === 'eom' || F.phase === 'done' ? 4 : 3;
   }
   function refresh() {
@@ -2467,7 +2455,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const gs = guidedOn() ? gStep() : '';
     if (gs && gs !== st.stageStep) { st.stageStep = gs; if (STAGE[gs] && STAGE[gs] !== st.stage) setStage(STAGE[gs]); if (st.tab !== 'locate') setTab('locate'); stepEnter(gs); }
     const cd = coachData(), pi = phaseIdx();
-    $('cStep').textContent = gs ? `Step ${stepNo(gs)} of 17 · ${PHN[pi]}` : cd.lbl;
+    $('cStep').textContent = gs ? `Step ${stepNo(gs)} of 16 · ${PHN[pi]}` : cd.lbl;
     $('cDo').textContent = cd.title; $('cHow').innerHTML = (cd.bullets || []).map(b => `<li>${b}</li>`).join('');
     placeTip(cd);
     // phones: the line is often below the fold, so the coach card has a jump button to it
@@ -2518,7 +2506,7 @@ legend { padding: 0 4px; font-weight: 650; }
   function renderIntro() {
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
-      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read Grid and ALT at your ✕: Grid within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it); ALT to the nearest 5 m, within 10 m of the ground at the target (or at your ✕ when ✕ is within 100 m of the target). The exam map prints no contour values near ✕: count the 10 m lines from a spot height or the hill (every 5th line is darker).',
+      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read the Grid at your ✕, 8 digits: within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it). ALT is printed: 160.',
       'Phase 2 · Call: send lines 1, 2 and 3; answer each read-back THAT IS CORRECT, OUT. Every FDC message that ends OVER needs its answer: if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, rounds and TGT # (Changes to CFF is printed N/A), then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
       'Phase 4 · Adjust: one row per round. Spotting within 5 mils (assumption); deviation = OT × spotting, opposite side, nearest 10; 25 m or less → leave blank. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
@@ -2591,7 +2579,7 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   function exp() {
     const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
-    return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n, lm: { x: q.lm.x, y: q.lm.y, name: q.lm.name } })), lm: { x: T.lm.x, y: T.lm.y, name: T.lm.name }, knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) } };
+    return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, plot8: P ? worldToGrid(P.x, P.y, 8) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n, lm: { x: q.lm.x, y: q.lm.y, name: q.lm.name } })), lm: { x: T.lm.x, y: T.lm.y, name: T.lm.name }, knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) } };
   }
   window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, dl: MV.dl, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
   newCard(QS.get('seed') ? +QS.get('seed') : undefined);
