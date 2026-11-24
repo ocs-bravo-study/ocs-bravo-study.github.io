@@ -355,7 +355,7 @@ legend { padding: 0 4px; font-weight: 650; }
         <div class="mapbox">
           <canvas id="map" aria-label="Map sheet. Drag to move, pinch or use + and − to zoom."></canvas>
         </div>
-        <div class="m3d" id="m3d" hidden><span>Not sure where the target is? Look at its terrain in the 3D view, then match it here.</span><button class="btn" id="go3d">3D view</button></div>
+        <div class="m3d" id="m3d" hidden><span id="m3dT"></span><button class="btn" id="go3d">3D view</button></div>
         <div class="prow">
           <div class="mz"><button class="ibtn" id="zOut" aria-label="Zoom out">−</button><button class="ibtn" id="zIn" aria-label="Zoom in">+</button><button class="ibtn" id="zFit">Fit</button></div>
           <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on your ✕" title="Protractor on your ✕">✕</button><button class="btn" id="proRng" aria-pressed="false" aria-label="Range scale from ◎ through ✕" title="Range scale from ◎ through ✕">◎→✕</button></div>
@@ -1462,8 +1462,9 @@ legend { padding: 0 4px; font-weight: 650; }
     g.stroke();
     gridBubbles(g, X, Y, u, Wd, Hd);
     const gs = guidedOn() ? gStep() : ''; let laBox = null;
-    // Guided step 1: a dashed ring where the evaluator's start grid is
-    if (gs === 'op') { g.strokeStyle = '#e09a00'; g.lineWidth = 2.5 * u; g.setLineDash([7 * u, 5 * u]); g.beginPath(); g.arc(X(w.op.x), Y(w.op.y), Math.max(12 * u, 60 * sc), 0, 7); g.stroke(); g.setLineDash([]); }
+    // Guided step 1: a bold orange ring, yellow inside, where the evaluator's start grid is, with "TAP HERE": drawn last, over the protractor
+    const opR = Math.max(16 * u, 60 * sc);
+
     // Guided, mark ✕: what the 3D view shows (a fan from ◎) and a box on the grid lines round the likely area (the target's landmark), as you would draw them
     if (gs === 'plot') {
       const o = st.opMark || w.op, a0 = (st.az - FOV0 / 2) * MIL, a1 = (st.az + FOV0 / 2) * MIL, L = w.tgt.lm, bx = Math.round(L.x / 1000) * 1000 - 1000, by = Math.round(L.y / 1000) * 1000 + 1000;
@@ -1524,6 +1525,15 @@ legend { padding: 0 4px; font-weight: 650; }
     const px = plotPoint(); if (px && !st.examOn && st.pro !== 'rng' && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
     if (dl) dirLabel(g, X, Y, u, dl, laBox);
     mapRulers(g, X, Y, u, Wd, Hd);
+    if (gs === 'op') {
+      // "TAP HERE ◎" in a dark pill with a pointer, above the ring (below it near the top edge)
+      const cx = X(w.op.x), cy = Y(w.op.y), t = 'TAP HERE ◎', ph = 22 * u; g.save();
+      g.fillStyle = 'rgba(255,197,61,.35)'; g.beginPath(); g.arc(cx, cy, opR, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 6.5 * u; g.stroke(); g.strokeStyle = '#e06a00'; g.lineWidth = 3.5 * u; g.stroke(); g.font = `800 ${Math.round(13 * u)}px system-ui, -apple-system, sans-serif`;
+      const pw = g.measureText(t).width + 16 * u, up = cy - opR - 10 * u - ph > 4 * u, py = up ? cy - opR - 10 * u - ph : cy + opR + 10 * u, px = clamp(cx - pw / 2, 4 * u, Wd - pw - 4 * u);
+      g.fillStyle = '#2a2208'; g.beginPath(); if (g.roundRect) g.roundRect(px, py, pw, ph, 7 * u); else g.rect(px, py, pw, ph); g.fill();
+      g.beginPath(); if (up) { g.moveTo(cx - 6 * u, py + ph); g.lineTo(cx + 6 * u, py + ph); g.lineTo(cx, py + ph + 8 * u); } else { g.moveTo(cx - 6 * u, py); g.lineTo(cx + 6 * u, py); g.lineTo(cx, py - 8 * u); } g.fill();
+      g.fillStyle = '#ffc53d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, px + pw / 2, py + ph / 2 + 0.5 * u); g.restore();
+    }
     const ta = zoomed() ? 'none' : 'pan-y';
     if (MV.cv.style.touchAction !== ta) MV.cv.style.touchAction = ta;
   }
@@ -1823,8 +1833,16 @@ legend { padding: 0 4px; font-weight: 650; }
     return { g, x, opd, dir, dist, ot, otMine, gd, gx, myD, myDist };
   }
   // what a tap on the map marks: ◎ (your start) or ✕ (the target)
-  const m3dOn = () => !!st.w && !st.ended && !!R && !R.l2 && (guidedOn() ? gStep() === 'plot' : !!st.opMark && st.tap === 'x');
-  function m3dUpd() { const e = $('m3d'); if (e) e.hidden = !m3dOn(); }
+  // the bar under the map: step 1 says what ◎ is and where to tap; marking ✕ sends you to the 3D view to compare the terrain
+  function mapHint() {
+    if (!st.w || st.ended || !R || R.l2) return null;
+    const gs = guidedOn() ? gStep() : '', sg = `GA ${worldToGrid(st.w.op.x, st.w.op.y, 6)}`;
+    if (guidedOn() ? gs === 'op' : !st.opMark) return { t: guidedOn() ? `<b>Step 1 · Mark where you stand (◎).</b> The evaluator gives your start grid: <b>${sg}</b> (Given box). Tap the map inside the orange ring that says TAP HERE.` : `<b>Mark where you stand (◎):</b> find your start grid <b>${sg}</b> (Given box) on the map and tap it.`, b: false };
+    if (guidedOn() ? gs === 'plot' : st.tap === 'x') return { t: 'Not sure where the target is? Look at its terrain in the 3D view, then match it here.', b: true };
+    return null;
+  }
+  const m3dOn = () => { const h = mapHint(); return !!h && h.b; };
+  function m3dUpd() { const e = $('m3d'); if (!e) return; const h = mapHint(); e.hidden = !h; if (h) { if ($('m3dT').innerHTML !== h.t) $('m3dT').innerHTML = h.t; $('go3d').hidden = !h.b; } }
   function setTap(k) { st.tap = k; m3dUpd(); $('tapOp').setAttribute('aria-pressed', String(k === 'op')); $('tapX').setAttribute('aria-pressed', String(k === 'x')); }
   // Guided, a step that marks nothing (◎ is done, ✕ is not yet due or done): a map tap says so and what the step wants
   const tapIdle = s => note(`Map taps mark nothing now: ${s === 'dir' ? 'first the Direction, then ✕ (step 3)' : '◎ and ✕ are marked'}. ${coachData().tip}`);
