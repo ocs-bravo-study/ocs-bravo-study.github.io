@@ -51,7 +51,10 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .muted { color: var(--muted); }
-.lbl { display: block; font: 600 10.5px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lbl { display: block; font: 600 11px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+/* the small viewport (Safari's bars shown): fitStage sizes the pinned stage from it, so the bars sliding away, a pinch or the keyboard
+   change nothing */
+#svh { position: fixed; top: 0; left: 0; width: 0; height: 100vh; height: 100svh; visibility: hidden; pointer-events: none; }
 
 /* header */
 .top-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -73,7 +76,7 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .wrap { display: flex; flex-direction: column; gap: 10px; max-width: 1280px; margin: 0 auto; padding-block: 10px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .colL, .colR { display: contents; }
 #viewCard { order: 1; } #coach, #gtip { order: 2; } #tools { order: 3; }
-@media (max-width: 1099px) and (min-height: 640px) { #viewCard { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--tb, 51px)); z-index: 10; box-shadow: 0 8px 18px -12px rgba(0,0,0,.45); } body.kbd #viewCard { position: static; box-shadow: none; } }
+@media (max-width: 1099px) and (orientation: portrait), (max-width: 1099px) and (min-height: 640px) { #viewCard { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--tb, 51px)); z-index: 10; box-shadow: 0 8px 18px -12px rgba(0,0,0,.45); } body.kbd #viewCard { position: static; box-shadow: none; } }
 @media (min-width: 1100px) {
   .wrap { flex-direction: row; align-items: flex-start; gap: 18px; }
   .colL, .colR { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -99,7 +102,7 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 /* coach: phase strip, one step, mission line */
 .coach { min-width: 0; padding: 10px 14px 12px; border-radius: 14px; background: var(--accent-soft); }
 .phases { display: flex; gap: 4px; margin: 0 0 8px; padding: 0; list-style: none; counter-reset: ph; }
-.phases li { flex: 1; padding-top: 5px; border-top: 3px solid var(--line); font: 650 10.5px/1.2 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); counter-increment: ph; }
+.phases li { flex: 1; padding-top: 5px; border-top: 3px solid var(--line); font: 650 11px/1.2 var(--ui); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); counter-increment: ph; }
 .phases li::before { content: counter(ph) " "; }
 .phases li.done { border-top-color: var(--go); color: var(--go); }
 .phases li.now { border-top-color: var(--accent); color: var(--accent); }
@@ -119,7 +122,9 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .gtip strong { font-weight: 800; }
 .gtip .tw { display: block; margin-top: 4px; font: 500 12.5px/1.4 var(--ui); color: #6b5a1e; }
 .gtip .tw em { margin-right: 4px; font-style: normal; font-weight: 800; }
-@media (max-width: 1099px) and (min-height: 640px) { .gtip { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .gtip { scroll-margin-top: 70px; } }
+@media (max-width: 1099px) and (orientation: portrait), (max-width: 1099px) and (min-height: 640px) { .gtip { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .gtip { scroll-margin-top: 70px; } }
+/* phones: a tighter box, so a row and its DO box fit under the pinned stage together */
+@media (max-width: 699px) { .gtip { line-height: 1.6; } }
 .coach .mission { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.08); font: 650 12px/1.4 var(--mono); color: var(--muted); }
 .coach .mission b { color: var(--ink); }
 .coach .mission .linkbtn { margin-left: auto; font-family: var(--ui); }
@@ -139,7 +144,7 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 /* short phones (667 px): the Tap marks row takes room, so the pinned stage still leaves a third of the screen */
 @media (max-height: 720px) { #map { height: min(calc(100vw - 54px), 31vh); } }
 /* sideways: the 3D view | Map tabs, the map and its tools row (with Tap marks) all fit under the top bar, no scroll */
-@media (max-height: 639px) { #map { height: calc(100vh - var(--tb, 62px) - 117px); } }
+@media (max-height: 639px) and (orientation: landscape) { #map { height: calc(100vh - var(--tb, 62px) - 117px); } }
 @media (min-width: 1100px) { #map { height: min(640px, calc(100vh - 250px)); } }
 .stageSeg { display: flex; gap: 6px; margin-bottom: 6px; }
 .stageSeg button { flex: 1; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-weight: 700; cursor: pointer; }
@@ -150,11 +155,14 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .given b { font-family: var(--mono); }
 .mz { display: flex; gap: 6px; }
 .mnote { margin: 6px 0 0; font-size: 12px; }
-/* marking ✕: a bright bar under the map sends you to the 3D view to compare the terrain (user 11-23: "明显一点") */
-.m3d { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 6px 10px; border: 2px solid var(--hint); border-radius: 10px; background: #fff4d2; color: #2a2208; font: 700 13.5px/1.3 var(--ui); }
+/* marking ✕: a bright bar on the map's bottom edge sends you to the 3D view to compare the terrain (user 11-23: "明显一点"); it lies
+   over the map, so the map keeps its size when it comes and goes (nothing moves under your finger, the pinned stage stays in its 60%).
+   It is as tall as its 3D view button (+ its border) from the start, so the sheet Fit puts above it before ◎ stays clear after ◎
+   (release fix 2, V1.4) */
+.m3d { position: absolute; left: 5px; right: 5px; bottom: 5px; display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 0 0 9px; border: 2px solid var(--hint); border-radius: 10px; background: #fff4d2; color: #2a2208; font: 700 12.5px/1.25 var(--ui); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .m3d[hidden] { display: none; }
-.m3d span { flex: 1; }
-.m3d .btn { flex: none; padding: 8px 12px; border-color: #2a2208; background: #2a2208; color: #fff4d2; font-weight: 800; }
+.m3d span { flex: 1; padding-block: 4px; }
+.m3d .btn, .gtip .go3d { flex: none; padding: 6px 12px; border: 1px solid #2a2208; border-radius: 8px; background: #2a2208; color: #fff4d2; font: 800 13px/1.2 var(--ui); cursor: pointer; }
 .prow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
 /* the Tap marks switch shares the row (it wraps under the tools on a phone, so the row stays on screen sideways): two joined
    halves, the one on in ink, unlike the protractor tools (blue) */
@@ -169,6 +177,28 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .prow .btn { padding: 7px 10px; font-size: 13.5px; white-space: nowrap; }
 .prow .btn[aria-pressed="true"] { border-color: #1e3c6e; background: #1e3c6e; color: #fff; }
 .prow .btn:disabled { opacity: .4; cursor: default; }
+/* phones held upright: − + Fit share the 3D view | Map row and Tap marks shares the protractor's row (its label goes; the switch keeps
+   it as its name), so the pinned stage has one row of tools and fitStage leaves the map big within its 60% */
+@media (min-width: 355px) and (max-width: 699px) and (orientation: portrait) {
+  .vcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding-block: 6px; }
+  .vcard > * { grid-column: 1 / -1; }
+  .vcard > .stageSeg { grid-column: 1; grid-row: 1; }
+  #paneMap:not([hidden]), #paneMap .prow { display: contents; }
+  #paneMap .mapbox { grid-column: 1 / -1; }
+  #paneMap .prow > .mz { grid-column: 2; grid-row: 1; justify-self: end; margin: 0 0 6px 6px; }
+  #paneMap .prow > .pro { grid-column: 1; margin-top: 6px; }
+  #paneMap .prow > .tapm { grid-column: 2; justify-self: end; margin: 6px 0 0 6px; }
+  .tapm > .lbl { display: none; }
+  .stageSeg { gap: 4px; } .stageSeg button { padding-inline: 4px; white-space: nowrap; } .prow .btn { padding-inline: 8px; }
+}
+/* from 375 px (SE, mini and up) ◀ ▶ Binoculars share that row too, so the 3D view's stage is the tabs, the view, its caption and the
+   radio strip: the SE keeps it in its 60% with the radio strip full (release fix 2, V1.1). The tabs keep one width on both panes */
+@media (min-width: 375px) and (max-width: 699px) and (orientation: portrait) {
+  #paneView:not([hidden]) { display: contents; }
+  #paneView .vwrap, #paneView .bcap { grid-column: 1 / -1; }
+  #paneView .vctl { grid-column: 2; grid-row: 1; justify-self: end; margin: 0 0 6px 6px; }
+  .vcard > .stageSeg { max-width: 140px; }
+}
 
 /* worksheet: the paper "Call For Fire Grid Mission" sheet; it is also the radio form (one line = one transmission) */
 .paper { --ink: #1b1b1b; --muted: #5d5d55; --line: #b9b9ae; --bg: #f3f3ee; margin-top: 12px; padding: 12px 12px 10px; border: 1px solid #cfcfc6; border-radius: 6px; background: #fdfdfb; color: var(--ink); font: 13.5px/1.35 Arial, Helvetica, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
@@ -205,25 +235,33 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .fn { margin: 12px 0 0; padding: 0; list-style: none; text-align: center; font-size: 11.5px; color: #333; }
 .fn li::before { content: "* "; }
 .wl { scroll-margin-top: 72px; }
-@media (max-width: 1099px) and (min-height: 640px) { .wl { scroll-margin-top: calc(var(--stick, 300px) + 10px); } body.kbd .wl { scroll-margin-top: 70px; } }
+/* a row comes up right under the stage (or the top bar), so the column headers above row 1 are hidden whole, not cut in half */
+.wr { scroll-margin-top: calc(var(--tb, 62px) + 2px); }
+@media (max-width: 1099px) and (orientation: portrait), (max-width: 1099px) and (min-height: 640px) { .wl { scroll-margin-top: calc(var(--stick, 300px) + 10px); } .wr { scroll-margin-top: calc(var(--stick, 300px) + 2px); } body.kbd .wl { scroll-margin-top: 70px; } }
+/* phones: a row packs into two lines (meters, L / R, Add / Drop, then 400 … 50FFE and Send), so its DO box shows under it */
+@media (max-width: 699px) { .panel { padding-inline: 8px; } .paper { padding-inline: 8px; } .wr { column-gap: 6px; } .wr .cell { display: contents; } .wr .snd { padding-inline: 9px; } }
 .wsnote { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
 
 /* the radio strip under the stage: the last two transmissions and the answer buttons */
-.rx { margin-top: 6px; }
-.rxl { display: grid; gap: 2px; font: 600 11px/1.35 var(--mono); }
+.rxl { display: grid; gap: 2px; margin-top: 6px; font: 600 11px/1.35 var(--mono); }
 .rxl:empty { display: none; }
 .rxl div { overflow-wrap: anywhere; }
-.rxl b { margin-right: 5px; font: 800 9px var(--ui); letter-spacing: .06em; }
+.rxl b { margin-right: 5px; font: 800 11px var(--ui); letter-spacing: .06em; }
 .rxl .fdc b { color: var(--accent); } .rxl .fo b, .rxl .sys { color: var(--muted); }
 .rxb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
 .rxb .btn { min-height: 44px; padding: 5px 6px; font: 700 12px/1.2 var(--mono); white-space: normal; }
-.rxq { display: none; }
+/* narrow phones: each answer keeps to 2 lines ("ROUNDS COMPLETE, OUT" took 3, a 55 px row: the SE's stage over its 60%; release fix 2) */
+@media (max-width: 400px) { .rxb { column-gap: 4px; } .rxb .btn { padding-inline: 3px; } }
+.rxq { display: none; grid-column: 1 / -1; font: 600 11px/1.35 var(--mono); }
+.rxq b { margin-right: 5px; font: 800 11px var(--ui); letter-spacing: .06em; color: var(--accent); }
+/* the pinned stage: while a message waits for your answer the strip shows just that message over its buttons (your own last line is
+   on the sheet), so the SE's stage stays in its 60% (release fix 2, V1.1) */
+@media (max-width: 1099px) and (orientation: portrait), (max-width: 1099px) and (min-height: 640px) { .rx.ask > .rxl { display: none; } .rx.ask .rxq { display: block; } }
 /* phones held sideways: the stage cannot pin, so a message that waits for your answer pops up at the bottom with its buttons,
    and the view comes back up for each round */
-@media (max-width: 1099px) and (max-height: 639px) {
+@media (max-width: 1099px) and (max-height: 639px) and (orientation: landscape) {
   .rxb { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); background: var(--surface); box-shadow: 0 -8px 18px -12px rgba(0,0,0,.45); }
-  .rxq { display: block; grid-column: 1 / -1; font: 600 11px/1.35 var(--mono); }
-  .rxq b { margin-right: 5px; font: 800 9px var(--ui); letter-spacing: .06em; color: var(--accent); }
+  .rxq { display: block; }
   #viewCard { scroll-margin-top: calc(var(--tb, 62px) + 4px); }
 }
 
@@ -235,9 +273,14 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .log .fo { align-self: flex-end; background: var(--surface); border: 1px solid var(--line); text-align: right; }
 .log .fdc { align-self: flex-start; background: var(--accent-soft); }
 .log .sys { align-self: center; color: var(--muted); font: italic 500 12px var(--ui); }
-.log .who { display: block; font: 700 9.5px/1.2 var(--ui); letter-spacing: .08em; color: var(--muted); }
+.log .who { display: block; font: 700 11px/1.2 var(--ui); letter-spacing: .08em; color: var(--muted); }
 
-@media (pointer: coarse), (max-width: 640px) { .tk { padding: 11px 12px; } .ibtn { height: 40px; min-width: 40px; } .seg button { padding-block: 10px; } .chip, .snd, .wl input, .vctl .btn, .prow .btn { min-height: 40px; } .prow .btn { min-width: 40px; } }
+/* touch: every tap target at least 40 px (New card keeps its line height: the padding reaches out over the margins) */
+@media (pointer: coarse), (max-width: 640px) {
+  .tk { padding: 11px 12px; } .ibtn { height: 40px; min-width: 40px; } .seg button { min-height: 40px; padding-block: 10px; }
+  .chip, .snd, .wl input, .vctl .btn, .prow .btn, .m3d .btn, .gtip .go3d { min-height: 40px; } .prow .btn, .chip, #wOt { min-width: 40px; } .m3d { min-height: 44px; }
+  .coach .mission .linkbtn { padding: 11.5px 8px; margin: -11.5px -8px -11.5px auto; }
+}
 
 /* score sheet */
 .score { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -273,6 +316,9 @@ code { padding: 1px 5px; border: 1px solid var(--line); border-radius: 5px; back
 td.go { color: var(--go); font-weight: 700; }
 td.nogo { color: var(--nogo); font-weight: 700; }
 .fb { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+/* the Exam intro is long on a phone: Back / Start exam stay at the bottom of the screen (flush: sticky counts from inside the modal's
+   bottom padding, so it goes that far down, and nothing scrolls under it; release fix 2, V1.2) */
+#mIntro .txrow { position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); margin: 14px -18px -18px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; background: var(--surface); }
 .modal.vid { z-index: 60; flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; background: var(--bg); }
 .vbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 8px) max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
 #vidFrame { flex: 1; width: 100%; border: 0; background: var(--bg); }
@@ -354,8 +400,8 @@ legend { padding: 0 4px; font-weight: 650; }
       <div id="paneMap" hidden>
         <div class="mapbox">
           <canvas id="map" aria-label="Map sheet. Drag to move, pinch or use + and − to zoom."></canvas>
+          <div class="m3d" id="m3d" hidden><span id="m3dT"></span><button class="btn" id="go3d">3D view</button></div>
         </div>
-        <div class="m3d" id="m3d" hidden><span id="m3dT"></span><button class="btn" id="go3d">3D view</button></div>
         <div class="prow">
           <div class="mz"><button class="ibtn" id="zOut" aria-label="Zoom out">−</button><button class="ibtn" id="zIn" aria-label="Zoom in">+</button><button class="ibtn" id="zFit">Fit</button></div>
           <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on your ✕" title="Protractor on your ✕">✕</button><button class="btn" id="proRng" aria-pressed="false" aria-label="Range scale from ◎ through ✕" title="Range scale from ◎ through ✕">◎→✕</button></div>
@@ -410,6 +456,7 @@ legend { padding: 0 4px; font-weight: 650; }
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" hidden></div>
+<div id="svh" aria-hidden="true"></div>
 
 <div class="modal" id="mIntro" hidden>
   <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exT">
@@ -479,7 +526,7 @@ legend { padding: 0 4px; font-weight: 650; }
     <ol>
       <li><b>Start position:</b> the evaluator gives a 6-digit grid. Find the square (read right, then up), then the tenths inside it, and mark ◎ on the map. Grid line numbers are the yellow circles; a big green number is a training area, not a grid number.</li>
       <li><b>Direction:</b> the 3D view has a mil scale across its top (0–6400, magnetic). Read the number straight above the target (TGT n in the yellow circle) and add the G-M angle 70 mils = grid direction, to the nearest 10 mils → line 2 Direction (6370 + 70 = 6440 → 0040). 1° = 17.78 mils, because 360° = 6400 mils.</li>
-      <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. The map draws your Direction from ◎ as your protractor line: find the target's landmark along it, set <b>Tap marks</b> to ✕ Target and tap next to it.</li>
+      <li><b>Mark ✕:</b> the 3D view shows a few red numbers, each next to a landmark you can find on the map (a farm, where the dirt road leaves the main road, a railroad crossing, the railroad cut, the big hill); the target is one of them. The map draws your Direction from ◎ as your protractor line: find the target's landmark along it, press <b>✕ Target</b> under the map and tap next to it.</li>
       <li><b>Distance:</b> the protractor's range scale ◎→✕ lies from ◎ through ✕, a tick every 100 m: read where ✕ sits, nearest 100 m → DISTANCE.</li>
       <li><b>OT factor:</b> distance in thousands, nearest whole number: 1200 → 1.2 → 1.</li>
       <li>Read the <b>Grid</b> at ✕ with the protractor, <b>8 digits</b> (4 right, then 4 up) → line 2. <b>ALT</b> is printed: 160.</li>
@@ -491,7 +538,7 @@ legend { padding: 0 4px; font-weight: 650; }
     <p>Write Unit to Fire, # of Rounds and TGT # (Changes to CFF is printed N/A), then read it back ending OUT. Then <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code> (SPLASH = 5 s to impact, 2 s on Fast: eyes on the target).</p>
     <h3>Phase 4 · Adjust: one row per round</h3>
     <ul>
-      <li><b>Deviation correction:</b> count the mils from the vertical line to the burst × OT factor, nearest 10 m, written <b>XX L</b> or <b>XX R</b> (the side opposite the burst). 25 m or less: leave it blank (close enough left/right), so a correction is at least 30 m; once a row is blank, no more L/R corrections for the mission.</li>
+      <li><b>Deviation correction:</b> count the mils from the vertical line to the burst × OT factor, nearest 10 m, written <b>XX L</b> or <b>XX R</b> (the side opposite the burst). 25 m or less: leave it blank (close enough left/right), so a correction is at least 30 m; once a row is blank, no more L/R corrections for the mission. Near the 25 m line (OT × mils within OT × 5 of 25) blank or 30 both pass: you count the mils yourself.</li>
       <li><b>Range correction:</b> burst more than 50 m short (in front) → Add, more than 50 m over (beyond) → Drop. 800 is struck out: the first range correction is 400, then each one is half of the last: 200, 100, 50FFE. 50FFE = fire for effect. In class that is 4 rows: L/R + 400, 200, 100, 50FFE.</li>
       <li>No read-back: the FDC fires at once: <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code>. 5 rows: rows 1–4 can adjust; fire for effect (50FFE) on row 5 at the latest.</li>
       <li>A burst within 50 m of the target's range (range correct) → leave Add/Drop blank and tap 50FFE.</li>
@@ -553,7 +600,6 @@ legend { padding: 0 4px; font-weight: 650; }
   const GM = 70; // G-M angle 70 mils: the 3D view's scale (magnetic) + 70 = grid
   const L3TXT = '1 TANK STATIONARY IN THE OPEN, REQUEST SPLASH', ALTV = 160; // ALT is printed 160 (user 11-23)
   const EOMTXT = '1 TANK DESTROYED/NEUTRALIZED, ESTIMATED 3 CASUALTIES';
-  const OK_RB = 'THAT IS CORRECT, OUT';
   // neutral call signs and unit names (never the real sheet's)
   const FOS = ['STEEL 2', 'RAVEN 4', 'GRANITE 6', 'SABER 5', 'FALCON 3'], FDCS = ['HAMMER 3', 'IRON 7', 'ANCHOR 1', 'BISON 8', 'CEDAR 6'];
   const UNITS = ['ANVIL', 'THUNDER', 'GRIZZLY', 'LANCER', 'MUSTANG'];
@@ -992,7 +1038,8 @@ legend { padding: 0 4px; font-weight: 650; }
     const hCss = innerWidth > innerHeight && innerHeight < 520 ? Math.min(css * 0.5, shortS * 0.62)
       : css < 600 ? Math.min(css * 0.6, Math.max(140, longS * (longS < 720 ? 0.22 : 0.26)))
       : innerWidth < 1100 ? Math.min(css * 0.6, longS * 0.32) : css * 0.6;
-    const w = clamp(Math.round(css * dpr), 300, 980), h = Math.round(w * hCss / css);
+    const hFit = V.maxH ? Math.min(hCss, V.maxH) : hCss;
+    const w = clamp(Math.round(css * dpr), 300, 980), h = Math.round(w * hFit / css);
     V.sc = w / css;
     if (w === V.W && h === V.H) return;
     V.W = w; V.H = h; V.cv.width = w; V.cv.height = h;
@@ -1279,7 +1326,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'wait' || s === 'reply' || s === 'ffe') return 'Keep the vertical line on the target.';
     return st.bursts.some(b => performance.now() - b.t0 < 30000) ? 'Vertical line = your line to the target.' : `TGT ${st.w.tgtNo} is in the yellow circle · tap to center on it.`;
   }
-  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : guidedOn() && gStep() === 'dir' ? `Read the scale above TGT ${st.w.tgtNo} (yellow circle), then add 70` : m3dOn() ? `Look at the terrain around TGT ${st.w.tgtNo}, then tap Map to mark ✕` : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
+  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : guidedOn() && gStep() === 'dir' ? `Read the scale above TGT ${st.w.tgtNo} (yellow circle), then add 70` : (guidedOn() ? gStep() === 'plot' : m3dOn()) ? `Look at the terrain around TGT ${st.w.tgtNo}, then tap Map to mark ✕` : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
   function setView(az, pitch, fast) {
     st.az = w64(az); st.pitch = clamp(pitch, -0.3, 0.15);
     V.dirty = true; V.fast = !!fast; kick();
@@ -1437,10 +1484,13 @@ legend { padding: 0 4px; font-weight: 650; }
     // a protractor tool out is fitted again (the phone turned)
     if (st.pro) proOn(st.pro, true); else drawMap();
   }
-  // Fit = the whole sheet inside the margin bands (26 px left, 20 px top and bottom), so the start and the far hill both show
-  const fitScale = () => { const u = MV.W / (MV.cv.clientWidth || MV.W); return Math.min(MV.W - 26 * u, MV.H - 40 * u) / S; };
+  // Fit = the whole sheet inside the margin bands (26 px left, 20 px top and bottom; at the bottom the Exam's bar when it is up), so the
+  // start and the far hill both show
+  const fitScale = () => { const u = MV.W / (MV.cv.clientWidth || MV.W); return Math.min(MV.W - 26 * u, MV.H - 20 * u - Math.max(20 * u, barB())) / S; };
   const minScale = fitScale, maxScale = () => MV.W / S * 12, zoomed = () => MV.scale > fitScale() * 1.05;
-  function fitMap() { MV.scale = fitScale(); MV.cx = S / 2 - 13 * (MV.W / (MV.cv.clientWidth || MV.W)) / MV.scale; MV.cy = S / 2; drawMap(); }
+  function fitMap() { const u = MV.W / (MV.cv.clientWidth || MV.W); MV.scale = fitScale(); MV.cx = S / 2 - 13 * u / MV.scale; MV.cy = S / 2 - (Math.max(20 * u, barB()) - 20 * u) / 2 / MV.scale; drawMap(); }
+  // the yellow bar lies over the map's bottom edge (Exam, before ✕): the canvas px it covers there
+  const barB = () => { const e = $('m3d'); return e && !e.hidden && e.offsetHeight ? (e.offsetHeight + 9) * MV.W / (MV.cv.clientWidth || MV.W) : 0; };
   function drawMap() {
     m3dUpd();
     const g = MV.ctx, w = st.w; if (!w || !MV.W) return;
@@ -1525,13 +1575,23 @@ legend { padding: 0 4px; font-weight: 650; }
     const px = plotPoint(); if (px && !st.examOn && st.pro !== 'rng' && sc / u >= 0.14) contourLabels(g, X, Y, u, px); else { MV.cLab = []; MV.cLabXY = []; }
     if (dl) dirLabel(g, X, Y, u, dl, laBox);
     mapRulers(g, X, Y, u, Wd, Hd);
+    MV.pill = null;
     if (gs === 'op') {
-      // "TAP HERE ◎" in a dark pill with a pointer, above the ring (below it near the top edge)
-      const cx = X(w.op.x), cy = Y(w.op.y), t = 'TAP HERE ◎', ph = 22 * u; g.save();
+      // "TAP HERE ◎" in a dark pill with a pointer: left of the ring (the protractor's scales run up through ◎ and right of it), else
+      // above or below it; on the map face, off the margin bands (where grid-line circles dock) and off every yellow circle
+      const cx = X(w.op.x), cy = Y(w.op.y), t = 'TAP HERE ◎', ph = 22 * u, gap = 10 * u; g.save();
       g.fillStyle = 'rgba(255,197,61,.35)'; g.beginPath(); g.arc(cx, cy, opR, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 6.5 * u; g.stroke(); g.strokeStyle = '#e06a00'; g.lineWidth = 3.5 * u; g.stroke(); g.font = `800 ${Math.round(13 * u)}px system-ui, -apple-system, sans-serif`;
-      const pw = g.measureText(t).width + 16 * u, up = cy - opR - 10 * u - ph > 4 * u, py = up ? cy - opR - 10 * u - ph : cy + opR + 10 * u, px = clamp(cx - pw / 2, 4 * u, Wd - pw - 4 * u);
+      const pw = g.measureText(t).width + 16 * u, hx = cx - pw / 2 < 30 * u ? 30 * u : Math.min(cx - pw / 2, Wd - pw - 4 * u);
+      const at = [['l', cx - opR - gap - pw, cy - ph / 2], ['u', hx, cy - opR - gap - ph], ['d', hx, cy + opR + gap]];
+      const fits = ([, x, y]) => x >= 28 * u && x + pw <= Wd - 2 * u && y >= 22 * u && y + ph <= Hd - 22 * u && !MV.yelP.some(q => q[0] + 11 * u > x && q[0] - 11 * u < x + pw && q[1] + 11 * u > y && q[1] - 11 * u < y + ph);
+      const [sd, px, py] = at.find(fits) || (cy - opR - gap - ph > 22 * u ? at[1] : at[2]);
+      MV.pill = { x: px, y: py, w: pw, h: ph, sd };
       g.fillStyle = '#2a2208'; g.beginPath(); if (g.roundRect) g.roundRect(px, py, pw, ph, 7 * u); else g.rect(px, py, pw, ph); g.fill();
-      g.beginPath(); if (up) { g.moveTo(cx - 6 * u, py + ph); g.lineTo(cx + 6 * u, py + ph); g.lineTo(cx, py + ph + 8 * u); } else { g.moveTo(cx - 6 * u, py); g.lineTo(cx + 6 * u, py); g.lineTo(cx, py - 8 * u); } g.fill();
+      g.beginPath();
+      if (sd === 'l') { g.moveTo(px + pw, cy - 6 * u); g.lineTo(px + pw, cy + 6 * u); g.lineTo(px + pw + 8 * u, cy); }
+      else if (sd === 'u') { g.moveTo(cx - 6 * u, py + ph); g.lineTo(cx + 6 * u, py + ph); g.lineTo(cx, py + ph + 8 * u); }
+      else { g.moveTo(cx - 6 * u, py); g.lineTo(cx + 6 * u, py); g.lineTo(cx, py - 8 * u); }
+      g.fill();
       g.fillStyle = '#ffc53d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, px + pw / 2, py + ph / 2 + 0.5 * u); g.restore();
     }
     const ta = zoomed() ? 'none' : 'pan-y';
@@ -1569,7 +1629,7 @@ legend { padding: 0 4px; font-weight: 650; }
       const d = Math.hypot(P.x - dl.o.x, P.y - dl.o.y) || 1, rx = (P.x - dl.o.x) / d, ry = (P.y - dl.o.y) / d, a = (x - ox) * rx - (y - oy) * ry, n = (x - ox) * ry + (y - oy) * rx, ea = hw * Math.abs(rx) + hh * Math.abs(ry), en = hw * Math.abs(ry) + hh * Math.abs(rx);
       return a + ea > -8 * u && a - ea < rg.len * sc && n + en > 0 && n - en < rg.bw;
     };
-    const clear = (x, y, mg) => x - hw > 28 * u && x + hw < MV.W - 2 * u && y - hh > 22 * u && y + hh < MV.H - 22 * u && !hit(x, y, ox - 12 * u, oy - 12 * u, ox + 41 * u, oy + 11 * u)
+    const yB = MV.H - Math.max(22 * u, barB()), clear = (x, y, mg) => x - hw > 28 * u && x + hw < MV.W - 2 * u && y - hh > 22 * u && y + hh < yB && !hit(x, y, ox - 12 * u, oy - 12 * u, ox + 41 * u, oy + 11 * u)
       && !(P && hit(x, y, X(P.x) - 10 * u, Y(P.y) - 10 * u, X(P.x) + 10 * u, Y(P.y) + 10 * u)) && !MV.yelP.some(q => hit(x, y, q[0] - 11 * u, q[1] - 11 * u, q[0] + 11 * u, q[1] + 11 * u))
       && !hit(x, y, hx - hn, hy - 9 * u, hx + hn, hy + 9 * u) && !w.ta.nums.some(a => hit(x, y, X(a.x) - 85 * a.n.length * sc, Y(a.y) - 120 * sc, X(a.x) + 85 * a.n.length * sc, Y(a.y) + 120 * sc)) && !(la && hit(x, y, ...la)) && !MV.cLabXY.some(c => hit(x, y, c[3] - 12 * u, c[4] - 7 * u, c[3] + 12 * u, c[4] + 7 * u))
       && !(b && (hit(x, y, b.l, b.cy, b.r, b.b) || hit(x, y, b.cx, b.t, b.r, b.cy))) && !inRng(x, y)
@@ -1610,7 +1670,10 @@ legend { padding: 0 4px; font-weight: 650; }
       g.moveTo(cx, cy - d * m); g.lineTo(cx + l, cy - d * m);
     }
     g.stroke();
-    for (let d = 0; d <= 1000; d += 100) { g.fillText(String(d / 100), cx - d * m, cy + 21 * u); g.fillText(String(d / 100), cx + 21 * u, cy - d * m); }
+    // 0–9 always; the 10 (the next grid line) only where it reads: not run into the 9 on the bottom scale (a small map, 100 m about
+    // 11 px: "109"), not under the map's top band on the side scale (release fix 2, V1.5)
+    const ten = [100 * m >= (g.measureText('10').width + g.measureText('9').width) / 2 + 2 * u, cy - L - 7 * u >= 20 * u];
+    for (let d = 0; d <= 1000; d += 100) { if (d < 1000 || ten[0]) g.fillText(String(d / 100), cx - d * m, cy + 21 * u); if (d < 1000 || ten[1]) g.fillText(String(d / 100), cx + 21 * u, cy - d * m); }
     g.restore();
   }
   // the protractor's range scale: its straight edge laid from ◎ through ✕, a tick every 100 m (longer every 500 m), a number every
@@ -1646,11 +1709,11 @@ legend { padding: 0 4px; font-weight: 650; }
     st.pro = which; $('proOp').setAttribute('aria-pressed', String(which === 'op')); $('proX').setAttribute('aria-pressed', String(which === 'x')); $('proRng').setAttribute('aria-pressed', String(which === 'rng'));
     const P = proPoint(), u = MV.W / (MV.cv.clientWidth || MV.W), side = 26 * u, band = 20 * u;
     if (P && zoom) {
-      // fit the whole scale (1 km plus its body) inside the map, clear of the margin bands
-      const pad = 10 * u;
-      MV.scale = clamp(Math.min(MV.W - side - 2 * pad, MV.H - 2 * band - 2 * pad) / 1110, minScale(), maxScale());
+      // fit the whole scale (1 km plus its body) inside the map, clear of the margin bands and of the bar on the map's bottom edge
+      const pad = 10 * u, bb = Math.max(band, barB());
+      MV.scale = clamp(Math.min(MV.W - side - 2 * pad, MV.H - band - bb - 2 * pad) / 1110, minScale(), maxScale());
       const bwM = Math.max(30 * u / MV.scale, 80);
-      MV.cx = P.x - 500 + bwM / 2 - side / 2 / MV.scale; MV.cy = Math.floor(P.y / 1000) * 1000 + 500 - bwM / 2;
+      MV.cx = P.x - 500 + bwM / 2 - side / 2 / MV.scale; MV.cy = Math.floor(P.y / 1000) * 1000 + 500 - bwM / 2 - (bb - band) / 2 / MV.scale;
     } else if (which === 'rng' && zoom && st.opMark && plotPoint()) {
       // fit the whole range scale (◎ to its end past ✕, and its body on the right) inside the map, clear of the margin bands
       const o = st.opMark, X1 = plotPoint(), d = Math.hypot(X1.x - o.x, X1.y - o.y) || 1, sx = (X1.x - o.x) / d, sy = (X1.y - o.y) / d, len = Math.ceil((d + 150) / 100) * 100, pad = 14 * u;
@@ -1661,7 +1724,7 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     drawMap();
   }
-  // the contour values near ✕, to read ALT: for each 10 m contour round the ground at ✕, its nearest point within 450 m
+  // the contour values near ✕ (Guided; ALT is printed 160): for each 10 m contour round the ground at ✕, its nearest point within 450 m
   function contourLabels(g, X, Y, u, P) {
     // heights as the contours are drawn (the 20 m lattice), so each value sits on its own line
     const w = st.w, H = w.H, lat = (x, y) => { x = clamp(x, 0, S - 20.01); y = clamp(y, 0, S - 20.01); const a = Math.floor(x / 20), c = Math.floor(y / 20), fx = x / 20 - a, fy = y / 20 - c, k = c * 2 * NN + a * 2; return H[k] + (H[k + 2] - H[k]) * fx + (H[k + 2 * NN] - H[k]) * fy + (H[k] - H[k + 2] - H[k + 2 * NN] + H[k + 2 * NN + 2]) * fx * fy; };
@@ -1707,7 +1770,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const lab = MV.yel = { e: [], n: [] }, at = MV.yelP = [];
     g.save(); g.font = `800 ${Math.round(12 * u)}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
     if (!MV.dock.e) for (let x = 0; x <= S; x += 1000) { const sx = X(x); if (sx > side + rad && sx < Wd - rad) { bubble(g, sx, ry, rad, eNo(x), u); lab.e.push(eNo(x)); at.push([sx, ry]); } }
-    if (!MV.dock.n) for (let y = 0; y <= S; y += 1000) { const sy = Y(y); if (sy > band + rad && sy < Hd - band - rad) { bubble(g, cx, sy, rad, nNo(y), u); lab.n.push(nNo(y)); at.push([cx, sy]); } }
+    if (!MV.dock.n) for (let y = 0; y <= S; y += 1000) { const sy = Y(y); if (sy > band + rad && sy < Hd - Math.max(band, barB()) - rad) { bubble(g, cx, sy, rad, nNo(y), u); lab.n.push(nNo(y)); at.push([cx, sy]); } }
     g.restore();
   }
   // map margins: no printed grid numbers (the exam's map extract has none, only the yellow circles on its face);
@@ -1760,7 +1823,7 @@ legend { padding: 0 4px; font-weight: 650; }
       MV.cx = wx - (px - MV.W / 2) / ns; MV.cy = wy + (py - MV.H / 2) / ns; MV.scale = ns; drawMap();
     };
     const loc = e => { const rc = cv.getBoundingClientRect(), k = MV.W / (cv.clientWidth || rc.width); return [(e.clientX - rc.left - cv.clientLeft) * k, (e.clientY - rc.top - cv.clientTop) * k]; }; // inside the 1 px border
-    // a tap (no drag) marks your start ◎ or your ✕, as the Tap marks switch says
+    // a tap (no drag) marks your start ◎ or your ✕, as the ◎ Start | ✕ Target switch says
     cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); MV.ptr.set(e.pointerId, loc(e)); MV.tap = MV.ptr.size === 1 ? loc(e) : null; if (MV.ptr.size === 2) { const [a, b] = [...MV.ptr.values()]; MV.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: MV.scale }; } });
     cv.addEventListener('pointermove', e => {
       if (!MV.ptr.has(e.pointerId)) return;
@@ -1778,7 +1841,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('zOut').addEventListener('click', () => zoomAt(1 / 1.6, MV.W / 2, MV.H / 2));
     $('zFit').addEventListener('click', fitMap);
     $('proOp').addEventListener('click', () => { if (st.pro !== 'op' && !st.opMark) { note('Tap the map to mark your start ◎ first.'); return; } proOn(st.pro === 'op' ? null : 'op', true); });
-    $('proX').addEventListener('click', () => { if (st.pro !== 'x' && !plotPoint()) { note('Mark ✕ first: Tap marks ✕ Target, then tap the map where the target is.'); return; } proOn(st.pro === 'x' ? null : 'x', true); });
+    $('proX').addEventListener('click', () => { if (st.pro !== 'x' && !plotPoint()) { note('Mark ✕ first: press ✕ Target under the map, then tap the map where the target is.'); return; } proOn(st.pro === 'x' ? null : 'x', true); });
     $('proRng').addEventListener('click', () => { if (st.pro !== 'rng' && (!st.opMark || !plotPoint())) { note('Mark ◎ and ✕ first: the range scale runs from ◎ through ✕.'); return; } proOn(st.pro === 'rng' ? null : 'rng', true); });
     $('tapOp').addEventListener('click', () => setTap('op'));
     $('tapX').addEventListener('click', () => setTap('x'));
@@ -1837,8 +1900,9 @@ legend { padding: 0 4px; font-weight: 650; }
   function mapHint() {
     if (!st.w || st.ended || !R || R.l2) return null;
     const gs = guidedOn() ? gStep() : '', sg = `GA ${worldToGrid(st.w.op.x, st.w.op.y, 6)}`;
-    if (guidedOn() ? gs === 'op' : !st.opMark) return { t: guidedOn() ? `<b>Step 1 · Mark where you stand (◎).</b> The evaluator gives your start grid: <b>${sg}</b> (Given box). Tap the map inside the orange ring that says TAP HERE.` : `<b>Mark where you stand (◎):</b> find your start grid <b>${sg}</b> (Given box) on the map and tap it.`, b: false };
-    if (guidedOn() ? gs === 'plot' : st.tap === 'x') return { t: 'Not sure where the target is? Look at its terrain in the 3D view, then match it here.', b: true };
+    if (guidedOn()) return null;
+    if (!st.opMark) return { t: `<b>Mark ◎ where you stand:</b> your start grid <b>${sg}</b> (Given box).`, b: false };
+    if (!plotPoint()) return { t: 'Can\'t find the target? Compare its terrain:', b: true };
     return null;
   }
   const m3dOn = () => { const h = mapHint(); return !!h && h.b; };
@@ -1853,7 +1917,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w;
     if (guidedOn()) {
       // a step that marks ✕ (or nothing): say how this tap is set
-      if (gStep() !== 'op') { if (gStep() === 'plot') note(`Mark ✕ now: switch Tap marks to ✕ Target, then tap where TGT ${w.tgtNo} is.`); else tapIdle(gStep()); return; }
+      if (gStep() !== 'op') { if (gStep() === 'plot') note(`Mark ✕ now: press ✕ Target under the map, then tap where TGT ${w.tgtNo} is.`); else tapIdle(gStep()); return; }
       const d = Math.hypot(p.x - w.op.x, p.y - w.op.y);
       if (d > 400) { note(`That is ${Math.round(d)} m from the start. ${coachData().tip}`); return; }
       p = w.op;
@@ -1866,13 +1930,13 @@ legend { padding: 0 4px; font-weight: 650; }
   function markX(p) {
     if (!st.w || st.ended || R.l2) return;
     if (guidedOn()) {
-      if (gStep() !== 'plot') { if (gStep() === 'op') note('Mark ◎ first: switch Tap marks to ◎ Start, then tap your start.'); else tapIdle(gStep()); return; }
+      if (gStep() !== 'plot') { if (gStep() === 'op') note('Mark ◎ first: press ◎ Start under the map, then tap your start.'); else tapIdle(gStep()); return; }
       const T = st.w.tgt, d = Math.hypot(p.x - T.x, p.y - T.y);
       if (d > 100) { note(`TGT ${st.w.tgtNo} is about ${Math.max(110, Math.round(d / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - p.x, T.y - p.y) / 800) % 8]} of that spot. ${coachData().tip}`); return; }
     }
     // a target is never next to you: a tap on ◎ (a second tap to move it, a double tap) does not put ✕ there
     const om = st.opMark;
-    if (om && Math.hypot(p.x - om.x, p.y - om.y) <= 100) { note('Tap marks is on ✕ Target: to move ◎, press ◎ Start first.'); return; }
+    if (om && Math.hypot(p.x - om.x, p.y - om.y) <= 100) { note('Taps mark ✕ now (✕ Target is on): to move ◎, press ◎ Start first.'); return; }
     st.xMark = { x: p.x, y: p.y }; refresh();
   }
   // line states: sent (ink, read-only), now (you can fill it), later (grey); Send works only in order
@@ -1885,11 +1949,10 @@ legend { padding: 0 4px; font-weight: 650; }
   function canSend(id) {
     if (!st.w || st.ended || F.waitRx || lineStates()[id] !== 'now' || id === 'OD') return false;
     if (id === 'LM') return !!F.pend && F.pend.want === 'mto';
-    // Guided: answer the FDC first. Exam: the next line can go with an FDC message still unanswered (it counts as missed),
-    // a read-back too
-    const p = F.pend, rb = !!p && p.kind === 'call';
+    // Guided: answer the FDC first. Exam: the next line can go with an FDC message still unanswered (it counts as missed)
+    const p = F.pend;
     if (p && (guidedOn() || p.want === 'mto')) return false;
-    return id === 'L1' ? F.phase === 'cff' : id === 'L2' ? R.l1Ack || rb : id === 'L3' ? R.l2Ack || rb : true;
+    return id === 'L1' ? F.phase === 'cff' : id === 'L2' ? R.l1Ack : id === 'L3' ? R.l2Ack : true;
   }
   function renderLines() {
     const ls = lineStates();
@@ -1905,7 +1968,8 @@ legend { padding: 0 4px; font-weight: 650; }
     $('tapOp').disabled = $('tapX').disabled = !!R.l2 || st.ended || guidedOn() && !['op', 'plot'].includes(gStep());
   }
 
-  // ---------- radio: the strip under the view (last two transmissions + answer buttons) and the full Log tab
+  // ---------- radio: the strip under the view (last two transmissions + answer buttons; pinned, a message waiting for its answer shows
+  // alone over its buttons: .ask) and the full Log tab
   function logLine(who, text) {
     const el = document.createElement('div'); el.className = 'ln ' + who;
     el.innerHTML = who === 'sys' ? esc(text) : `<span class="who">${who === 'fo' ? st.w.fo + ' (you)' : st.w.fdcCs + ' (FDC)'}</span>${esc(text)}`;
@@ -1918,7 +1982,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const tag = { fo: 'YOU', fdc: 'FDC', sys: '' }, h = st.logs.slice(-2).map(([who, t]) => `<div class="${who}">${tag[who] ? `<b>${tag[who]}</b>` : ''}${esc(t)}</div>`).join('');
     if (st.rxH !== h) { st.rxH = h; $('rxLog').innerHTML = h; }
     const p = F.pend, on = !!p && p.want !== 'mto' && !st.ended;
-    $('rxBtns').hidden = !on;
+    $('rxBtns').hidden = !on; $('rx').classList.toggle('ask', on);
     if (on && $('rxBtns').dataset.k !== p.key) { $('rxBtns').dataset.k = p.key; $('rxBtns').innerHTML = `<div class="rxq"><b>FDC</b>${esc(p.msg)}</div>` + p.opts.map(v => `<button type="button" class="btn" data-v="${esc(v)}">${esc(v)}</button>`).join(''); }
   }
   $('rxBtns').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) reply(b.dataset.v, b); });
@@ -1962,7 +2026,7 @@ legend { padding: 0 4px; font-weight: 650; }
   // the FDC moves its aim along the observer-target line you sent (line 2 Direction, or the one given): dev m to the right, rng m out
   function aimMove(a, dev, rng, d = F.dir) { const w = st.w, th = (d != null ? d : azOf(a.x - w.op.x, a.y - w.op.y)) * MIL; return { x: a.x + Math.cos(th) * dev + Math.sin(th) * rng, y: a.y - Math.sin(th) * dev + Math.cos(th) * rng }; }
   const fdcSay = t => logLine('fdc', t);
-  const REPLYWHY = { call: 'The read-back matches what you sent.', corr: 'The read-back matches your correction.', shot: 'It ends OVER: say you heard it.', rc: 'All rounds are fired: say you heard it.' };
+  const REPLYWHY = { shot: 'It ends OVER: say you heard it.', rc: 'All rounds are fired: say you heard it.' };
   // an FDC message ending OVER waits for your answer; a new one replaces an unanswered one, which counts as missed
   function fdcOver(msg, want, kind, n, then) {
     if (F.pend && F.pend.want !== 'mto') R.replies.push({ msg: F.pend.msg, want: F.pend.want, kind: F.pend.kind, said: '', ok: false });
@@ -2115,8 +2179,9 @@ legend { padding: 0 4px; font-weight: 650; }
     const t = truth(); if (!b) return null;
     const sp = spotOf(b), n = Math.round(Math.abs(sp.devM)), side = n <= 2 ? '*' : sp.devM > 0 ? 'R' : 'L';
     const otIn = num(st.sheet.wOt), ot = Number.isInteger(otIn) && otIn >= 1 && otIn <= 9 ? otIn : t.otf, raw = ot * n, dv = r10(raw);
-    // once a row had no L/R correction (25 m or less), no more L/R corrections for the mission (lock = that row's number)
-    const lock = R.rows.findIndex(r => r.exp && !r.exp.dev) + 1, dev = !lock && raw > 25 ? { k: sp.devM > 0 ? 'L' : 'R', m: dv } : null;
+    // once a row had no L/R correction (25 m or less), no more L/R corrections for the mission (lock = that row's number). Near the 25 m
+    // line either answer passes, so the row counts as you sent it: blank and right locks, a right 30 does not (wrong: as it should have been)
+    const lock = R.rows.findIndex(r => r.exp && (rowGrade(r).dv ? !r.ds : !r.exp.dev)) + 1, dev = !lock && raw > 25 ? { k: sp.devM > 0 ? 'L' : 'R', m: dv } : null;
     let rng = null, ffe = false, why;
     if (sp.range === 'RC') { ffe = true; why = 'within 50 m of the target\'s range = range correct: leave Add/Drop blank, 50FFE = fire for effect'; }
     else {
@@ -2127,6 +2192,9 @@ legend { padding: 0 4px; font-weight: 650; }
     }
     return { sp, spot: n, side, ot, raw, dv, dev, rng, ffe, why, t, lock };
   }
+
+  // the burst in words: its mils and side (1–2 mils: off the line, no side; the deviation is blank anyway)
+  const burstAt = e => e.side === '*' ? (e.spot ? `${e.spot} mil${e.spot > 1 ? 's' : ''} off the vertical line` : 'on the vertical line') : `${e.spot} mils ${e.side === 'R' ? 'right' : 'left'}`;
 
   // ---------- Guided coach: 15 steps in 5 phases (Orient / Call / MTO / Adjust / End)
   const guidedOn = () => st.mode === 'guided' && !st.examOn && !st.ended;
@@ -2201,12 +2269,12 @@ legend { padding: 0 4px; font-weight: 650; }
     if (st.ended) return { lbl: 'Done', title: 'Mission complete', bullets: ['Press New card for another target, or switch to Exam.'] };
     const s = gStep(), k = R.rows.length, sq = (P, d8) => { const r = proRead(P); return `square <b>${r.sqE}|${r.sqN}</b>, ${d8 ? r.e + '/100' : r.e[0] + '/10'} right, ${d8 ? r.n + '/100' : r.n[0] + '/10'} up`; };
     switch (s) {
-      case 'op': return { title: 'Mark your start position', tip: `Tap here: <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
+      case 'op': return { title: 'Mark your start position', tip: `◎ = where you stand. Tap inside the orange <b>TAP HERE</b> ring: your start grid <b>GA ${worldToGrid(w.op.x, w.op.y, 6)}</b> (Given box) → ${sq(w.op)}`, bullets: ['The start grid comes from the evaluator (Given box). Read right, then up; the protractor shows the tenths.', 'Yellow circle = grid line number. Big green number = training area, not a grid number.'] };
       case 'dir': return { title: 'Direction (line 2)', tip: `Direction → <b>${fmt4(t.gdir)}</b> = ${fmt4(t.mag)} (scale above TGT ${w.tgtNo}) + 70 = ${t.mag + 70 >= 6400 ? `${t.mag + 70} − 6400 = ` : ''}${fmt4(t.raw)} → nearest 10${r10(t.raw) === 6400 ? ' = 6400 = 0000' : ''}`, bullets: [`3D view: the scale across the top is in mils, 0–6400. Read the number straight above the yellow circle (TGT ${w.tgtNo}).`, 'Footnote: Magnetic Azimuth (+ or −) GM angle = Grid direction. Here: add 70. Nobody reminds you in the exam (it is not in the Given box): remember it.'] };
       case 'plot': {
         // where the target is, in words: the landmark it stands next to, how far and which way from it
         const n = `TGT ${w.tgtNo}`, L = T.lm;
-        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: on your direction line, next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it)`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, `The violet line from ◎ is your Direction (${fmt4(t.gdir)}), laid as with the protractor: follow it out from ◎ to the target's landmark.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
+        return { title: 'Mark the target ✕', tip: `Map: tap ✕ where <b>${n}</b> is: on your direction line, next to ${L.name} (about ${Math.max(10, Math.round(Math.hypot(T.x - L.x, T.y - L.y) / 10) * 10)} m ${DIR8[Math.round(azOf(T.x - L.x, T.y - L.y) / 800) % 8]} of it) · not sure? <button class="go3d" data-go3d>3D view</button>`, bullets: [`3D view: ${n} stands next to ${L.name}; each red number stands next to a landmark you can also find on the map.`, `The violet line from ◎ is your Direction (${fmt4(t.gdir)}), laid as with the protractor: follow it out from ◎ to the target's landmark.`, 'Map: the dashed fan is what the 3D view shows from ◎, the box the likely area. Find the same landmark there and tap ✕ next to it.'] };
       }
       case 'dist': {
         // your own ◎ → ✕ on the range scale, to the nearest 10 m (or 1 m where that would round to another 100 or sit on the half)
@@ -2224,7 +2292,7 @@ legend { padding: 0 4px; font-weight: 650; }
       case 'wait': return { title: 'Round on the way', tip: `Watch the target: SPLASH = ${(TOF() - SPL()) / 1000} s to impact`, bullets: [] };
       case 'corr': {
         const e = expCorr();
-        const bs = e.side === '*' ? 'on the vertical line' : `${e.spot} mils ${e.side === 'R' ? 'right' : 'left'}`;
+        const bs = burstAt(e);
         const dv = e.dev ? `Deviation → <b>${e.dev.m} ${LRT[e.dev.k]}</b>: burst ${bs} × OT ${e.ot} = ${e.raw} m → nearest 10, opposite side` : e.lock ? `Deviation → <b>leave blank</b>: left/right was within 25 m in row ${e.lock}, so no more L/R corrections` : `Deviation → <b>leave blank</b>: burst ${bs} × OT ${e.ot} = ${e.raw} m, 25 m or less`;
         const rg = e.rng ? `Range → <b>${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}</b>: ${e.why}` : `Range → <b>50FFE</b> only: ${e.why}`;
         return { title: `Row ${k + 1}: correct it`, tip: `${dv}<br>${rg} → <strong>Send (OVER)</strong>`, bullets: [] };
@@ -2234,11 +2302,15 @@ legend { padding: 0 4px; font-weight: 650; }
       default: return { title: 'Mission complete', bullets: [] };
     }
   }
-  const TIPAT = { op: ['viewCard', 'in'], dir: ['L2', 'after'], plot: ['viewCard', 'in'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'after'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'after'] };
+  const TIPAT = { op: ['coach', 'before'], dir: ['L2', 'after'], plot: ['coach', 'before'], dist: ['OD', 'after'], ot: ['OD', 'after'], grid: ['L2', 'after'], l1: ['L1', 'after'], l2: ['L2', 'after'], l3: ['L3', 'after'], mto: ['LM', 'before'], reply: ['coach', 'after'], rx: ['coach', 'after'], wait: ['coach', 'after'], ffe: ['coach', 'after'], eom: ['LE', 'before'] };
   // sideways the box of a map tap (◎, ✕) goes above the map: under it, it would sit below the screen
+  // the MTO and End of Mission lines are taller than the room under the stage on a small phone: their box goes above them, so the box and
+  // the chips it names show together
   const tipAt = s => s === 'corr' ? ['R' + R.rows.length, 'after'] : (s === 'op' || s === 'plot') && LAND.matches ? ['paneMap', 'before'] : TIPAT[s];
+  // the sheet line a step's box goes with (none: the coach, or the map sideways)
+  const tipLine = at => at && !['coach', 'paneMap'].includes(at[0]) ? at[0] : '';
   // why each step matters, in one line under the action
-  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid and DISTANCE come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', spot: 'Record what you see in mils first.', corr: 'Correct toward the target: OT × mils to the opposite side (25 m or less: blank); more than 50 m off in range: 400, then 200, 100, 50FFE = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
+  const WHY = { op: 'Every direction and distance starts from your own position.', dir: 'The FDC works in grid mils; here the scale reading + 70 = grid.', plot: 'Grid and DISTANCE come from where you put ✕.', dist: 'DISTANCE gives the OT factor.', ot: 'OT factor turns the mils you see into the meters you send.', grid: 'The FDC aims at the grid.', l1: 'Who you call, who you are; a map grid gets adjusting rounds first.', l2: 'Where the target is, how high, which way you look.', l3: 'What it is picks the shell; REQUEST SPLASH = the FDC warns you before impact.', reply: 'Every FDC message that ends OVER needs an answer; OUT needs none.', mto: 'You need the target number to end the mission.', wait: 'You have to see where it lands to correct it.', corr: 'Correct toward the target: OT × mils to the opposite side (25 m or less: blank); more than 50 m off in range: 400, then 200, 100, 50FFE = fire for effect.', ffe: 'What you see now is your report at the end.', eom: 'The same number closes the right mission.' };
   function placeTip(cd) {
     const tip = $('gtip'), step = guidedOn() ? gStep() : '', at = tipAt(step), key = step + R.rows.length + (F.pend ? F.pend.key : '');
     if (!at || !cd.tip) { tip.hidden = true; st.tipStep = key; return; }
@@ -2253,17 +2325,17 @@ legend { padding: 0 4px; font-weight: 650; }
     if (key !== st.tipStep) { const first = !st.tipStep; st.tipStep = key; if (!first) setTimeout(showTip, LAND.matches && step === 'corr' ? 2500 : 120); }
   }
   // phones held sideways: the stage does not pin (no room), answers pop up in a bar at the bottom
-  const LAND = matchMedia('(max-width: 1099px) and (max-height: 639px)');
-  // bring the line and its DO box into view: the line at the top, just under the pinned stage
+  const LAND = matchMedia('(max-width: 1099px) and (max-height: 639px) and (orientation: landscape)');
+  // bring the line and its DO box into view: the line (or its box, when the box goes above it) at the top, just under the pinned stage
   function showTip() {
-    const tip = $('gtip'), s = guidedOn() ? gStep() : '', at = tipAt(s), el = at && at[1] === 'after' && at[0] !== 'coach' ? $(at[0]) : null;
+    const tip = $('gtip'), s = guidedOn() ? gStep() : '', at = tipAt(s), line = tipLine(at), el = line && at[1] === 'after' ? $(line) : null;
     if (tip.hidden) return;
     // sideways: the answer bar needs no scroll, and the round needs the view on screen
     if (LAND.matches && ['reply', 'rx', 'wait', 'ffe'].includes(s)) { if (s === 'wait' || s === 'ffe') $('viewCard').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     // 'nearest' does not see the pinned stage on phones: scroll whenever the box sits under the stage or below the screen
     const r = tip.getBoundingClientRect(), mt = parseFloat(getComputedStyle(el || tip).scrollMarginTop);
     // a line taller than the room under the stage (the MTO on a small phone): its bottom goes to the screen edge, so Send shows
-    if (el || r.top < mt || r.bottom > innerHeight) (el || tip).scrollIntoView({ block: el && el.offsetHeight > innerHeight - mt ? 'end' : 'start', behavior: 'smooth' });
+    if (line || r.top < mt || r.bottom > innerHeight) (el || tip).scrollIntoView({ block: el && el.offsetHeight > innerHeight - mt ? 'end' : 'start', behavior: 'smooth' });
   }
   // turning the phone moves the page under the pinned stage: put the DO box back in sight
   LAND.addEventListener('change', () => { refresh(); setTimeout(showTip, 400); });
@@ -2278,7 +2350,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'reply') add($('rxBtns').querySelector(`button[data-v="${F.pend.want}"]`));
   }
   function note(html) {
-    const t = $('toast'); t.innerHTML = (guidedOn() && !/^(Mark|Map taps|Tap the map|First|Line 1 needs|Grid:|ALT:|Direction:|MTO:|End of Mission:|Deviation:|Range:|A correction)/.test(html) ? '<b>Not that one.</b> ' : '') + html + '<small>Tap to close</small>';
+    const t = $('toast'); t.innerHTML = (guidedOn() && !/^(Mark|Map taps|Tap the map|First|Line 1 needs|Grid:|Direction:|MTO:|End of Mission:|Deviation:|Range:|A correction)/.test(html) ? '<b>Not that one.</b> ' : '') + html + '<small>Tap to close</small>';
     t.hidden = false; t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
     note.at = performance.now(); clearTimeout(note.t); note.t = setTimeout(() => { t.hidden = true; }, 6000);
     $('coach').classList.remove('shake'); void $('coach').offsetWidth; $('coach').classList.add('shake');
@@ -2322,8 +2394,8 @@ legend { padding: 0 4px; font-weight: 650; }
   });
 
   // ---------- grading (Exam standards; assumptions are marked)
-  // the deviation is also right when it follows the rules from your own spotting (when that is within the 5 mils); a correction is
-  // at least 30 m
+  // near the 25 m line (|OT × mils − 25| ≤ OT × 5, before the L/R lock) blank and 30 opposite the burst both pass (alt: the other one); a
+  // correction is at least 30 m
   function rowGrade(r) {
     const e = r.exp; if (!e) return { sp: false, dv: false, rg: false };
     const tol = e.ot >= 3 ? 20 : 10, sp = true, near = !e.lock && Math.abs(e.raw - 25) <= e.ot * 5;
@@ -2332,7 +2404,8 @@ legend { padding: 0 4px; font-weight: 650; }
     return {
       sp,
       dv: dvOk(e.dev) || (mine !== undefined && dvOk(mine)),
-      rg: e.rng ? r.rk === e.rng.k && r.rm === String(e.rng.m) : !r.rk && r.rm === '50'
+      rg: e.rng ? r.rk === e.rng.k && r.rm === String(e.rng.m) : !r.rk && r.rm === '50',
+      alt: mine
     };
   }
   function evalAll() {
@@ -2355,7 +2428,7 @@ legend { padding: 0 4px; font-weight: 650; }
         { txt: 'Unit to Fire, # of Rounds and TGT # written right (Changes to CFF printed N/A)', ok: mtoOk },
         { txt: 'MTO read back (Out)', ok: !!R.mto }] },
       { t: 'Adjust fire (one row per round)', subs: [
-        { txt: 'Deviation: XX L / XX R = OT × the burst\'s mils, opposite side, nearest 10 (±10 m); 25 m or less blank, then no more L/R corrections', ok: all('dv') },
+        { txt: 'Deviation: XX L / XX R = OT × the burst\'s mils, opposite side, nearest 10 (±10 m, ±20 at OT 3 or more); 25 m or less blank (near 25 m: blank or 30), then no more L/R corrections', ok: all('dv') },
         { txt: 'Range: more than 50 m short Add, over Drop: 400, then half of the last (200, 100, 50FFE); within 50 m 50FFE', ok: all('rg') },
         { txt: 'SHOT and SPLASH answered right', ok: rep(['shot']) }] },
       { t: 'Fire for effect', subs: [
@@ -2389,8 +2462,10 @@ legend { padding: 0 4px; font-weight: 650; }
     R.rows.forEach((r, i) => {
       const gr = rowGrade(r), e = r.exp; if (!e) return;
       const mine = `${r.ds ? `${r.dv} ${LRT[r.ds]}` : 'blank'} | ${r.rk ? `${ADT[r.rk]} ` : ''}${r.rm ? (r.rm === '50' ? '50FFE' : r.rm) : 'blank'}`;
-      const right = `${e.dev ? `${e.dev.m} ${LRT[e.dev.k]}` : 'blank'} (${e.lock ? `left/right within 25 m in row ${e.lock}: no more L/R corrections` : `burst ${e.spot} mils ${e.side === '*' ? '' : e.side === 'R' ? 'right ' : 'left '}× OT ${e.ot} = ${e.raw} → ${e.dev ? 'nearest 10, opposite side' : '25 m or less: blank'}`}) | ${e.rng ? `${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}` : '50FFE'} (${e.why})`;
-      add(gr.dv && gr.rg, `Row ${i + 1}: you wrote ${mine} · correct ${right}`);
+      const right = `${e.dev ? `${e.dev.m} ${LRT[e.dev.k]}` : 'blank'} (${e.lock ? `left/right within 25 m in row ${e.lock}: no more L/R corrections` : `burst ${burstAt(e)} × OT ${e.ot} = ${e.raw} → ${e.dev ? 'nearest 10, opposite side' : '25 m or less: blank'}`}) | ${e.rng ? `${ADT[e.rng.k]} ${e.rng.m === 50 ? '50FFE' : e.rng.m}` : '50FFE'} (${e.why})`;
+      // near the 25 m line the other answer passes too: say so (a GO row written the other way is not "wrong")
+      const alt = gr.alt === undefined ? '' : ` · near the 25 m line ${gr.alt ? `${gr.alt.m} ${LRT[gr.alt.k]}` : 'blank'} also passes`;
+      add(gr.dv && gr.rg, `Row ${i + 1}: you wrote ${mine} · correct ${right}${alt}`);
     });
     if (R.ffeAim) { const fe = axisErr(R.ffeAim); add(fe.max <= 50, `Fire for effect after ${R.rows.length} row(s), ${Math.round(fe.d)} m from the target (range ${Math.round(Math.abs(fe.rng))} m ${fe.rng > 0 ? 'over' : 'short'}, deviation ${Math.round(Math.abs(fe.dev))} m) · standard ≤ 50 m in range and in deviation (assumption)`); }
     else add(false, R.rows.length >= ROWS ? 'No fire for effect by row 5 (rows 1–4 adjust; row 5 at the latest is 50FFE).' : `No fire for effect: the mission ended after ${R.rows.length} row(s).`);
@@ -2430,7 +2505,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('mapNote').textContent = `Map: grid squares 1,000 m (yellow circle = grid line number) · contours 10 m · big green number = training area, not a grid number · pink/red = impact area · card #${st.seed}`;
   }
   // the stage at the top shows what the step needs: the 3D view or the map
-  const STAGE = { op: 'map', dir: 'view', dist: 'map', ot: 'map', plot: 'map', grid: 'map', l1: 'view', l2: 'view', l3: 'view', mto: 'view', wait: 'view', spot: 'view', corr: 'view', ffe: 'view', eom: 'view' };
+  const STAGE = { op: 'map', dir: 'view', dist: 'map', ot: 'map', plot: 'map', grid: 'map', l1: 'view', l2: 'view', l3: 'view', mto: 'view', wait: 'view', corr: 'view', ffe: 'view', eom: 'view' };
   function setStage(m) {
     st.stage = m;
     $('paneView').hidden = m !== 'view'; $('paneMap').hidden = m !== 'map';
@@ -2450,10 +2525,27 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   // the pinned stage changes height (map, binoculars, radio strip) and the top bar is taller on phones: keep the stage just under
   // the bar and the scroll offset below the stage in step
-  const stickRO = new ResizeObserver(() => { const tb = document.querySelector('.top-bar').offsetHeight, s = document.documentElement.style; s.setProperty('--tb', tb + 'px'); s.setProperty('--stick', ($('viewCard').offsetHeight + tb) + 'px'); });
+  // phones (portrait, stage pinned): the stage takes at most 60% of the screen under the top bar, whatever the phone; the map or the
+  // 3D view gives way (map at least 150 px, view 120 px), so the sheet always keeps 40% of the screen. Typing (kbd) unpins it: no change.
+  // The height is the small viewport's (Safari's bars shown, #svh): the bars sliding away on a scroll, a pinch or the keyboard leave the
+  // stage as it is. The rest of the stage is measured to the fraction of a pixel, so a canvas whose CSS height is fractional settles
+  // at once (rounded heights flipped it by 1 px on every pass: a resize loop that kept the 3D view black)
+  function fitStage() {
+    const vc = $('viewCard'); if (!vc || !MV.cv || document.body.classList.contains('kbd')) return;
+    const sticky = getComputedStyle(vc).position === 'sticky', vh = $('svh').offsetHeight || innerHeight, vch = vc.getBoundingClientRect().height;
+    const max = (vh - document.querySelector('.top-bar').offsetHeight) * 0.6;
+    if (!$('paneMap').hidden) {
+      const c = MV.cv, h = sticky ? Math.floor(clamp(max - (vch - c.getBoundingClientRect().height), 150, innerWidth - 54)) + 'px' : '';
+      if (c.style.height !== h) { c.style.height = h; sizeMap(); }
+    }
+    if (!$('paneView').hidden) { const m = sticky ? Math.max(120, Math.floor(max - (vch - V.cv.getBoundingClientRect().height))) : 0; if (m !== V.maxH) { V.maxH = m; sizeView(); } }
+  }
+  const stickRO = new ResizeObserver(() => { fitStage(); const tb = document.querySelector('.top-bar').offsetHeight, s = document.documentElement.style; s.setProperty('--tb', tb + 'px'); s.setProperty('--stick', ($('viewCard').offsetHeight + tb) + 'px'); });
+  if (window.visualViewport) visualViewport.addEventListener('resize', fitStage);
   stickRO.observe($('viewCard')); stickRO.observe(document.querySelector('.top-bar'));
   $('stView').addEventListener('click', () => setStage('view'));
-  $('go3d').addEventListener('click', () => { setStage('view'); renderCap(); });
+  // sideways the stage does not pin: the 3D view hint brings its top (3D view | Map) back on screen, so "then tap Map" can be followed
+  document.addEventListener('click', e => { if (e.target.closest('#go3d, [data-go3d]')) { setStage('view'); renderCap(); if (LAND.matches) $('viewCard').scrollIntoView({ block: 'start' }); } });
   $('stMap').addEventListener('click', () => setStage('map'));
   function setTab(t) {
     // a field on the panel that goes away loses the keyboard now, so the stage pins again before anything scrolls
@@ -2481,7 +2573,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('cDo').textContent = cd.title; $('cHow').innerHTML = (cd.bullets || []).map(b => `<li>${b}</li>`).join('');
     placeTip(cd);
     // phones: the line is often below the fold, so the coach card has a jump button to it
-    const at = tipAt(gs), row = at && at[1] === 'after' && at[0] !== 'coach' ? at[0] : '';
+    const row = tipLine(tipAt(gs));
     $('cGo').hidden = !row; if (row) $('cGo').textContent = `↓ Go to ${LNAME(row)}`;
     document.querySelectorAll('#phases li').forEach((li, i) => { li.className = i < pi ? 'done' : i === pi ? 'now' : ''; });
     renderRx(); hints(); renderScore(); renderCap();
@@ -2512,7 +2604,7 @@ legend { padding: 0 4px; font-weight: 650; }
       V.aimK = clamp(0.22 + (0.78 * bR - el) / fH, 0.66, 0.9);
       setView(tr.az + off, el);
       renderMission();
-      setStage('map'); sizeMap(); fitMap();
+      setStage('map'); sizeMap(); m3dUpd(); fitMap();
       st.pro = null; proOn(null);
       st.t0 = performance.now(); st.running = true;
       $('busy').hidden = true;
@@ -2528,17 +2620,18 @@ legend { padding: 0 4px; font-weight: 650; }
   function renderIntro() {
     const items = [
       'Time: 10 minutes for the whole mission. The clock starts when you press Start; the exam stops at END OF MISSION or at 10:00, and whatever is not done by then is NO-GO.',
-      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it ("Tap marks" picks ◎ or ✕); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read the Grid at your ✕, 8 digits: within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it). ALT is printed: 160.',
+      'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it (◎ Start / ✕ Target under the map picks which one a tap marks); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read the Grid at your ✕, 8 digits: within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it). ALT is printed: 160.',
       'Phase 2 · Call: send lines 1, 2 and 3 one after another; the FDC does not read them back. Every FDC message that ends OVER needs its answer (SHOT, OUT; SPLASH, OUT; ROUNDS COMPLETE, OUT): if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · MTO: write unit, rounds and TGT # (Changes to CFF is printed N/A), then send it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
-      'Phase 4 · Adjust: one row per round, no read-back. Deviation = the burst\'s mils from the vertical line × OT, opposite side, nearest 10, written XX L or XX R; 25 m or less → leave blank, and after a blank row no more L/R corrections. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
+      'Phase 4 · Adjust: one row per round, no read-back. Deviation = the burst\'s mils from the vertical line × OT, opposite side, nearest 10, written XX L or XX R; 25 m or less → leave blank, and after a blank row no more L/R corrections; near the 25 m line (OT × mils within OT × 5 of 25) blank or 30 both pass. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
       'Phase 5 · End: ROUNDS COMPLETE, OUT, then End of Mission with the TGT # from the MTO.',
       'No coach, no highlights, no ✓ marks, no Ref until the end. Any NO-GO sends you to Charlie Company.'
     ];
     $('exList').innerHTML = items.map(t => `<li>${esc(t)}</li>`).join('');
     $('refStd').innerHTML = items.slice(0, 6).map(t => `<li>${esc(t)}</li>`).join('');
   }
-  function openModal(id) { $(id).hidden = false; document.body.classList.add('locked'); }
+  // every dialog opens at its top (a debrief scrolled down to its buttons must not open the next one scrolled down)
+  function openModal(id) { $(id).hidden = false; $(id).scrollTop = 0; document.body.classList.add('locked'); }
   function closeModal(id) { $(id).hidden = true; if (!document.querySelector('.modal:not([hidden])')) document.body.classList.remove('locked'); }
   function closeAll() { document.querySelectorAll('.modal').forEach(m => { m.hidden = true; }); document.body.classList.remove('locked'); }
   document.addEventListener('click', e => { const c = e.target.closest('[data-close]'); if (c) closeModal(c.dataset.close); });
@@ -2603,7 +2696,7 @@ legend { padding: 0 4px; font-weight: 650; }
     const w = st.w, t = truth(), T = w.tgt, P = plotPoint();
     return { start: worldToGrid(w.op.x, w.op.y, 6), startXY: { x: w.op.x, y: w.op.y }, fo: w.fo, fdc: w.fdcCs, gm: w.gmAbs, gmEast: w.gmEast, mag: t.mag, gdir: t.gdir, d: t.d, dist: t.dist, otf: t.otf, tgt6: worldToGrid(T.x, T.y, 6), tgt8: worldToGrid(T.x, T.y, 8), tgtXY: { x: T.x, y: T.y }, plot6: P ? worldToGrid(P.x, P.y, 6) : null, plot8: P ? worldToGrid(P.x, P.y, 8) : null, alt: t.alt, tn: w.tn, tgtNo: w.tgtNo, unit: w.bty, rounds: w.rounds, opts: w.opts, reply: F.pend ? F.pend.want : null, replyOpts: F.pend ? F.pend.opts : [], corr: expCorr(), lines: lineStates(), step: guidedOn() ? gStep() : null, want: guidedOn() ? stepWant(gStep()) : null, feat: { fw: w.fw, hill: w.hill, small: w.small.map(q => ({ x: q.x, y: q.y, h: q.h })), cut: w.cut, J: w.J, lms: w.lms.map(l => l.name), ta: w.ta.nums.map(q => q.n), tries: w.tries, pts: w.pts.map(q => ({ x: q.x, y: q.y, n: q.n, lm: { x: q.lm.x, y: q.lm.y, name: q.lm.name } })), lm: { x: T.lm.x, y: T.lm.y, name: T.lm.name }, knp: w.knp.map(q => ({ x: q.x, y: q.y, n: q.n })) } };
   }
-  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, dl: MV.dl, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
+  window.__cff = { st, cfg, get F() { return F; }, get R() { return R; }, truth, exp, expCorr, spotOf, worldToGrid, gridToWorld, gStep, stepWant, stepNo, lineStates, canSend, sendLine, reply, fill, markOp, markX, setTap, coachData, newCard, setMode, evalAll, feedback, finish, timing: () => { const t = performance.now(); renderTerrain(); return performance.now() - t; }, frameMs: () => { const t = performance.now(); V.dirty = true; frame(t); return performance.now() - t; }, mapScale: () => ({ ratio: MV.scale / (MV.W / S), cx: MV.cx, cy: MV.cy, lab: MV.lab, yel: MV.yel, dock: MV.dock, cLab: MV.cLab, cLabXY: MV.cLabXY, yelP: MV.yelP, u: MV.W / MV.cv.clientWidth, pro: st.pro && MV.pro, box: st.pro && MV.proBox, rng: st.pro === 'rng' ? MV.rng : null, dl: MV.dl, tap: st.tap, W: MV.W, H: MV.H, plot: plotPoint(), pill: MV.pill, barB: barB() }), frames: () => V.n, mapOff: () => MV.off, dbg: { V, binoCaption, buildTerrain, placeTarget, genWorld, featuresSeen, visibleSet, openAround, los, groundAt, addBurst, setView, proj, camF, gridToWorld, gridCenter, sheetCheck, rowGrade, lineMsg } };
   newCard(QS.get('seed') ? +QS.get('seed') : undefined);
 })();
 </script>
