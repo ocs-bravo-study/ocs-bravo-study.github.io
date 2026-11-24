@@ -212,6 +212,8 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .l2d { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 /* lines 2 and 3 are one call (one Send); line 4: the FDC's MTO in a dark bubble, your read-back in a light one (user 11-24) */
 .l3in { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding-top: 6px; border-top: 1px dotted #cfcfc4; }
+.rtg { font: 700 13.5px var(--mono); color: #13284f; white-space: nowrap; }
+.rtg[hidden] { display: none; }
 .l23s { display: flex; flex-basis: 100%; align-items: center; gap: 8px; }
 .l23s small { color: #6b6b60; font-size: 12px; font-style: italic; }
 .say { flex-basis: 100%; padding: 8px 11px; border-radius: 12px; font: 700 13px/1.4 var(--mono); }
@@ -557,6 +559,7 @@ input.hint, .chip.hint:not([aria-pressed="true"]) { background: #fff0a8 !importa
     <ul>
       <li><b>Deviation correction:</b> count the mils from the vertical line to the burst × OT factor, nearest 10 m, written <b>XX L</b> or <b>XX R</b> (the side opposite the burst). 25 m or less: leave it blank (close enough left/right), so a correction is at least 30 m; once a row is blank, no more L/R corrections for the mission. Near the 25 m line (OT × mils within OT × 5 of 25) blank or 30 both pass: you count the mils yourself.</li>
       <li><b>Range correction:</b> burst more than 50 m short (in front) → Add, more than 50 m over (beyond) → Drop. 800 is struck out: the first range correction is 400, then each one is half of the last: 200, 100, 50FFE. 50FFE = fire for effect. In class that is 4 rows: L/R + 400, 200, 100, 50FFE.</li>
+      <li>Each row starts with <b>TARGET</b> and the number from the MTO, printed on the row (nothing to tap): <code>TARGET AH1581, RIGHT 40, DROP 400, OVER</code>.</li>
       <li>No read-back: the FDC fires at once: <code>SHOT, OVER</code> → <code>SHOT, OUT</code>; <code>SPLASH, OVER</code> → <code>SPLASH, OUT</code>. 5 rows: rows 1–4 can adjust; fire for effect (50FFE) on row 5 at the latest.</li>
       <li>A burst within 50 m of the target's range (range correct) → leave Add/Drop blank and tap 50FFE.</li>
     </ul>
@@ -1885,7 +1888,7 @@ input.hint, .chip.hint:not([aria-pressed="true"]) { background: #fff0a8 !importa
   function renderSheet() {
     const w = st.w, o = w.opts, tn = o.tn.map(v => [v, v]);
     let rows = '';
-    for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="cell">${inp('dv' + i, 'dvi', 4, 'm')}${chipRow('ds' + i, LR)}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
+    for (let i = 0; i < ROWS; i++) rows += `<div class="wl wr" id="R${i}"><span class="rn">${i + 1}</span><span class="rtg pen" hidden></span><span class="cell">${inp('dv' + i, 'dvi', 4, 'm')}${chipRow('ds' + i, LR)}</span><span class="cell">${chipRow('rk' + i, [['A', '(Add)'], ['D', '(Drop)']])}${chipRow('rm' + i, [['400', '400'], ['200', '200'], ['100', '100'], ['50', '50FFE']])}</span>${snd('xr' + i, 'OVER')}</div>`;
     $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
       <div class="sbox">
         <div class="wl" id="L1"><span class="n">1.</span><span class="csn"><small>FDC call sign</small><span class="pen">${w.fdcCs}</span></span><span class="pr">(de) this is</span><span class="csn"><small>Your call sign</small><span class="pen">${w.fo}</span></span><span class="pr">AF/FFE</span><span class="pen">Adjust Fire</span>${snd('x1', 'Over')}</div>
@@ -1980,7 +1983,8 @@ input.hint, .chip.hint:not([aria-pressed="true"]) { background: #fff0a8 !importa
     return id === 'L1' ? F.phase === 'cff' : id === 'L2' ? R.l1Ack : id === 'L3' ? R.l2Ack : true;
   }
   function renderLines() {
-    const ls = lineStates(), ms = $('mtoSay'), mb = $('mtoBack');
+    const ls = lineStates(), ms = $('mtoSay'), mb = $('mtoBack'), tg = `TARGET ${st.w.tn}`;
+    document.querySelectorAll('.rtg').forEach(e => { e.hidden = !R.mtoRx; if (e.textContent !== tg) e.textContent = tg; });
     if (ms) { ms.hidden = !R.mtoRx; const h = R.mtoRx ? `<small>${st.w.fdcCs} (FDC) tells you</small>${mtoTxt()}${R.mto ? '' : '<small class="nx">↓ Write it on line 4, then read it back to the FDC</small>'}` : ''; if (ms.innerHTML !== h) ms.innerHTML = h; }
     if (mb) { mb.hidden = !R.mto; const h = R.mto ? `<small>You read it back</small>${esc(R.mto.text)}` : ''; if (mb.innerHTML !== h) mb.innerHTML = h; }
     for (const id in ls) {
@@ -2104,7 +2108,7 @@ input.hint, .chip.hint:not([aria-pressed="true"]) { background: #fff0a8 !importa
     if (rk) part.push(`${rk === 'A' ? 'ADD' : 'DROP'} ${rm}`);
     if (rm === '50') part.push('FIRE FOR EFFECT');
     if (!part.length) return { err: 'A correction needs a deviation or a range correction.', el: 'rk' + k };
-    const t = part.join(', ') + ', OVER'; return { text: t, rb: t };
+    const t = [`TARGET ${st.w.tn}`].concat(part).join(', ') + ', OVER'; return { text: t, rb: t };
   }
   const LINE_STEP = { L1: 'l1', L2: 'l2', LM: 'mto', LE: 'eom' };
   function sendLine(id) {
@@ -2651,7 +2655,7 @@ input.hint, .chip.hint:not([aria-pressed="true"]) { background: #fff0a8 !importa
       'Phase 1 · Orient: the Given box has your start grid and both call signs. Mark ◎ on the map (tap it; within 100 m of the start). Direction: read the 0–6400 mil scale across the top of the 3D view straight above the target and write the grid Direction, nearest 10 (±10 mils: assumption). Mark ✕ on the map where the 3D view shows the target: each red number stands next to a landmark, and the map draws your Direction from ◎ as your protractor line: find the target\'s landmark along it by matching the terrain and mark ✕ next to it (◎ Start / ✕ Target under the map picks which one a tap marks); you can move ◎ and ✕ until line 2 is sent. Lay the protractor\'s range scale from ◎ through ✕ and read DISTANCE to the nearest 100 m; one 100 m step off still passes (true 1240 m → 1200; 1100 or 1300 pass too). Then OT FACTOR, and read the Grid at your ✕, 8 digits: within 100 m of the target (or read right at your ✕ when ✕ is within 100 m of it). ALT is printed: 160.',
       'Phase 2 · Call: send line 1, then lines 2 and 3 together as one call; the FDC does not read them back. Every FDC message that ends OVER needs its answer (SHOT, OUT; SPLASH, OUT; ROUNDS COMPLETE, OUT): if you send your next line first, the skipped answer counts as missed (NO-GO).',
       'Phase 3 · Line 4, MTO: the FDC tells you the message to observer; write unit, rounds and TGT # on line 4 (Changes to CFF is printed N/A), then read it back (Out). Answer SHOT, OVER and SPLASH, OVER.',
-      'Phase 4 · Adjust: one row per round, no read-back. Deviation = the burst\'s mils from the vertical line × OT, opposite side, nearest 10, written XX L or XX R; 25 m or less → leave blank, and after a blank row no more L/R corrections; near the 25 m line (OT × mils within OT × 5 of 25) blank or 30 both pass. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
+      'Phase 4 · Adjust: one row per round, no read-back; each row starts with TARGET and the MTO\'s target number (printed: TARGET AH1581, RIGHT 40, DROP 400, OVER). Deviation = the burst\'s mils from the vertical line × OT, opposite side, nearest 10, written XX L or XX R; 25 m or less → leave blank, and after a blank row no more L/R corrections; near the 25 m line (OT × mils within OT × 5 of 25) blank or 30 both pass. More than 50 m short → Add, beyond → Drop: 400, then half of the last one (200, 100, 50FFE); a burst within 50 m of the target\'s range is range correct: 50FFE. Rows 1–4 can adjust; fire for effect on row 5 at the latest, within 50 m of the target in range and in deviation (assumption).',
       'Phase 5 · End: ROUNDS COMPLETE, OUT, then End of Mission with the TGT # from the MTO.',
       'No coach, no highlights, no ✓ marks, no Ref until the end. Any NO-GO sends you to Charlie Company.'
     ];
