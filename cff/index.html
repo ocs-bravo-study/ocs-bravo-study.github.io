@@ -209,6 +209,8 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .wl .n { font-weight: 700; }
 .pr { color: #333; font-size: 12.5px; white-space: nowrap; }
 .paper s { color: #444; font-size: 12.5px; white-space: nowrap; }
+.l2d { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.wl input.wait { opacity: .45; }
 .hw { font-style: italic; color: #13284f; border-bottom: 1.5px dashed #13284f; white-space: nowrap; }
 .pen { font: 700 13px var(--mono); color: #13284f; }
 .prt { color: #222; }
@@ -1284,6 +1286,15 @@ legend { padding: 0 4px; font-weight: 650; }
     const p = mark(T.x, T.y, String(w.tgtNo), true), lab = stk + fs * 0.9;
     if (p.sx > -40 && p.sx < Wd + 40) { g.strokeStyle = '#f2ea4c'; g.lineWidth = Math.max(1, 1.4 * sc); g.beginPath(); g.arc(p.sx, p.sy - lab * 0.45, Math.max(7 * sc, 6.6 * p.s, lab * 0.62 + 2 * sc), 0, Math.PI * 2); g.stroke(); }
     g.globalAlpha = 1;
+    if (!st.bino && guidedOn() && gStep() === 'dir' && p.sx > 0 && p.sx < Wd) {
+      // Guided step 2: read the scale straight above the target: a dashed line from its circle up to the scale, a pointer on the edge
+      const y0 = p.sy - lab * 0.45 - Math.max(7 * sc, 6.6 * p.s, lab * 0.62 + 2 * sc) - 2 * sc;
+      g.save(); g.setLineDash([6 * sc, 4 * sc]); g.beginPath(); g.moveTo(p.sx, y0); g.lineTo(p.sx, bh + 6 * sc);
+      g.lineWidth = 4 * sc; g.strokeStyle = 'rgba(0,0,0,.55)'; g.stroke(); g.lineWidth = 2 * sc; g.strokeStyle = '#ffe14d'; g.stroke(); g.setLineDash([]);
+      g.beginPath(); g.moveTo(p.sx, bh - 9 * sc); g.lineTo(p.sx, bh); g.lineWidth = 2 * sc; g.stroke();
+      g.fillStyle = '#ffe14d'; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1 * sc; g.beginPath(); g.moveTo(p.sx, bh); g.lineTo(p.sx - 6 * sc, bh + 9 * sc); g.lineTo(p.sx + 6 * sc, bh + 9 * sc); g.closePath(); g.fill(); g.stroke();
+      g.restore();
+    }
     if (!st.bino) {
       // top-left overlay, under the scale: only the target number
       g.fillStyle = '#0f1d45'; g.textAlign = 'left'; g.font = `700 ${Math.round(12 * sc)}px Arial, sans-serif`;
@@ -1863,7 +1874,7 @@ legend { padding: 0 4px; font-weight: 650; }
     $('sheet').innerHTML = `<div class="sht">Call For Fire Grid Mission</div>
       <div class="sbox">
         <div class="wl" id="L1"><span class="n">1.</span><span class="csn"><small>FDC call sign</small><span class="pen">${w.fdcCs}</span></span><span class="pr">(de) this is</span><span class="csn"><small>Your call sign</small><span class="pen">${w.fo}</span></span><span class="pr">AF/FFE</span><span class="pen">Adjust Fire</span>${snd('x1', 'Over')}</div>
-        <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '8 digits')}<span class="pr">ALT</span><span class="pen">${ALTV}</span><span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</div>
+        <div class="wl" id="L2"><span class="n">2.</span><span class="pr">Grid</span><span class="pen">GA</span>${inp('gGrid', '', 12, '8 digits')}<span class="pr">ALT</span><span class="pen">${ALTV}</span><span class="l2d"><span class="hw">✎ Direction</span>${inp('gDir', '', 4, 'mils')}${snd('x2', 'Over')}</span></div>
         <div class="wl" id="L3"><span class="n">3.</span><s>Target Description</s><span class="pen">${L3TXT}</span>${snd('x3', 'Over')}</div>
         <div class="wl" id="LM"><span class="pr">MTO:</span><s>Unit to Fire</s>${chipRow('mU', o.unit.map(v => [v, v]))}<s>Changes to CFF</s><span class="pen">N/A</span><s># of Rounds</s>${chipRow('mN', [['1', '1 Round'], ['2', '2 Rounds'], ['3', '3 Rounds']])}<span class="pr">TGT #</span>${chipRow('mT', tn)}${snd('xM', 'Out')}</div>
       </div>
@@ -1964,6 +1975,9 @@ legend { padding: 0 4px; font-weight: 650; }
       const b = el.querySelector('.snd');
       if (b) { const on = canSend(id), end = b.dataset.end, t = on ? (end ? `Send (${end})` : 'Send') : end ? `(${end})` : ''; b.disabled = !on; if (b.textContent !== t) b.textContent = t; }
     }
+    // Guided: the Grid waits for step 6 (it is read at ✕), so step 2 (Direction) does not look like "fill the Grid too"
+    const gw = guidedOn() && ['op', 'dir', 'plot', 'dist', 'ot'].includes(gStep()), gi = $('gGrid');
+    if (gi) { if (gw) { gi.readOnly = true; gi.tabIndex = -1; } gi.placeholder = gw ? 'step 6' : '8 digits'; gi.classList.toggle('wait', gw); }
     // ◎ and ✕ lock once line 2 is sent; Guided sets the switch, and only its ◎ and ✕ steps let it change
     $('tapOp').disabled = $('tapX').disabled = !!R.l2 || st.ended || guidedOn() && !['op', 'plot'].includes(gStep());
   }
