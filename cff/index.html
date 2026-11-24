@@ -150,6 +150,11 @@ h2 { margin: 0 0 10px; font: 700 12px/1.2 var(--ui); letter-spacing: .1em; text-
 .given b { font-family: var(--mono); }
 .mz { display: flex; gap: 6px; }
 .mnote { margin: 6px 0 0; font-size: 12px; }
+/* marking ✕: a bright bar under the map sends you to the 3D view to compare the terrain (user 11-23: "明显一点") */
+.m3d { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 6px 10px; border: 2px solid var(--hint); border-radius: 10px; background: #fff4d2; color: #2a2208; font: 700 13.5px/1.3 var(--ui); }
+.m3d[hidden] { display: none; }
+.m3d span { flex: 1; }
+.m3d .btn { flex: none; padding: 8px 12px; border-color: #2a2208; background: #2a2208; color: #fff4d2; font-weight: 800; }
 .prow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
 /* the Tap marks switch shares the row (it wraps under the tools on a phone, so the row stays on screen sideways): two joined
    halves, the one on in ink, unlike the protractor tools (blue) */
@@ -350,6 +355,7 @@ legend { padding: 0 4px; font-weight: 650; }
         <div class="mapbox">
           <canvas id="map" aria-label="Map sheet. Drag to move, pinch or use + and − to zoom."></canvas>
         </div>
+        <div class="m3d" id="m3d" hidden><span>Not sure where the target is? Look at its terrain in the 3D view, then match it here.</span><button class="btn" id="go3d">3D view</button></div>
         <div class="prow">
           <div class="mz"><button class="ibtn" id="zOut" aria-label="Zoom out">−</button><button class="ibtn" id="zIn" aria-label="Zoom in">+</button><button class="ibtn" id="zFit">Fit</button></div>
           <div class="pro"><button class="btn" id="proOp" aria-pressed="false" aria-label="Protractor on your start" title="Protractor on your start">◎ OP</button><button class="btn" id="proX" aria-pressed="false" aria-label="Protractor on your ✕" title="Protractor on your ✕">✕</button><button class="btn" id="proRng" aria-pressed="false" aria-label="Range scale from ◎ through ✕" title="Range scale from ◎ through ✕">◎→✕</button></div>
@@ -1273,7 +1279,7 @@ legend { padding: 0 4px; font-weight: 650; }
     if (s === 'wait' || s === 'reply' || s === 'ffe') return 'Keep the vertical line on the target.';
     return st.bursts.some(b => performance.now() - b.t0 < 30000) ? 'Vertical line = your line to the target.' : `TGT ${st.w.tgtNo} is in the yellow circle · tap to center on it.`;
   }
-  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : guidedOn() && gStep() === 'dir' ? `Read the scale above TGT ${st.w.tgtNo} (yellow circle), then add 70` : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
+  function renderCap() { const t = !st.w ? '' : st.bino ? binoCaption() : guidedOn() && gStep() === 'dir' ? `Read the scale above TGT ${st.w.tgtNo} (yellow circle), then add 70` : m3dOn() ? `Look at the terrain around TGT ${st.w.tgtNo}, then tap Map to mark ✕` : `TGT ${st.w.tgtNo} = yellow circle · tap it for the binoculars`; if ($('bcap').textContent !== t) $('bcap').textContent = t; }
   function setView(az, pitch, fast) {
     st.az = w64(az); st.pitch = clamp(pitch, -0.3, 0.15);
     V.dirty = true; V.fast = !!fast; kick();
@@ -1436,6 +1442,7 @@ legend { padding: 0 4px; font-weight: 650; }
   const minScale = fitScale, maxScale = () => MV.W / S * 12, zoomed = () => MV.scale > fitScale() * 1.05;
   function fitMap() { MV.scale = fitScale(); MV.cx = S / 2 - 13 * (MV.W / (MV.cv.clientWidth || MV.W)) / MV.scale; MV.cy = S / 2; drawMap(); }
   function drawMap() {
+    m3dUpd();
     const g = MV.ctx, w = st.w; if (!w || !MV.W) return;
     if (!MV.img) MV.img = buildMapImage(w);
     const Wd = MV.W, Hd = MV.H, sc = MV.scale;
@@ -1816,7 +1823,9 @@ legend { padding: 0 4px; font-weight: 650; }
     return { g, x, opd, dir, dist, ot, otMine, gd, gx, myD, myDist };
   }
   // what a tap on the map marks: ◎ (your start) or ✕ (the target)
-  function setTap(k) { st.tap = k; $('tapOp').setAttribute('aria-pressed', String(k === 'op')); $('tapX').setAttribute('aria-pressed', String(k === 'x')); }
+  const m3dOn = () => !!st.w && !st.ended && !!R && !R.l2 && (guidedOn() ? gStep() === 'plot' : !!st.opMark && st.tap === 'x');
+  function m3dUpd() { const e = $('m3d'); if (e) e.hidden = !m3dOn(); }
+  function setTap(k) { st.tap = k; m3dUpd(); $('tapOp').setAttribute('aria-pressed', String(k === 'op')); $('tapX').setAttribute('aria-pressed', String(k === 'x')); }
   // Guided, a step that marks nothing (◎ is done, ✕ is not yet due or done): a map tap says so and what the step wants
   const tapIdle = s => note(`Map taps mark nothing now: ${s === 'dir' ? 'first the Direction, then ✕ (step 3)' : '◎ and ✕ are marked'}. ${coachData().tip}`);
   // your start position: tap the map (Guided snaps it onto the given grid). Exam: ◎ and ✕ can be marked again until line 2 is sent;
@@ -2426,6 +2435,7 @@ legend { padding: 0 4px; font-weight: 650; }
   const stickRO = new ResizeObserver(() => { const tb = document.querySelector('.top-bar').offsetHeight, s = document.documentElement.style; s.setProperty('--tb', tb + 'px'); s.setProperty('--stick', ($('viewCard').offsetHeight + tb) + 'px'); });
   stickRO.observe($('viewCard')); stickRO.observe(document.querySelector('.top-bar'));
   $('stView').addEventListener('click', () => setStage('view'));
+  $('go3d').addEventListener('click', () => { setStage('view'); renderCap(); });
   $('stMap').addEventListener('click', () => setStage('map'));
   function setTab(t) {
     // a field on the panel that goes away loses the keyboard now, so the stage pins again before anything scrolls
@@ -2443,7 +2453,7 @@ legend { padding: 0 4px; font-weight: 650; }
   }
   function refresh() {
     if (!st.w) return;
-    readSheet();
+    readSheet(); m3dUpd();
     const c = sheetCheck(); st.gOk = c.g;
     renderLines();
     const gs = guidedOn() ? gStep() : '';
