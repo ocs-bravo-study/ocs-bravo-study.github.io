@@ -469,7 +469,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     }
   } catch (e) {}
   let P = (() => { try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.items) return v; } catch (e) {} return { items: {}, lv: {}, xp: 0, days: [], custom: {} }; })();
-  ['lv', 'custom'].forEach(k => { P[k] = P[k] || {}; });
+  // open = unfinished lessons (added 11-25); older saves have none and start with {}.
+  ['lv', 'custom', 'open'].forEach(k => { if (!P[k] || typeof P[k] !== 'object') P[k] = {}; });
   P.days = P.days || [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} };
   const seen = k => { if (!P.items[k]) P.items[k] = { b: 0, d: Date.now(), n: 0, c: 0 }; };
@@ -584,6 +585,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   }
   SECTIONS.forEach(prep);
   const BY = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
+  // A fingerprint of the content: an unfinished lesson saved before a content change is dropped, never replayed.
+  const VER = [...JSON.stringify(SECTIONS)].reduce((h, c) => h * 31 + c.charCodeAt(0) | 0, 7);
   const usable = s => s.type !== 'custom' || s.ready;
   const label = (sec, i) => sec.labels ? sec.labels[i] : String(i + 1);
   // Lists may be said in any order, except the ones marked ordered (Classes of Supply, 5 Paragraph OPORD).
@@ -798,11 +801,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   /* ---------- lesson engine ---------- */
   const app = $('#app');
   let L = null;
+  // An unfinished lesson is kept after every step, one per skill plus one review and one drill, so leaving
+  // mid-way (Quit, closing the tab, the phone dropping the page) loses nothing. Anything odd = a fresh start.
+  const pack = e => ({ ...e, sec: e.sec.id });
+  const unpack = e => { if (!e || !BY[e.sec] || !RENDER[e.t]) throw new Error('stale'); return { ...e, sec: BY[e.sec] }; };
+  const openOf = slot => { const o = P.open[slot]; return o && o.v === VER && o.done > 0 && Array.isArray(o.queue) && o.queue.length ? o : null; };
+  const openTxt = o => `${o.done}/${o.done + o.queue.length}`;
+  function keep() {
+    P.open[L.slot] = { v: VER, lv: L.lv, at: Date.now(), ms: Date.now() - L.t0, done: L.done, graded: L.graded, right: L.right, queue: L.queue.map(pack), misses: L.misses.map(pack) };
+    Object.keys(P.open).sort((a, b) => (P.open[b].at || 0) - (P.open[a].at || 0)).slice(6).forEach(k => delete P.open[k]);
+    save();
+  }
   // keys = a trouble drill on exactly those items; no sec and no keys = spaced review.
   function startLesson(sec, lv, keys) {
-    const queue = sec ? gen(sec, lv) : keys ? keys.map(exForKey).filter(Boolean) : genReview();
-    if (!queue.length) return;
-    L = { sec, lv, drill: !!keys, queue, done: 0, graded: 0, right: 0, t0: Date.now(), key: null, cont: null, misses: [] };
+    const slot = sec ? sec.id : keys ? 'drill' : 'review', o = P.open[slot];
+    let R = null;
+    if (o && o.v === VER && o.lv === lv) try {
+      R = { sec, lv, drill: !!keys, slot, queue: o.queue.map(unpack), done: +o.done || 0, graded: +o.graded || 0, right: +o.right || 0, t0: Date.now() - (+o.ms || 0), key: null, cont: null, misses: o.misses.map(unpack) };
+      if (!R.queue.length) R = null;
+    } catch (e) { R = null; }
+    if (!R) {
+      const queue = sec ? gen(sec, lv) : keys ? keys.map(exForKey).filter(Boolean) : genReview();
+      if (!queue.length) return;
+      R = { sec, lv, drill: !!keys, slot, queue, done: 0, graded: 0, right: 0, t0: Date.now(), key: null, cont: null, misses: [] };
+    }
+    L = R;
     document.body.classList.add('lesson-on');
     app.innerHTML = `<div class="lesson" id="lesson"><div class="ltop"><button class="lx" id="lx" aria-label="Quit lesson">×</button><span class="lbar"><i></i></span><span class="lcount mono"></span></div><div class="lbody" id="lbody"></div></div>
       <div class="fbar" id="fbar" hidden><div class="wrap fin"><div class="fmsg" aria-live="polite"><span class="fgo"></span><div class="ftext"></div></div><button class="btn pri" id="fcont">Continue</button></div></div>`;
@@ -824,6 +847,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     $('.lbar i').style.width = (L.done / total * 100) + '%';
     $('.lcount').textContent = `${Math.min(L.done + 1, total)}/${total}`;
     if (!L.queue.length) return complete();
+    keep();
     const ex = L.queue[0], host = $('#lbody');
     host.innerHTML = '';
     $('#lesson').classList.toggle('typing', ex.t === 'letters');
@@ -831,21 +855,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     window.scrollTo(0, 0);
   }
   function resolve(ex, res) {
-    if (!L) return;
+    if (!L || L.queue[0] !== ex) return;
     (res.keys || []).forEach(([k, v]) => grade(k, v));
-    save();
-    if (res.intro) { L.queue.shift(); L.done++; nextEx(); return; }
+    // Move on now (not on Continue), so a lesson left on the GO / NO-GO bar resumes at the next question.
+    L.queue.shift(); L.done++;
+    if (res.intro) { nextEx(); return; }
     L.graded++; if (res.ok) L.right++; else L.misses.push(ex);
+    // A miss comes back two questions later, not at the very end.
+    if (!res.ok && !ex.again) L.queue.splice(Math.min(2, L.queue.length), 0, { ...ex, again: true });
+    keep();
     const fb = $('#fbar');
     fb.hidden = false; fb.classList.toggle('no', !res.ok);
     $('.fgo', fb).textContent = res.ok ? 'GO' : 'NO-GO';
     $('.ftext', fb).innerHTML = (res.msg || '') + (res.ok ? '' : cueFor(ex));
-    L.cont = () => {
-      L.queue.shift(); L.done++;
-      // A miss comes back two questions later, not at the very end.
-      if (!res.ok && !ex.again) L.queue.splice(Math.min(2, L.queue.length), 0, { ...ex, again: true });
-      nextEx();
-    };
+    L.cont = nextEx;
     L.key = e => { if (e.key === 'Enter') { e.preventDefault(); L.cont(); } };
     $('#fcont').focus({ preventScroll: true });
   }
@@ -855,6 +878,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
     P.xp = (P.xp || 0) + xp;
     if (!P.days.includes(today())) P.days.push(today());
     if (sec && lv > lvOf(sec)) P.lv[sec.id] = lv;
+    delete P.open[L.slot];
     save();
     const t = mmss(Date.now() - L.t0), weak = [...new Set(L.misses.map(m => m.sec.title + ' · ' + exQ(m) + '|' + exAnswer(m)))].slice(0, 8);
     const nextLv = sec && lv < levelsOf(sec) ? lv + 1 : 0;
@@ -1140,30 +1164,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
   function viewPath() {
     const up = nextUp(), due = SECTIONS.filter(usable).reduce((a, s) => a + dueOf(s), 0);
     const all = SECTIONS.filter(usable).flatMap(s => s.keys), memAll = all.length ? Math.round(all.filter(remembered).length / all.length * 100) : 0, tr = trouble();
+    // The lesson left most recently, if any: [slot, saved lesson].
+    const res = Object.keys(P.open).filter(k => openOf(k) && (BY[k] ? usable(BY[k]) : k === 'review' || k === 'drill')).map(k => [k, P.open[k]]).sort((a, b) => b[1].at - a[1].at)[0];
+    const resName = res && (BY[res[0]] ? `${BY[res[0]].title} · ${levelTitle(BY[res[0]], res[1].lv)}` : res[0] === 'drill' ? 'Trouble drill' : 'Review');
+    const same = res && up && res[0] === up.id && res[1].lv === lvOf(up) + 1;
     app.innerHTML = `<section class="phead"><div><p class="eyebrow">Phase up · cadre knowledge sheet</p><h1>Learn it a few pieces at a time</h1>
       <p class="sub">Short levels per skill: learn, practice, master. Long passages go one part and one line at a time. Spelling never counts.</p></div>
       <div class="stats"><div><b class="mono">${streak()}</b><span>day streak</span></div><div><b class="mono">${P.xp || 0}</b><span>XP</span></div><div><b class="mono">${memAll}%</b><span>remembered now</span></div></div></section>
-      <div class="cta">${up ? `<button class="btn gold" id="go-next">Continue: ${esc(up.title)} · ${esc(levelTitle(up, lvOf(up) + 1))}</button>` : ''}${due ? `<button class="btn" data-go="review">Review · ${due} due</button>` : ''}${tr.length >= 3 ? `<button class="btn" id="go-trouble">Trouble spots · ${tr.length}</button>` : ''}</div>
+      <div class="cta">${res ? `<button class="btn gold" id="go-res">Resume: ${esc(resName)} · ${openTxt(res[1])}</button>` : ''}${up && !same ? `<button class="btn${res ? '' : ' gold'}" id="go-next">Continue: ${esc(up.title)} · ${esc(levelTitle(up, lvOf(up) + 1))}</button>` : ''}${due ? `<button class="btn" data-go="review">Review · ${due} due</button>` : ''}${tr.length >= 3 ? `<button class="btn" id="go-trouble">Trouble spots · ${tr.length}</button>` : ''}</div>
       <div class="weeks">${WEEKS.map(([w, wname]) => `<section class="week"><h3>${esc(wname)}</h3><ol class="path">${SECTIONS.filter(s => s.week === w).map(s => {
         // The ring shows how much is remembered right now, so it shrinks as items come due.
-        const lv = lvOf(s), d = dueOf(s), ready = usable(s), max = levelsOf(s), done = lv >= max, mem = memOf(s), fresh = done && mem >= 0.9;
+        const lv = lvOf(s), d = dueOf(s), ready = usable(s), max = levelsOf(s), done = lv >= max, mem = memOf(s), fresh = done && mem >= 0.9, o = openOf(s.id);
         const state = !ready ? 'Add the words to start' : done ? (fresh ? 'Mastered' : 'Mastered, fading') : lv ? `Next: ${levelNames(s)[lv][0]}` : `${countLabel(s)} · new`;
         return `<li><button class="node${up === s ? ' next' : ''}" data-skill="${s.id}"><span class="ring${fresh ? ' full' : ''}" style="--p:${mem.toFixed(3)}"><span class="core">${!ready ? '+' : done ? '✓' : lv + 1}</span></span>
-          <span class="nt"><b>${esc(s.title)}</b><small>${state}${lv && ready ? ` · ${Math.round(mem * 100)}% remembered` : ''}${d && ready ? ` · <span class="due">${d} due</span>` : ''}</small></span></button></li>`;
+          <span class="nt"><b>${esc(s.title)}</b><small>${state}${o && ready ? ` · paused at ${openTxt(o)}` : ''}${lv && ready ? ` · ${Math.round(mem * 100)}% remembered` : ''}${d && ready ? ` · <span class="due">${d} due</span>` : ''}</small></span></button></li>`;
       }).join('')}</ol></section>`).join('')}</div>
       <footer class="foot"><span>Progress is saved in this browser only.</span><button class="link" id="reset">Reset progress</button>${/\/phaseup\/(index\.html)?$/.test(location.pathname) ? '<a class="link" href="../">All Bravo study tools</a>' : ''}</footer>`;
     const n = $('#go-next'); if (n) n.onclick = () => startLesson(up, lvOf(up) + 1);
+    const gr = $('#go-res'); if (gr) gr.onclick = () => BY[res[0]] ? startLesson(BY[res[0]], res[1].lv) : startLesson(null, 0, res[0] === 'drill' ? [] : undefined);
     const gt = $('#go-trouble'); if (gt) gt.onclick = () => startLesson(null, 0, tr);
     const r = $('#reset');
     r.onclick = () => {
-      if (r.dataset.arm) { P = { items: {}, lv: {}, xp: 0, days: [], custom: P.custom }; save(); go('path'); return; }
+      if (r.dataset.arm) { P = { items: {}, lv: {}, xp: 0, days: [], custom: P.custom, open: {} }; save(); go('path'); return; }
       r.dataset.arm = '1'; r.textContent = 'Tap again to erase your progress (pasted texts stay)';
       setTimeout(() => { if (r.isConnected) { delete r.dataset.arm; r.textContent = 'Reset progress'; } }, 4000);
     };
   }
 
   function viewSkill(sec) {
-    const lv = lvOf(sec), ready = usable(sec);
+    const lv = lvOf(sec), ready = usable(sec), o = openOf(sec.id);
     const custom = sec.type === 'custom' ? `<div class="custom"><label for="cust-${sec.id}">${ready ? 'The words' : 'Add the words'}</label>
       <textarea id="cust-${sec.id}" rows="${ready ? 6 : 8}" placeholder="${esc(sec.ask)}">${esc(P.custom[sec.id] || '')}</textarea>
       <small>${esc(sec.ask)} It stays in this browser.</small><div class="row2"><button class="btn pri" id="cust-save">Save the words</button></div></div>` : '';
@@ -1171,7 +1200,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
       <div><p class="eyebrow">Week ${sec.week}${ready ? ' · ' + countLabel(sec) : ''}</p><h1>${esc(sec.title)}</h1>${sec.tag ? `<p class="hint">${esc(sec.tag)}</p>` : ''}</div>
       ${memoHTML(sec)}
       ${ready ? `<div class="levels">${levelNames(sec).map(([n, d], k) => `<button class="lvl${k < lv ? ' done' : k === lv ? ' next' : ''}" data-lv="${k + 1}"><span class="ln">${multi(sec) ? (k < lv ? 'DONE' : '&nbsp;') : `LEVEL ${k + 1}${k < lv ? ' · DONE' : ''}`}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
-      <div class="row2"><button class="btn gold" data-lv="${Math.min(lv + 1, levelsOf(sec))}">${lv >= levelsOf(sec) ? `Run ${levelNames(sec)[levelsOf(sec) - 1][0]} again` : `Start ${multi(sec) ? levelNames(sec)[lv][0] : `level ${lv + 1}: ${LEVELS[lv][0]}`}`}</button></div>
+      <div class="row2">${o ? `<button class="btn gold" data-lv="${o.lv}">Resume ${esc(levelTitle(sec, o.lv))} · ${openTxt(o)}</button>` : `<button class="btn gold" data-lv="${Math.min(lv + 1, levelsOf(sec))}">${lv >= levelsOf(sec) ? `Run ${levelNames(sec)[levelsOf(sec) - 1][0]} again` : `Start ${multi(sec) ? levelNames(sec)[lv][0] : `level ${lv + 1}: ${LEVELS[lv][0]}`}`}</button>`}</div>
       ${tipsHTML(sec)}
       <div class="card"><header class="chead"><h2>The content</h2><span class="cnt">${countLabel(sec)}</span></header><div class="irows">${rowsHTML(sec)}</div>${sec.note ? `<p class="note">${esc(sec.note)}</p>` : ''}</div>` : ''}
       ${custom}</div>`;
@@ -1182,16 +1211,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 
   function viewReview() {
     const live = SECTIONS.filter(usable), due = live.reduce((a, s) => a + dueOf(s), 0), seenN = Object.keys(P.items).filter(k => exForKey(k)).length;
-    const tr = trouble();
+    const tr = trouble(), orv = openOf('review'), odr = openOf('drill');
     const name = k => { const [id, rest] = k.split(':'), s = BY[id];
       if (s.type === 'table') { const [r, c] = rest.split('.').map(Number); return [s.title, `${s.rows[r].cue}: ${s.rows[r].cells[c]}`]; }
       if (isText(s)) return [s.title, s.lines[parseInt(rest, 10)].text];
       const it = s.items[parseInt(rest, 10)]; return [s.title, rest.endsWith('s') ? `${it.text}: ${it.sub.map(x => x.text).join(', ')}` : `${ordered(s) ? label(s, parseInt(rest, 10)) + '. ' : ''}${it.text}`]; };
     app.innerHTML = `<div class="skill"><div><p class="eyebrow">Spaced review</p><h1>${due ? `${due} due now` : 'Review'}</h1>
       <p class="sub">Everything you have started comes back here on a schedule: missed items right away, then after 10 minutes, an hour, 5 hours, a day and 3 days as you keep getting them right.</p></div>
-      ${seenN ? `<div class="row2"><button class="btn gold" id="rv">Start review · ${Math.min(12, Math.max(due, Math.min(8, seenN)))} questions</button></div>` : `<p class="ctx">Nothing to review yet. Finish a Learn level on the path first.</p><div class="row2"><button class="btn gold" data-go="path">Go to the path</button></div>`}
+      ${seenN ? `<div class="row2"><button class="btn gold" id="rv">${orv ? `Resume review · ${openTxt(orv)}` : `Start review · ${Math.min(12, Math.max(due, Math.min(8, seenN)))} questions`}</button></div>` : `<p class="ctx">Nothing to review yet. Finish a Learn level on the path first.</p><div class="row2"><button class="btn gold" data-go="path">Go to the path</button></div>`}
       ${tr.length ? `<div class="card"><header class="chead"><h2>Trouble spots</h2><span class="cnt">most missed first</span></header><ul class="weak" style="border:0;max-width:none">${tr.map(k => { const [t, x] = name(k); return `<li><small>${esc(t)} · missed ${P.items[k].m}×</small>${esc(x)}</li>`; }).join('')}</ul>
-        <div class="row2" style="padding:0 12px 12px"><button class="btn gold" id="drill">Drill these ${tr.length}</button></div></div>` : ''}</div>`;
+        <div class="row2" style="padding:0 12px 12px"><button class="btn gold" id="drill">${odr ? `Resume drill · ${openTxt(odr)}` : `Drill these ${tr.length}`}</button></div></div>` : ''}</div>`;
     const b = $('#rv'); if (b) b.onclick = () => startLesson(null, 0);
     const dr = $('#drill'); if (dr) dr.onclick = () => startLesson(null, 0, tr);
   }
