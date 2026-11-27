@@ -10,11 +10,14 @@ They run in any phone or computer browser. There is no sign-in, no server, and n
 | MBITR radio | `/mbitr/` | AN/PRC-148: load a SINCGARS single-channel frequency |
 | Weapons 3D | `/weapons/` | M249 / M240B maintenance: take apart and put back |
 | Weapons drills | `/weapons/drills/` | Clearing, functions check, load / malfunction / unload |
+| American Military History | `/amh/` | The AMH course: topic cards, timeline, spaced review, exam-format drills and a 75-minute mock test; every item cites its slide |
 | Call for Fire | `/cff/` | The sim center grid mission: orient on the map, the 3-line call, MTO, adjust, FFE, end of mission (math video in `/cff/math/`) |
 
 ## How it is built
 
 - Each tool is **one HTML file** (`<tool>/index.html`) with its own CSS and JavaScript inside. No build step, no packages.
+  The exception is `/amh/`: a built React app (hashed files in `amh/assets/`, an offline service worker in `amh/sw.js`).
+  Its content lives in one JSON file per lesson in the AMH project, not here; don't hand-edit `amh/`.
 - The 3D weapons pages use Three.js 0.160.0, kept in `vendor/three-0.160.0/` (MIT license in that folder) so the site
   depends on nothing outside github.io. Don't change the version without testing both weapons pages.
 - The weapons demo videos are in `weapons/video/`; the Call for Fire math video is in `cff/math/`.
