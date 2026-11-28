@@ -1,3 +1,3 @@
 { "name": "AMH · Bravo", "short_name": "AMH", "start_url": "./", "display": "standalone",
-  "background_color": "#F3EEE3", "theme_color": "#F3EEE3",
+  "background_color": "#FAF9F6", "theme_color": "#FAF9F6",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }] }
