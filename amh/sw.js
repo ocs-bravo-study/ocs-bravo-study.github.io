@@ -1,4 +1,4 @@
-const V='amh-a60bb6b5b9';const URLS=["./","./assets/source-serif-4-latin-opsz-normal-BpEBLj1O.woff2","./assets/index-D5rtuQWy.css","./assets/index-DFoBRWKo.js","./icon.svg","./manifest.webmanifest"];
+const V='amh-dcd47b5c10';const URLS=["./","./assets/source-serif-4-latin-opsz-normal-BpEBLj1O.woff2","./assets/index-CoiYGqoY.css","./assets/index-CCKqP5mC.js","./icon.svg","./manifest.webmanifest"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(URLS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const r=e.request;const u=new URL(r.url);if(r.method!=='GET'||u.origin!==location.origin||/\.(mp4|webm|mov)$/i.test(u.pathname))return;
